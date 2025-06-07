@@ -1351,11 +1351,10 @@ class Entity {
             // 🔥 FIXED: Removed debug log for cleaner console output
             this.lastDebugLog = Date.now();
         }
-        
-        // Get canvas dimensions for proper bounds checking
+          // Get canvas dimensions for proper bounds checking
         const canvasWidth = ctx.canvas ? ctx.canvas.width : 800;
         const canvasHeight = ctx.canvas ? ctx.canvas.height : 600;
-        const buffer = 50; // Buffer for entities partially off-screen
+        const buffer = 150; // 🔧 INCREASED: Larger buffer to prevent premature culling (was 50)
         
         // Don't render if outside screen with proper canvas bounds
         if (screenX < -this.width - buffer || 
@@ -1819,11 +1818,15 @@ class EntityManager {
             this.spawnTimer = 0;
             this.spawnRandomEntity(world, player);
         }
-    }spawnRandomEntity(world, player) {
-        // Calculate spawn position near but outside player's immediate view
-        const viewportWidth = 400;  // Reduced viewport for closer spawning
-        const viewportHeight = 300; // Reduced viewport for closer spawning  
-        const buffer = 50; // Smaller buffer for closer spawning
+    }    spawnRandomEntity(world, player) {
+        // 🔧 IMPROVED: Calculate spawn position outside player's viewport with proper safe zone
+        const canvasWidth = window.game?.canvas?.width || 800;
+        const canvasHeight = window.game?.canvas?.height || 600;
+        
+        // Use actual viewport dimensions with larger buffer for safe spawning
+        const viewportWidth = canvasWidth;
+        const viewportHeight = canvasHeight;
+        const buffer = 100; // 🔧 INCREASED: Larger buffer to ensure spawning outside visible area (was 50)
         
         let spawnX, spawnY;
         let attempts = 0;
@@ -1855,7 +1858,7 @@ class EntityManager {
             }
             
             attempts++;
-        } while (attempts < maxAttempts && this.isPositionNearPlayer(spawnX, spawnY, player, 150));          // Make sure spawn position is valid (on solid ground)
+        } while (attempts < maxAttempts && this.isPositionNearPlayer(spawnX, spawnY, player, 200)); // 🔧 INCREASED: Larger minimum distance (was 150)// Make sure spawn position is valid (on solid ground)
         const groundY = this.findGroundLevel(world, spawnX);
         if (groundY === -1) {
             return; // No valid ground found
