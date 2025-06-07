@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Audio Panel</title>
+    <link rel="stylesheet" href="src/css/game.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2C5234;
+            font-family: 'Courier New', monospace;
+            color: white;
+        }
+        
+        #testButtons {
+            margin-bottom: 20px;
+        }
+        
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            background: #8B4513;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #A0522D;
+        }
+        
+        #status {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Audio Panel Debug Test</h1>
+    
+    <div id="status">
+        <h3>Status:</h3>
+        <div id="statusContent">Loading...</div>
+    </div>
+    
+    <div id="testButtons">
+        <button onclick="testCreatePanel()">Create Audio Panel</button>
+        <button onclick="testShowPanel()">Show Panel</button>
+        <button onclick="testHidePanel()">Hide Panel</button>
+        <button onclick="testTogglePanel()">Toggle Panel</button>
+        <button onclick="testCheckClasses()">Check CSS Classes</button>
+    </div>
+    
+    <div id="musicControl" class="music-control enabled">🎵 Audio Settings</div>
+    
+    <script src="src/js/sound.js"></script>
+    <script>
+        let testSoundSystem = null;
+        let testAudioPanel = null;
+        
+        function updateStatus(message) {
+            document.getElementById('statusContent').innerHTML = message;
+            console.log(message);
+        }
+        
+        function testCreatePanel() {
+            try {
+                updateStatus('Creating SoundSystem...');
+                testSoundSystem = new SoundSystem();
+                
+                updateStatus('Creating AudioSettingsPanel...');
+                
+                // Copy the AudioSettingsPanel class from the main game file
+                class AudioSettingsPanel {
+                    constructor(soundSystem) {
+                        console.log('AudioSettingsPanel constructor called with:', soundSystem);
+                        this.soundSystem = soundSystem;
+                        this.panel = null;
+                        this.overlay = null;
+                        this.isVisible = false;
+                        
+                        try {
+                            this.createPanel();
+                            this.bindEvents();
+                            console.log('AudioSettingsPanel initialized successfully');
+                        } catch (error) {
+                            console.error('Error initializing AudioSettingsPanel:', error);
+                        }
+                    }
+                    
+                    createPanel() {
+                        // Create overlay
+                        this.overlay = document.createElement('div');
+                        this.overlay.className = 'audio-settings-overlay';
+                        
+                        // Create panel
+                        this.panel = document.createElement('div');
+                        this.panel.className = 'audio-settings-panel';
+                        
+                        this.panel.innerHTML = `
+                            <div class="audio-settings-header">
+                                <h2>🎵 Audio Settings</h2>
+                                <button class="close-button" type="button">×</button>
+                            </div>
+                            
+                            <div class="audio-settings-content">
+                                <div class="audio-category">
+                                    <div class="category-header">
+                                        <span class="category-title">🔊 Master Volume</span>
+                                    </div>
+                                    <div class="category-controls">
+                                        <input type="range" class="volume-slider" id="masterVolume" 
+                                               min="0" max="1" step="0.01" value="${this.soundSystem.volume}">
+                                        <span class="volume-value">${Math.round(this.soundSystem.volume * 100)}%</span>
+                                    </div>
+                                </div>
+                                
+                                ${this.generateCategoryHTML()}
+                            </div>
+                            
+                            <div class="audio-settings-footer">
+                                <button class="reset-button" type="button">🔄 Reset to Defaults</button>
+                                <button class="save-button" type="button">💾 Save Settings</button>
+                            </div>
+                        `;
+                        
+                        this.overlay.appendChild(this.panel);
+                        document.body.appendChild(this.overlay);
+                    }
+                    
+                    generateCategoryHTML() {
+                        return Object.keys(this.soundSystem.audioCategories).map(categoryKey => {
+                            const category = this.soundSystem.audioCategories[categoryKey];
+                            const volumePercent = Math.round(category.volume * 100);
+                            
+                            return `
+                                <div class="audio-category">
+                                    <div class="category-header">
+                                        <label class="category-toggle">
+                                            <input type="checkbox" ${category.enabled ? 'checked' : ''} 
+                                                   data-category="${categoryKey}">
+                                            <span class="category-title">${category.name}</span>
+                                        </label>
+                                    </div>
+                                    <div class="category-controls">
+                                        <input type="range" class="volume-slider" 
+                                               data-category="${categoryKey}"
+                                               min="0" max="1" step="0.01" 
+                                               value="${category.volume}"
+                                               ${!category.enabled ? 'disabled' : ''}>
+                                        <span class="volume-value">${volumePercent}%</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                    
+                    bindEvents() {
+                        // Close button
+                        this.panel.querySelector('.close-button').addEventListener('click', () => {
+                            this.hide();
+                        });
+                        
+                        // Overlay click to close
+                        this.overlay.addEventListener('click', (e) => {
+                            if (e.target === this.overlay) {
+                                this.hide();
+                            }
+                        });
+                    }
+                    
+                    show() {
+                        console.log('AudioSettingsPanel.show() called');
+                        console.log('Overlay element:', this.overlay);
+                        console.log('Overlay classes before:', this.overlay.className);
+                        
+                        this.overlay.classList.add('show');
+                        this.isVisible = true;
+                        
+                        console.log('Overlay classes after:', this.overlay.className);
+                        console.log('Computed styles:', window.getComputedStyle(this.overlay));
+                    }
+                    
+                    hide() {
+                        console.log('AudioSettingsPanel.hide() called');
+                        this.overlay.classList.remove('show');
+                        setTimeout(() => {
+                            this.isVisible = false;
+                        }, 300);
+                    }
+                    
+                    toggle() {
+                        console.log('AudioSettingsPanel.toggle() called, isVisible:', this.isVisible);
+                        if (this.isVisible) {
+                            this.hide();
+                        } else {
+                            this.show();
+                        }
+                    }
+                }
+                
+                testAudioPanel = new AudioSettingsPanel(testSoundSystem);
+                updateStatus('✅ Audio panel created successfully!<br>Panel: ' + !!testAudioPanel + '<br>Overlay: ' + !!testAudioPanel.overlay);
+                
+            } catch (error) {
+                updateStatus('❌ Error: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function testShowPanel() {
+            if (testAudioPanel) {
+                testAudioPanel.show();
+                updateStatus('Show panel called. IsVisible: ' + testAudioPanel.isVisible);
+            } else {
+                updateStatus('❌ No panel created yet! Click "Create Audio Panel" first.');
+            }
+        }
+        
+        function testHidePanel() {
+            if (testAudioPanel) {
+                testAudioPanel.hide();
+                updateStatus('Hide panel called. IsVisible: ' + testAudioPanel.isVisible);
+            } else {
+                updateStatus('❌ No panel created yet!');
+            }
+        }
+        
+        function testTogglePanel() {
+            if (testAudioPanel) {
+                testAudioPanel.toggle();
+                updateStatus('Toggle panel called. IsVisible: ' + testAudioPanel.isVisible);
+            } else {
+                updateStatus('❌ No panel created yet!');
+            }
+        }
+        
+        function testCheckClasses() {
+            if (testAudioPanel && testAudioPanel.overlay) {
+                const overlay = testAudioPanel.overlay;
+                const computedStyles = window.getComputedStyle(overlay);
+                updateStatus(`
+                    <strong>CSS Analysis:</strong><br>
+                    Classes: "${overlay.className}"<br>
+                    Display: ${computedStyles.display}<br>
+                    Opacity: ${computedStyles.opacity}<br>
+                    Z-index: ${computedStyles.zIndex}<br>
+                    Visibility: ${computedStyles.visibility}<br>
+                    Pointer Events: ${computedStyles.pointerEvents}
+                `);
+            } else {
+                updateStatus('❌ No panel/overlay to check!');
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            updateStatus('Page loaded. Ready to test.');
+        });
+        
+        // Test M key
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyM') {
+                console.log('M key pressed!');
+                testTogglePanel();
+            }
+        });
+    </script>
+</body>
+</html>

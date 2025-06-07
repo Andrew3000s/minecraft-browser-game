@@ -136,6 +136,320 @@ canvas {
     text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
 }
 
+/* 🎵 AUDIO SETTINGS PANEL - Advanced audio configuration */
+.audio-settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: auto;
+}
+
+.audio-settings-overlay.show {
+    display: flex;
+    opacity: 1;
+}
+
+.audio-settings-panel {
+    position: relative;
+    transform: scale(0.95);
+    z-index: 2000;
+    background: rgba(20, 20, 20, 0.95);
+    border: 3px solid #8B4513;
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 450px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    font-family: 'Courier New', monospace;
+    color: white;
+    transition: transform 0.3s ease;
+}
+
+.audio-settings-overlay.show .audio-settings-panel {
+    transform: scale(1);
+}
+
+.audio-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #8B4513;
+    padding-bottom: 15px;
+}
+
+.audio-settings-header h2 {
+    margin: 0;
+    color: #FFD700;
+    font-size: 24px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.close-button {
+    background: #CC0000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 30px;
+    height: 30px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-button:hover {
+    background: #FF0000;
+    transform: scale(1.1);
+}
+
+.audio-settings-content {
+    margin-bottom: 20px;
+}
+
+.audio-settings-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid #8B4513;
+}
+
+.reset-button, .save-button {
+    background: #8B4513;
+    color: white;
+    border: 2px solid #A0522D;
+    border-radius: 6px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    transition: all 0.3s ease;
+}
+
+.reset-button:hover, .save-button:hover {
+    background: #A0522D;
+    border-color: #CD853F;
+    transform: scale(1.05);
+}
+
+.audio-settings-title {
+    font-size: 24px;
+    color: #90EE90;
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-weight: bold;
+}
+
+.audio-category {
+    background: rgba(139, 69, 19, 0.3);
+    border: 2px solid #A0522D;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.audio-category:hover {
+    background: rgba(139, 69, 19, 0.5);
+    border-color: #CD853F;
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.category-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #FFD700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    margin-left: 8px;
+}
+
+.category-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+}
+
+.category-toggle input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.category-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.category-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #FFD700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.category-toggle {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    font-family: 'Courier New', monospace;
+}
+
+.category-toggle:hover {
+    background: #1976D2;
+    transform: scale(1.05);
+}
+
+.category-toggle.disabled {
+    background: #666;
+    cursor: not-allowed;
+}
+
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.volume-label {
+    font-size: 14px;
+    color: #DDD;
+    min-width: 70px;
+}
+
+.volume-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
+    transition: background 0.3s ease;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #90EE90;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    background: #98FB98;
+    transform: scale(1.2);
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #90EE90;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.volume-value {
+    font-size: 14px;
+    color: #90EE90;
+    font-weight: bold;
+    min-width: 40px;
+    text-align: right;
+}
+
+.master-volume {
+    background: rgba(144, 238, 144, 0.1);
+    border-color: #90EE90;
+    margin-bottom: 20px;
+}
+
+.audio-settings-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.audio-btn {
+    background: #8B4513;
+    color: white;
+    border: 2px solid #A0522D;
+    border-radius: 6px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    transition: all 0.3s ease;
+}
+
+.audio-btn:hover {
+    background: #A0522D;
+    border-color: #CD853F;
+    transform: scale(1.05);
+}
+
+.audio-btn.primary {
+    background: #2196F3;
+    border-color: #1976D2;
+}
+
+.audio-btn.primary:hover {
+    background: #1976D2;
+    border-color: #1565C0;
+}
+
+.audio-btn.success {
+    background: #4CAF50;
+    border-color: #388E3C;
+}
+
+.audio-btn.success:hover {
+    background: #388E3C;
+    border-color: #2E7D32;
+}
+
 .oxygen-text {
     position: absolute;
     top: 1px;

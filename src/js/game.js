@@ -69,9 +69,7 @@ class MinecraftGame {    constructor() {
             if (typeof ParticleSystem === 'undefined') {
                 throw new Error('ParticleSystem class not found');
             }
-            this.particles = new ParticleSystem();
-            
-            if (typeof SoundSystem === 'undefined') {
+            this.particles = new ParticleSystem();            if (typeof SoundSystem === 'undefined') {
                 throw new Error('SoundSystem class not found');
             }
             this.sound = new SoundSystem();
@@ -137,9 +135,11 @@ class MinecraftGame {    constructor() {
             
             this.updateLoadingProgress(90, 'Creating user interface...');
             await this.delay(100);
-            
-            // UI elements
+              // UI elements
             this.createUI();
+            
+            // Initialize audio settings panel after UI creation
+            this.audioSettingsPanel = new AudioSettingsPanel(this.sound);
             
             // Setup music control after UI creation
             this.setupMusicControl();
@@ -247,23 +247,26 @@ class MinecraftGame {    constructor() {
                 this.toggleCommandGuide();
             }
         });
-    }
-    
-    setupMusicControl() {
+    }    setupMusicControl() {
         const musicControl = document.getElementById('musicControl');
         if (musicControl) {
+            console.log('Setting up music control with audio panel:', !!this.audioSettingsPanel);
             musicControl.addEventListener('click', () => {
-                const isEnabled = this.sound.toggleMusic();
-                musicControl.textContent = isEnabled ? '🎵 Music: ON' : '🔇 Music: OFF';
-                musicControl.className = isEnabled ? 'music-control enabled' : 'music-control disabled';
-                
-                // 🔥 FIXED: Removed debug log for cleaner console output
+                console.log('Music control clicked, panel available:', !!this.audioSettingsPanel);
+                // Open audio settings panel instead of simple toggle
+                if (this.audioSettingsPanel) {
+                    this.audioSettingsPanel.show();
+                } else {
+                    console.warn('Audio settings panel not initialized');
+                }
             });
             
             // Start background music by default
             if (this.sound.musicEnabled) {
                 this.sound.startBackgroundMusic();
             }
+        } else {
+            console.warn('Music control element not found');
         }
     }
 
@@ -1530,6 +1533,293 @@ class TimeSystem {
         } else {
             // Night (19:00 - 6:00) - low light level
             return 0.15; // Slightly brighter for better torch contrast
+        }
+    }
+}
+
+// 🎵 AUDIO SETTINGS PANEL CLASS - Advanced sound configuration UI
+class AudioSettingsPanel {    constructor(soundSystem) {
+        console.log('AudioSettingsPanel constructor called with:', soundSystem);
+        this.soundSystem = soundSystem;
+        this.panel = null;
+        this.overlay = null;
+        this.isVisible = false;
+        
+        try {
+            this.createPanel();
+            this.bindEvents();
+            console.log('AudioSettingsPanel initialized successfully');
+            console.log('Panel created:', !!this.panel);
+            console.log('Overlay created:', !!this.overlay);
+            console.log('Overlay in DOM:', document.body.contains(this.overlay));
+        } catch (error) {
+            console.error('Error initializing AudioSettingsPanel:', error);
+        }
+    }
+      createPanel() {
+        // Create overlay
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'audio-settings-overlay';
+        
+        // Create panel
+        this.panel = document.createElement('div');
+        this.panel.className = 'audio-settings-panel';
+        
+        this.panel.innerHTML = `
+            <div class="audio-settings-header">
+                <h2>🎵 Audio Settings</h2>
+                <button class="close-button" type="button">×</button>
+            </div>
+            
+            <div class="audio-settings-content">
+                <div class="audio-category">
+                    <div class="category-header">
+                        <span class="category-title">🔊 Master Volume</span>
+                    </div>
+                    <div class="category-controls">
+                        <input type="range" class="volume-slider" id="masterVolume" 
+                               min="0" max="1" step="0.01" value="${this.soundSystem.volume}">
+                        <span class="volume-value">${Math.round(this.soundSystem.volume * 100)}%</span>
+                    </div>
+                </div>
+                
+                ${this.generateCategoryHTML()}
+            </div>
+            
+            <div class="audio-settings-footer">
+                <button class="reset-button" type="button">🔄 Reset to Defaults</button>
+                <button class="save-button" type="button">💾 Save Settings</button>
+            </div>
+        `;
+        
+        this.overlay.appendChild(this.panel);
+        document.body.appendChild(this.overlay);
+    }
+    
+    generateCategoryHTML() {
+        return Object.keys(this.soundSystem.audioCategories).map(categoryKey => {
+            const category = this.soundSystem.audioCategories[categoryKey];
+            const volumePercent = Math.round(category.volume * 100);
+            
+            return `
+                <div class="audio-category">
+                    <div class="category-header">
+                        <label class="category-toggle">
+                            <input type="checkbox" ${category.enabled ? 'checked' : ''} 
+                                   data-category="${categoryKey}">
+                            <span class="category-title">${category.name}</span>
+                        </label>
+                    </div>
+                    <div class="category-controls">
+                        <input type="range" class="volume-slider" 
+                               data-category="${categoryKey}"
+                               min="0" max="1" step="0.01" 
+                               value="${category.volume}"
+                               ${!category.enabled ? 'disabled' : ''}>
+                        <span class="volume-value">${volumePercent}%</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    bindEvents() {
+        // Close button
+        this.panel.querySelector('.close-button').addEventListener('click', () => {
+            this.hide();
+        });
+        
+        // Overlay click to close
+        this.overlay.addEventListener('click', (e) => {
+            if (e.target === this.overlay) {
+                this.hide();
+            }
+        });
+        
+        // ESC key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isVisible) {
+                this.hide();
+            }
+        });
+        
+        // Master volume control
+        const masterVolumeSlider = this.panel.querySelector('#masterVolume');
+        masterVolumeSlider.addEventListener('input', (e) => {
+            const volume = parseFloat(e.target.value);
+            this.soundSystem.volume = volume;
+            this.updateVolumeDisplay(e.target.nextElementSibling, volume);
+        });
+        
+        // Category toggles
+        this.panel.addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox' && e.target.dataset.category) {
+                const category = e.target.dataset.category;
+                const enabled = e.target.checked;
+                
+                this.soundSystem.toggleCategory(category, enabled);
+                
+                // Enable/disable corresponding volume slider
+                const slider = this.panel.querySelector(`input[type="range"][data-category="${category}"]`);
+                if (slider) {
+                    slider.disabled = !enabled;
+                }
+            }
+        });
+        
+        // Volume sliders
+        this.panel.addEventListener('input', (e) => {
+            if (e.target.type === 'range' && e.target.dataset.category) {
+                const category = e.target.dataset.category;
+                const volume = parseFloat(e.target.value);
+                
+                this.soundSystem.setCategoryVolume(category, volume);
+                this.updateVolumeDisplay(e.target.nextElementSibling, volume);
+            }
+        });
+        
+        // Reset button
+        this.panel.querySelector('.reset-button').addEventListener('click', () => {
+            this.resetToDefaults();
+        });
+        
+        // Save button
+        this.panel.querySelector('.save-button').addEventListener('click', () => {
+            this.soundSystem.saveAudioSettings();
+            this.showSaveConfirmation();
+        });
+    }
+    
+    updateVolumeDisplay(element, volume) {
+        if (element && element.classList.contains('volume-value')) {
+            element.textContent = `${Math.round(volume * 100)}%`;
+        }
+    }
+    
+    resetToDefaults() {
+        // Reset to default values
+        this.soundSystem.volume = 0.3;
+        
+        const defaults = {
+            music: { enabled: true, volume: 0.1 },
+            playerActions: { enabled: true, volume: 0.05 },
+            blockInteractions: { enabled: true, volume: 0.15 },
+            combat: { enabled: true, volume: 0.2 },
+            environmental: { enabled: true, volume: 0.1 },
+            ui: { enabled: true, volume: 0.15 }
+        };
+        
+        Object.keys(defaults).forEach(category => {
+            this.soundSystem.setCategoryVolume(category, defaults[category].volume);
+            this.soundSystem.toggleCategory(category, defaults[category].enabled);
+        });
+        
+        // Update UI
+        this.refreshUI();
+        
+        // Show confirmation
+        this.showResetConfirmation();
+    }
+    
+    refreshUI() {
+        // Update master volume
+        const masterSlider = this.panel.querySelector('#masterVolume');
+        const masterValue = this.panel.querySelector('#masterVolume + .volume-value');
+        masterSlider.value = this.soundSystem.volume;
+        this.updateVolumeDisplay(masterValue, this.soundSystem.volume);
+        
+        // Update category controls
+        Object.keys(this.soundSystem.audioCategories).forEach(categoryKey => {
+            const category = this.soundSystem.audioCategories[categoryKey];
+            
+            // Update checkbox
+            const checkbox = this.panel.querySelector(`input[type="checkbox"][data-category="${categoryKey}"]`);
+            if (checkbox) {
+                checkbox.checked = category.enabled;
+            }
+            
+            // Update slider
+            const slider = this.panel.querySelector(`input[type="range"][data-category="${categoryKey}"]`);
+            const valueDisplay = slider ? slider.nextElementSibling : null;
+            
+            if (slider) {
+                slider.value = category.volume;
+                slider.disabled = !category.enabled;
+                this.updateVolumeDisplay(valueDisplay, category.volume);
+            }
+        });
+    }
+    
+    showSaveConfirmation() {
+        const saveButton = this.panel.querySelector('.save-button');
+        const originalText = saveButton.textContent;
+        
+        saveButton.textContent = '✅ Saved!';
+        saveButton.style.backgroundColor = '#4CAF50';
+        
+        setTimeout(() => {
+            saveButton.textContent = originalText;
+            saveButton.style.backgroundColor = '';
+        }, 1500);
+    }
+    
+    showResetConfirmation() {
+        const resetButton = this.panel.querySelector('.reset-button');
+        const originalText = resetButton.textContent;
+        
+        resetButton.textContent = '✅ Reset!';
+        resetButton.style.backgroundColor = '#ff9800';
+          setTimeout(() => {
+            resetButton.textContent = originalText;
+            resetButton.style.backgroundColor = '';
+        }, 1500);
+    }
+      show() {
+        console.log('AudioSettingsPanel.show() called');
+        
+        // Debug panel state
+        console.log('Panel exists:', !!this.panel);
+        console.log('Overlay exists:', !!this.overlay);
+        
+        if (!this.overlay || !this.panel) {
+            console.error('Panel or overlay not created!');
+            return;
+        }
+        
+        // Check if overlay is in DOM
+        if (!document.body.contains(this.overlay)) {
+            console.log('Overlay not in DOM, re-adding...');
+            document.body.appendChild(this.overlay);
+        }
+        
+        this.refreshUI();
+        this.overlay.classList.add('show');
+        this.isVisible = true;
+        
+        // Debug final state
+        console.log('Show completed. Classes:', this.overlay.className);
+        console.log('Computed display:', window.getComputedStyle(this.overlay).display);
+        console.log('Computed opacity:', window.getComputedStyle(this.overlay).opacity);
+    }
+    
+    hide() {
+        this.overlay.classList.remove('show');
+        setTimeout(() => {
+            this.isVisible = false;
+        }, 300);
+    }
+      toggle() {
+        console.log('AudioSettingsPanel.toggle() called, isVisible:', this.isVisible);
+        
+        if (!this.overlay || !this.panel) {
+            console.error('Cannot toggle: Panel or overlay not created!');
+            return;
+        }
+        
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show();
         }
     }
 }

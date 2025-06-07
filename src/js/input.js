@@ -96,6 +96,16 @@ class InputManager {
                     window.game.player.dropSingleBlock();
                 }
             }
+            
+            // M key for audio settings
+            if (e.code === 'KeyM') {
+                console.log('M key pressed, checking audio panel:', !!window.game?.audioSettingsPanel);
+                if (window.game && window.game.audioSettingsPanel) {
+                    window.game.audioSettingsPanel.toggle();
+                } else {
+                    console.warn('Game or audio settings panel not available');
+                }
+            }
         });
     }
 

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Audio Panel Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2C5234;
+            font-family: 'Courier New', monospace;
+            color: white;
+        }
+        
+        .audio-settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .audio-settings-overlay.show {
+            display: flex !important;
+            opacity: 1 !important;
+        }
+
+        .audio-settings-panel {
+            position: relative;
+            transform: scale(0.95);
+            z-index: 2000;
+            background: rgba(20, 20, 20, 0.95);
+            border: 3px solid #8B4513;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 450px;
+            max-width: 90vw;
+            max-height: 90vh;
+            color: white;
+        }
+
+        .audio-settings-overlay.show .audio-settings-panel {
+            transform: scale(1);
+        }
+        
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            background: #8B4513;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #A0522D;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Simple Audio Panel Test</h1>
+    
+    <button onclick="createAndShowPanel()">Create & Show Panel</button>
+    <button onclick="hidePanel()">Hide Panel</button>
+    
+    <script>
+        let overlay = null;
+        
+        function createAndShowPanel() {
+            console.log('Creating panel...');
+            
+            // Remove any existing overlay
+            if (overlay) {
+                overlay.remove();
+            }
+            
+            // Create overlay
+            overlay = document.createElement('div');
+            overlay.className = 'audio-settings-overlay';
+            
+            // Create panel
+            const panel = document.createElement('div');
+            panel.className = 'audio-settings-panel';
+            panel.innerHTML = `
+                <h2>🎵 Audio Settings</h2>
+                <p>This is a test panel.</p>
+                <button onclick="hidePanel()">Close</button>
+            `;
+            
+            overlay.appendChild(panel);
+            document.body.appendChild(overlay);
+            
+            console.log('Panel created, attempting to show...');
+            console.log('Overlay element:', overlay);
+            console.log('Initial classes:', overlay.className);
+            console.log('Initial display:', window.getComputedStyle(overlay).display);
+            console.log('Initial opacity:', window.getComputedStyle(overlay).opacity);
+            
+            // Force immediate show
+            overlay.classList.add('show');
+            
+            console.log('After adding show class:');
+            console.log('Classes:', overlay.className);
+            console.log('Display:', window.getComputedStyle(overlay).display);
+            console.log('Opacity:', window.getComputedStyle(overlay).opacity);
+            
+            // Test with direct style override
+            setTimeout(() => {
+                console.log('Forcing with direct styles...');
+                overlay.style.display = 'flex';
+                overlay.style.opacity = '1';
+                overlay.style.zIndex = '9999';
+                
+                console.log('Final check:');
+                console.log('Display:', window.getComputedStyle(overlay).display);
+                console.log('Opacity:', window.getComputedStyle(overlay).opacity);
+                console.log('Z-index:', window.getComputedStyle(overlay).zIndex);
+            }, 100);
+        }
+        
+        function hidePanel() {
+            if (overlay) {
+                overlay.classList.remove('show');
+                overlay.style.display = 'none';
+                console.log('Panel hidden');
+            }
+        }
+        
+        // Test M key
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyM') {
+                console.log('M key pressed!');
+                createAndShowPanel();
+            }
+        });
+    </script>
+</body>
+</html>

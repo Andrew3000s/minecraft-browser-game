@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Panel Test</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="stylesheet" href="src/css/game.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="musicControl" class="music-control enabled" style="position: absolute; top: 10px; left: 10px; z-index: 1000; background: #333; color: white; padding: 10px; border-radius: 5px; cursor: pointer;">
+            🎵 Audio Settings (Test)
+        </div>
+    </div>
+
+    <!-- Load game scripts -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        console.log('Starting audio panel test...');
+        
+        try {
+            // Create a minimal sound system
+            const soundSystem = new SoundSystem();
+            console.log('SoundSystem created:', soundSystem);
+            
+            // Create the audio settings panel
+            const audioPanel = new AudioSettingsPanel(soundSystem);
+            console.log('AudioSettingsPanel created:', audioPanel);
+            
+            // Set up the test button
+            const musicControl = document.getElementById('musicControl');
+            if (musicControl) {
+                musicControl.addEventListener('click', () => {
+                    console.log('Test button clicked');
+                    audioPanel.show();
+                });
+                console.log('Test button set up successfully');
+            }
+            
+            // Test keyboard shortcut
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyM') {
+                    console.log('M key pressed in test');
+                    audioPanel.toggle();
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error in test:', error);
+        }
+    </script>
+</body>
+</html>
