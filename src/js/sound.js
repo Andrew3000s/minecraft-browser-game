@@ -101,9 +101,13 @@ class SoundSystem {    constructor() {
     playBlockPlace() {
         this.playTone(300 + Math.random() * 50, 0.08, 'sine', 0.15);
     }
-    
-    playJump() {
-        this.playTone(400, 0.1, 'sine', 0.1);
+      playJump() {
+        this.playTone(400, 0.1, 'sine', 0.03);
+    }
+      // 🦵 LANDING SOUND: Soft, consistent landing sound for when touching ground after falling
+    playLanding() {
+        // Create a single, soft thud sound - consistent frequency for better user experience
+        this.playTone(200, 0.06, 'sine', 0.02);
     }
     
     playPlayerDamage() {

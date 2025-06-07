@@ -86,6 +86,69 @@ class ParticleSystem {
         }
     }
 
+    // 🦵 LANDING EFFECT: Creates dust impact when entities land from falls
+    addLandingImpact(x, y, fallHeight = 0, entityWidth = 24) {
+        // Calculate intensity based on fall height
+        const intensity = Math.min(Math.max(fallHeight / 100, 0.3), 2.0); // Scale 0.3-2.0 based on fall height
+        const numParticles = Math.floor(6 + intensity * 8); // 6-22 particles based on intensity
+        
+        // Create dust cloud at feet level
+        for (let i = 0; i < numParticles; i++) {
+            // Spread particles across entity width (under the feet)
+            const spreadX = (Math.random() - 0.5) * (entityWidth + 20);
+            const spreadY = Math.random() * 8; // Small vertical spread at ground level
+            
+            this.particles.push(new Particle({
+                x: x + entityWidth / 2 + spreadX,
+                y: y + spreadY,
+                velocityX: (Math.random() - 0.5) * 80 * intensity,
+                velocityY: -Math.random() * 40 * intensity - 10,
+                color: this.getLandingDustColor(),
+                size: Math.random() * 3 + 1,
+                life: 0.6 + Math.random() * 0.4,
+                gravity: 250
+            }));
+        }
+        
+        // Add additional ground impact shockwave for hard landings
+        if (intensity > 1.2) {
+            this.addGroundShockwave(x + entityWidth / 2, y, intensity);
+        }
+    }
+
+    // 💥 GROUND SHOCKWAVE: Additional effect for hard landings
+    addGroundShockwave(centerX, groundY, intensity) {
+        const numWaveParticles = Math.floor(8 * intensity);
+        
+        for (let i = 0; i < numWaveParticles; i++) {
+            const angle = (i / numWaveParticles) * Math.PI * 2;
+            const distance = 15 + Math.random() * 25;
+            
+            this.particles.push(new Particle({
+                x: centerX + Math.cos(angle) * distance,
+                y: groundY + Math.random() * 5,
+                velocityX: Math.cos(angle) * 60,
+                velocityY: -Math.random() * 20 - 5,
+                color: '#8B7355', // Brown dust color
+                size: Math.random() * 2 + 1,
+                life: 0.8,
+                gravity: 200
+            }));
+        }
+    }
+
+    // 🎨 Get appropriate dust color based on environment
+    getLandingDustColor() {
+        const dustColors = [
+            '#D2B48C', // Light brown (dirt)
+            '#8B7355', // Medium brown
+            '#A0522D', // Sienna
+            '#CD853F', // Peru
+            '#DEB887'  // Burlywood
+        ];
+        return dustColors[Math.floor(Math.random() * dustColors.length)];
+    }
+
     addDamageEffect(x, y) {
         // Add red damage particles
         for (let i = 0; i < 8; i++) {

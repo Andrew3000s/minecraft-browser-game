@@ -197,6 +197,11 @@ class Player {
             this.velocityY = -this.jumpPower;
             this.onGround = false;
             
+            // 🔊 JUMP SOUND: Play jump sound when jumping
+            if (window.game?.sound) {
+                window.game.sound.playJump();
+            }
+            
             // 🏔️ FALL DAMAGE SYSTEM: Mark this as a voluntary jump (no fall damage)
             this.isVoluntaryJump = true;
             // DON'T reset fall tracking here - just reset the falling state and heights
@@ -447,6 +452,21 @@ class Player {
                 if (this.isFalling) {
                     this.applyFallDamage();
                 }
+                
+                // 🦵 LANDING EFFECTS: Add visual impact effects only for significant landings
+                if (window.game?.particles && this.isFalling) {
+                    const fallHeight = this.y - this.maxFallHeight; // Calculate fall height before reset
+                    // Only show effects for falls of at least 0.5 blocks (16 pixels) to avoid constant effects
+                    if (fallHeight > 16) {
+                        window.game.particles.addLandingImpact(this.x, this.y + this.height, fallHeight, this.width);
+                    }
+                }
+                
+                // 🔊 LANDING SOUND: Play landing sound when touching ground after any fall (with or without damage)
+                if (window.game?.sound && this.isFalling) {
+                    window.game.sound.playLanding();
+                }
+                
                 this.onGround = true;
                 this.resetFallTracking();
             }

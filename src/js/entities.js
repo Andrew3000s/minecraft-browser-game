@@ -658,11 +658,16 @@ class Entity {
                 const jumpBoost = this.facing * 10; // Small forward momentum
                 this.velocityX += jumpBoost;
             }
-            
-            // Visual feedback - spawn jump particles if particle system exists
+              // Visual feedback - spawn jump particles if particle system exists
             if (window.game?.particles) {
                 window.game.particles.addJumpDust(this.x, this.y + this.height);
             }
+            
+            // 🔊 JUMP SOUND: Disabled for mobs to prevent audio clutter
+            // Only player should make jump sounds for better user experience
+            // if (window.game?.sound) {
+            //     window.game.sound.playJump();
+            // }
         }
     }attackPlayer(player) {        
         // Simple attack - deal damage to player
@@ -1052,13 +1057,26 @@ class Entity {
                                 }
                                 
 
-                                this.velocityX = 0;                            } else {
-                                // Vertical collision
+                                this.velocityX = 0;                            } else {                                // Vertical collision
                                 if (this.y < blockY) {
                                     // 🏔️ FALL DAMAGE SYSTEM: Check for fall damage before landing
                                     if (this.velocityY > 0 && this.isFalling) {
                                         this.applyFallDamage();
                                     }
+                                    
+                                    // 🦵 LANDING EFFECTS: Add visual impact effects only for significant landings
+                                    if (this.velocityY > 0 && window.game?.particles && this.isFalling) {
+                                        const fallHeight = this.y - this.maxFallHeight; // Calculate fall height before reset
+                                        // Only show effects for falls of at least 0.5 blocks (16 pixels) to avoid constant effects
+                                        if (fallHeight > 16) {
+                                            window.game.particles.addLandingImpact(this.x, this.y + this.height, fallHeight, this.width);
+                                        }
+                                    }
+                                      // 🔊 LANDING SOUND: Disabled for mobs to prevent audio clutter  
+                                    // Only player should make landing sounds for better user experience
+                                    // if (this.velocityY > 0 && window.game?.sound && this.isFalling) {
+                                    //     window.game.sound.playLanding();
+                                    // }
                                     
                                     this.y = blockY - this.height;
                                     this.velocityY = 0;
