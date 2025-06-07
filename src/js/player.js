@@ -97,6 +97,15 @@ class Player {
         // Liquid damage tracking
         this.lastLiquidDamageTime = null;
         
+        // 🏔️ FALL DAMAGE SYSTEM: Track falling height for damage calculation
+        this.fallStartHeight = this.y; // Height when falling started
+        this.maxFallHeight = this.y;   // Maximum height reached during fall
+        this.isFalling = false;        // Whether player is currently falling
+        this.minDamageHeight = 3 * 32; // 3 blocks minimum height (32 = block size)
+        this.fallDamageMultiplier = 1; // Damage per block fallen above minimum
+        this.lastGroundY = this.y;     // Last Y position when on ground
+        this.isVoluntaryJump = false;  // Track if currently in a voluntary jump
+        
         // Swimming and oxygen system
         this.inLiquid = false;
         this.isSwimming = false;
@@ -186,6 +195,15 @@ class Player {
         if (input.isJumping() && (this.onGround || this.inLiquid)) {
             this.velocityY = -this.jumpPower;
             this.onGround = false;
+            
+            // 🏔️ FALL DAMAGE SYSTEM: Mark this as a voluntary jump (no fall damage)
+            this.isVoluntaryJump = true;
+            // DON'T reset fall tracking here - just reset the falling state and heights
+            // but keep the voluntary jump flag intact
+            this.isFalling = false;
+            this.maxFallHeight = this.y;
+            this.fallStartHeight = this.y;
+            this.lastGroundY = this.y;
             
             if (this.inLiquid && window.game?.particles) {
                 // Splash effect when jumping out of liquid
@@ -419,9 +437,17 @@ class Player {
         if (!this.checkCollision(this.x, newY)) {
             this.y = newY;
             this.onGround = false;
+            
+            // 🏔️ FALL DAMAGE SYSTEM: Track falling state and height
+            this.updateFallTracking();
         } else {
             if (this.velocityY > 0) {
+                // 🏔️ FALL DAMAGE SYSTEM: Landing after fall - check for fall damage
+                if (this.isFalling) {
+                    this.applyFallDamage();
+                }
                 this.onGround = true;
+                this.resetFallTracking();
             }
             this.velocityY = 0;
         }
@@ -1721,5 +1747,94 @@ class Player {
         ctx.fillRect(screenX + 9, screenY + 16, 1, 2);
         ctx.fillRect(screenX + 20, screenY + 19, 1, 4);
         ctx.fillRect(screenX + 14, screenY + 30, 2, 1);
+    }
+    
+    // 🏔️ FALL DAMAGE SYSTEM: Track falling state and maximum height
+    updateFallTracking() {
+        // If moving downward (positive velocityY), we're falling
+        if (this.velocityY > 0) {
+            if (!this.isFalling) {
+                // Start of fall - record starting height
+                this.isFalling = true;
+                this.fallStartHeight = this.maxFallHeight; // Use the highest point reached
+            }
+            // DON'T clear voluntary jump flag here - only clear it when landing
+            // This allows voluntary jumps to remain protected throughout the entire jump
+        } else if (this.velocityY < 0) {
+            // Moving upward - update maximum height reached
+            this.maxFallHeight = Math.min(this.maxFallHeight, this.y);
+        }
+        
+        // Always track the maximum height (lowest Y value) reached
+        if (this.y < this.maxFallHeight) {
+            this.maxFallHeight = this.y;
+        }
+    }
+    
+    // 🏔️ FALL DAMAGE SYSTEM: Apply fall damage when landing
+    applyFallDamage() {
+        // Don't apply damage if this was a voluntary jump
+        if (!this.isFalling || this.isVoluntaryJump) {
+            if (this.isVoluntaryJump && window.game?.notifications) {
+                // Only show this notification if there would have been fall damage
+                const fallDistance = this.y - this.maxFallHeight;
+                if (fallDistance > this.minDamageHeight) {
+                    window.game.notifications.addNotification(
+                        '🛡️ Voluntary jump - Fall damage prevented!',
+                        'info',
+                        2000
+                    );
+                }
+            }
+            return;
+        }
+        
+        // Calculate fall distance in pixels
+        const fallDistance = this.y - this.maxFallHeight;
+        
+        // Only apply damage if fall is significant (more than 3 blocks)
+        if (fallDistance > this.minDamageHeight) {
+            // Calculate damage: 1 damage per block beyond the minimum
+            const blocksSize = 32; // Standard block size
+            const excessBlocks = Math.floor((fallDistance - this.minDamageHeight) / blocksSize);
+            const damage = Math.max(1, excessBlocks * this.fallDamageMultiplier);
+            
+            // Apply the damage
+            this.takeDamage(damage);
+            
+            // Show notification
+            if (window.game?.notifications) {
+                window.game.notifications.addNotification(
+                    `💥 Fall damage! -${damage} HP (fell ${Math.floor(fallDistance / blocksSize)} blocks)`,
+                    'damage',
+                    3000
+                );
+            }
+            
+            // Add visual effects
+            if (window.game?.particles) {
+                // Add impact particles at landing point
+                for (let i = 0; i < 8; i++) {
+                    window.game.particles.addDamageEffect(
+                        this.x + this.width / 2 + (Math.random() - 0.5) * 20,
+                        this.y + this.height
+                    );
+                }
+            }
+            
+            // Play fall damage sound
+            if (window.game?.sound) {
+                window.game.sound.playPlayerDamage();
+            }
+        }
+    }
+    
+    // 🏔️ FALL DAMAGE SYSTEM: Reset fall tracking when landing on ground
+    resetFallTracking() {
+        this.isFalling = false;
+        this.maxFallHeight = this.y;
+        this.fallStartHeight = this.y;
+        this.lastGroundY = this.y;
+        this.isVoluntaryJump = false; // Reset voluntary jump flag only when landing
     }
 }

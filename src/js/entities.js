@@ -229,6 +229,14 @@ class Entity {
         this.lastBurnDamageTime = 0;
         this.burnEffectTime = 0; // For visual burn effect animation
         this.canBurnInSunlight = this.isHostile; // Only hostile mobs burn in sunlight
+          // 🏔️ FALL DAMAGE SYSTEM: Track falling height for damage calculation
+        this.fallStartHeight = this.y; // Height when falling started  
+        this.maxFallHeight = this.y;   // Maximum height reached during fall
+        this.isFalling = false;        // Whether entity is currently falling
+        this.minDamageHeight = 3 * 32; // 3 blocks minimum height (32 = block size)
+        this.fallDamageMultiplier = 1; // Damage per block fallen above minimum
+        this.lastGroundY = this.y;     // Last Y position when on ground
+        this.isVoluntaryJump = false;  // Track if currently in a voluntary jump
     }
     
     getHostileFlag() {
@@ -366,6 +374,9 @@ class Entity {
         // Update position
         this.x += this.velocityX * deltaTime;
         this.y += this.velocityY * deltaTime;
+        
+        // 🏔️ FALL DAMAGE SYSTEM: Track falling state and height for entities
+        this.updateFallTracking();
         
         // Collision detection
         this.handleCollisions(world);
@@ -627,12 +638,20 @@ class Entity {
         }
         
         return height;
-    }
-      jump() {
+    }    jump() {
         if (this.onGround) {
             // Increase jump power to help clear obstacles
             this.velocityY = -this.jumpSpeed * 1.2; // 20% more jump power for obstacle clearing
             this.onGround = false;
+            
+            // 🏔️ FALL DAMAGE SYSTEM: Mark this as a voluntary jump (no fall damage)
+            this.isVoluntaryJump = true;
+            // DON'T reset fall tracking here - just reset the falling state and heights
+            // but keep the voluntary jump flag intact
+            this.isFalling = false;
+            this.maxFallHeight = this.y;
+            this.fallStartHeight = this.y;
+            this.lastGroundY = this.y;
             
             // Add a small forward boost when jumping to help clear obstacles
             if (Math.abs(this.velocityX) > 0) {
@@ -645,7 +664,7 @@ class Entity {
                 window.game.particles.addJumpDust(this.x, this.y + this.height);
             }
         }
-    }    attackPlayer(player) {        
+    }attackPlayer(player) {        
         // Simple attack - deal damage to player
         if (this.type === EntityTypes.CREEPER) {
             // Creeper explosion (simplified)
@@ -1003,6 +1022,7 @@ class Entity {
                                 Math.abs(blockY + world.blockSize - this.y)
                             );
                             
+
                             // Prevent infinite values
                             if (!isFinite(overlapX) || !isFinite(overlapY)) {
                                 continue;
@@ -1031,13 +1051,21 @@ class Entity {
                                     }
                                 }
                                 
-                                this.velocityX = 0;
-                            } else {
+
+                                this.velocityX = 0;                            } else {
                                 // Vertical collision
                                 if (this.y < blockY) {
+                                    // 🏔️ FALL DAMAGE SYSTEM: Check for fall damage before landing
+                                    if (this.velocityY > 0 && this.isFalling) {
+                                        this.applyFallDamage();
+                                    }
+                                    
                                     this.y = blockY - this.height;
                                     this.velocityY = 0;
                                     this.onGround = true;
+                                    
+                                    // 🏔️ FALL DAMAGE SYSTEM: Reset fall tracking when landing
+                                    this.resetFallTracking();
                                 } else {
                                     this.y = blockY + world.blockSize;
                                     this.velocityY = 0;
@@ -1125,6 +1153,76 @@ class Entity {
                 if (this.oxygen > this.maxOxygen) this.oxygen = this.maxOxygen;
             }
         }
+    }    // 🏔️ FALL DAMAGE SYSTEM: Track falling state and maximum height for entities
+    updateFallTracking() {
+        // If moving downward (positive velocityY), we're falling
+        if (this.velocityY > 0) {
+            if (!this.isFalling) {
+                // Start of fall - record starting height
+                this.isFalling = true;
+                this.fallStartHeight = this.maxFallHeight; // Use the highest point reached
+            }
+            // DON'T clear voluntary jump flag here - only clear it when landing
+            // This allows voluntary jumps to remain protected throughout the entire jump
+        } else if (this.velocityY < 0) {
+            // Moving upward - update maximum height reached
+            this.maxFallHeight = Math.min(this.maxFallHeight, this.y);
+        }
+        
+        // Always track the maximum height (lowest Y value) reached
+        if (this.y < this.maxFallHeight) {
+            this.maxFallHeight = this.y;
+        }
+    }
+      // 🏔️ FALL DAMAGE SYSTEM: Apply fall damage when entity lands
+    applyFallDamage() {
+        // Don't apply damage if this was a voluntary jump
+        if (!this.isFalling || !this.alive || this.isVoluntaryJump) return;
+        
+        // Calculate fall distance in pixels
+        const fallDistance = this.y - this.maxFallHeight;
+        
+        // Only apply damage if fall is significant (more than 3 blocks)
+        if (fallDistance > this.minDamageHeight) {
+            // Calculate damage: 1 damage per block beyond the minimum
+            const blocksSize = 32; // Standard block size
+            const excessBlocks = Math.floor((fallDistance - this.minDamageHeight) / blocksSize);
+            const damage = Math.max(1, excessBlocks * this.fallDamageMultiplier);
+            
+            // Apply the damage
+            this.takeDamage(damage, 'fall');
+            
+            // Show notification only for visible mobs or if near player
+            const distanceToPlayer = window.game?.player ? 
+                this.getDistanceToPlayer(window.game.player) : Infinity;
+            
+            if (distanceToPlayer < 150 && window.game?.notifications) { // Only show if close to player
+                window.game.notifications.addNotification(
+                    `💥 ${this.type.toUpperCase()} took fall damage! -${damage} HP`,
+                    'info',
+                    2000
+                );
+            }
+            
+            // Add visual effects
+            if (window.game?.particles && distanceToPlayer < 200) { // Only show effects if reasonably close
+                // Add impact particles at landing point
+                for (let i = 0; i < 5; i++) {
+                    window.game.particles.addDamageEffect(
+                        this.x + this.width / 2 + (Math.random() - 0.5) * 15,
+                        this.y + this.height
+                    );
+                }
+            }
+        }
+    }
+      // 🏔️ FALL DAMAGE SYSTEM: Reset fall tracking when entity is on ground
+    resetFallTracking() {
+        this.isFalling = false;
+        this.maxFallHeight = this.y;
+        this.fallStartHeight = this.y;
+        this.lastGroundY = this.y;
+        this.isVoluntaryJump = false; // Reset voluntary jump flag
     }
 
     updateSunlightBurn(deltaTime) {
@@ -1635,6 +1733,7 @@ class Entity {
         ctx.fillRect(screenX - 1, screenY - 1, this.width + 2, this.height + 2);
         
         // Add core fire effect
+
         ctx.globalAlpha = 0.3 * flickerIntensity;
         ctx.fillStyle = '#FF6600';
         ctx.fillRect(screenX, screenY, this.width, this.height);

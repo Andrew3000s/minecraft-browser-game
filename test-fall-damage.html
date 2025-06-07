@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fall Damage System Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-scenario {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .test-scenario h3 {
+            margin-top: 0;
+        }
+        .critical-fix {
+            border-left-color: #FF5722;
+            background: #2a1a1a;
+        }
+        .controls {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🏔️ Fall Damage System Test Scenarios</h1>
+        
+        <div class="test-scenario critical-fix">
+            <h3>🐛 CRITICAL BUG FIX: Voluntary Jump Protection</h3>
+            <p><strong>Issue:</strong> Players were taking fall damage when jumping voluntarily.</p>
+            <p><strong>Root Cause:</strong> The <code>resetFallTracking()</code> method was immediately clearing the <code>isVoluntaryJump</code> flag right after it was set during jump.</p>
+            <p><strong>Solution:</strong> Modified jump logic to preserve the voluntary jump flag throughout the entire jump cycle.</p>
+        </div>
+
+        <div class="controls">
+            <h3>🎮 Testing Instructions</h3>
+            <p>Open the main game and test these scenarios:</p>
+            
+            <div class="test-scenario">
+                <h3>✅ Test 1: Voluntary Jump (Should NOT take damage)</h3>
+                <p>1. Stand on ground</p>
+                <p>2. Press SPACEBAR to jump</p>
+                <p>3. Land back on the same level or lower</p>
+                <p><strong>Expected:</strong> No fall damage, possible notification "Fall damage prevented!"</p>
+            </div>
+
+            <div class="test-scenario">
+                <h3>⚠️ Test 2: Accidental Fall (Should take damage)</h3>
+                <p>1. Walk off a high cliff (4+ blocks high)</p>
+                <p>2. Don't press SPACEBAR - just fall</p>
+                <p>3. Land on lower ground</p>
+                <p><strong>Expected:</strong> Fall damage notification with damage amount</p>
+            </div>
+
+            <div class="test-scenario">
+                <h3>🦘 Test 3: High Voluntary Jump (Should NOT take damage)</h3>
+                <p>1. Build or find a tall structure (5+ blocks high)</p>
+                <p>2. Press SPACEBAR to jump from the height</p>
+                <p>3. Fall to lower ground</p>
+                <p><strong>Expected:</strong> No fall damage even from great height</p>
+            </div>
+
+            <div class="test-scenario">
+                <h3>🌊 Test 4: Jump from Liquid (Should NOT take damage)</h3>
+                <p>1. Get in water or other liquid</p>
+                <p>2. Press SPACEBAR to jump out</p>
+                <p>3. Land on ground outside liquid</p>
+                <p><strong>Expected:</strong> No fall damage</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="window.open('../index.html', '_blank')">🎮 Open Main Game</button>
+            <button class="btn" onclick="location.reload()">🔄 Refresh Test Page</button>
+        </div>
+
+        <div class="test-scenario">
+            <h3>🔧 Technical Details</h3>
+            <p><strong>Files Modified:</strong></p>
+            <ul>
+                <li><code>src/js/player.js</code> - Fixed voluntary jump protection</li>
+                <li><code>src/js/entities.js</code> - Applied same fix to entities</li>
+            </ul>
+            <p><strong>Key Changes:</strong></p>
+            <ul>
+                <li>Jump logic no longer calls <code>resetFallTracking()</code></li>
+                <li>Voluntary jump flag persists until actual landing</li>
+                <li>Added notification when fall damage is prevented</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
