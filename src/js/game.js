@@ -98,6 +98,11 @@ class MinecraftGame {    constructor() {
             this.world = new World(200, 100);
             // 🔥 FIXED: Removed verbose initialization logging
             
+            // 🌊 Inizializza sistema avanzato di fisica dei fluidi
+            if (this.world.initializeAdvancedFluidPhysics) {
+                this.world.initializeAdvancedFluidPhysics(this);
+            }
+            
             this.updateLoadingProgress(70, 'Spawning player...');
             await this.delay(100);
             
@@ -495,17 +500,18 @@ class MinecraftGame {    constructor() {
         // MODIFIED: Update survival time if game is running
         if (this.gameRunning) {
             this.survivalTime += deltaTime;
-        }
-
-        // Update player
+        }        // Update player
         this.player.update(deltaTime, this.input);
+        
+        // 🐛 DEBUG: Verify game loop is calling player update
+        if (Math.random() < 0.01) { // Log occasionally
+            console.log("🐛 DEBUG: Game loop updating player, input:", this.input);
+        }        // Update entities
+        this.entityManager.update(deltaTime, this.world, this.player);        
 
-        // Update entities
-        this.entityManager.update(deltaTime, this.world, this.player);
-
-        // Update liquid physics (every few frames for performance)
-        if (Math.random() < 0.3) { // Update liquid physics 30% of frames
-            this.world.updateLiquidPhysics();
+        // 🌊 Update liquid physics with deltaTime for advanced fluid system - REACTIVATED with optimizations
+        if (Math.random() < 0.3) { // Update liquid physics 30% of frames for good fluidity without blocking input
+            this.world.updateLiquidPhysics(deltaTime);
         }
 
         // Update particles

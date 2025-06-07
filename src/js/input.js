@@ -35,8 +35,10 @@ class InputManager {
             this.updateMousePosition(e);
 
             if (e.button === 0) { // Left click
+                console.log("🐛 DEBUG: Left mouse DOWN detected in InputManager"); // DEBUG
                 this.mouse.leftPressed = true;
             } else if (e.button === 2) { // Right click
+                console.log("🐛 DEBUG: Right mouse DOWN detected in InputManager"); // DEBUG
                 this.mouse.rightPressed = true;
             }
             
@@ -47,8 +49,10 @@ class InputManager {
             this.updateMousePosition(e);
             
             if (e.button === 0) {
+                console.log("🐛 DEBUG: Left mouse UP detected in InputManager"); // DEBUG
                 this.mouse.leftPressed = false;
             } else if (e.button === 2) {
+                console.log("🐛 DEBUG: Right mouse UP detected in InputManager"); // DEBUG
                 this.mouse.rightPressed = false;
             }
         });
@@ -104,11 +108,19 @@ class InputManager {
     }
 
     isMouseLeftPressed() {
-        return this.mouse.leftPressed;
+        const isPressed = this.mouse.leftPressed;
+        if (isPressed) {
+            console.log("🐛 DEBUG: isMouseLeftPressed() returning true"); // DEBUG
+        }
+        return isPressed;
     }
 
     isMouseRightPressed() {
-        return this.mouse.rightPressed;
+        const isPressed = this.mouse.rightPressed;
+        if (isPressed) {
+            console.log("🐛 DEBUG: isMouseRightPressed() returning true"); // DEBUG
+        }
+        return isPressed;
     }
 
     getMousePosition() {

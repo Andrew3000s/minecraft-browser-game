@@ -166,7 +166,7 @@ class Entity {
         this.naturalDeath = false; // Flag for natural death (not killed by player)        // Behavior flags
         this.isHostile = this.getHostileFlag();
         this.detectionRange = this.isHostile ? 100 : 50;
-        this.attackRange = 24;
+        this.attackRange = 48; // Increased from 24 to allow proper melee combat
         this.attackDamage = this.getAttackDamage();
           // Creeper-specific properties
         this.isAboutToExplode = false;
@@ -341,13 +341,11 @@ class Entity {
         }    }
       updateAI(deltaTime, player, world) {
         const now = Date.now();
-        const distanceToPlayer = this.getDistanceToPlayer(player);
-          // Hostile behavior - find targets (player or peaceful mobs)
+        const distanceToPlayer = this.getDistanceToPlayer(player);          // Hostile behavior - find targets (player or peaceful mobs)
         if (this.isHostile) {
             let target = null;
             let targetDistance = Infinity;
-            
-            // First priority: attack player if close enough
+              // First priority: attack player if close enough
             if (distanceToPlayer < this.detectionRange) {
                 target = player;
                 targetDistance = distanceToPlayer;
@@ -412,8 +410,7 @@ class Entity {
                     // Special Skeleton ranged attack behavior
                     if (this.type === EntityTypes.SKELETON) {
                         this.handleSkeletonAttack(target, targetDistance, now);
-                    }
-                    // Attack if close enough (non-creeper, non-skeleton mobs)
+                    }                    // Attack if close enough (non-creeper, non-skeleton mobs)
                     else if (this.type !== EntityTypes.CREEPER && targetDistance < this.attackRange && now - this.lastAttackTime > this.attackCooldown) {
                         if (target === player) {
                             this.attackPlayer(player);
@@ -607,8 +604,7 @@ class Entity {
                 window.game.particles.addJumpDust(this.x, this.y + this.height);
             }
         }
-    }
-      attackPlayer(player) {
+    }    attackPlayer(player) {        
         // Simple attack - deal damage to player
         if (this.type === EntityTypes.CREEPER) {
             // Creeper explosion (simplified)
@@ -1089,9 +1085,7 @@ class Entity {
                 if (this.oxygen > this.maxOxygen) this.oxygen = this.maxOxygen;
             }
         }
-    }
-
-    takeDamage(amount, attacker = null) { // Added attacker parameter
+    }    takeDamage(amount, attacker = null) { // Added attacker parameter
         this.health -= amount;
         if (this.health <= 0) {
             this.alive = false;
@@ -1108,7 +1102,7 @@ class Entity {
             console.log(`Entity ${this.type} died. Killed by: ${this.killedBy}`); // Debug log
             this.onDeath();
         }
-    }    onDeath() {
+    }onDeath() {
         // Only count kills and drop items if killed by player (not natural death)
         // AND only if the entity that died is NOT the player itself.
         // AND only if the killer is the player (not another mob)

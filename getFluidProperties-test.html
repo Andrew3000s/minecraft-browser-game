@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>getFluidProperties Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #2a2a2a;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .status {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .success { background: #4CAF50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        .info { background: #2196F3; color: white; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        canvas {
+            border: 2px solid #444;
+            background: #87CEEB;
+            border-radius: 4px;
+        }
+        .properties {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .property {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #555;
+        }
+        .property:last-child {
+            border-bottom: none;
+        }
+        .value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 getFluidProperties Method Fix Test</h1>
+        <p>Testing the implementation of the missing <code>getFluidProperties</code> method in FluidPhysics class.</p>
+
+        <div id="status-container"></div>
+        
+        <div class="grid">
+            <div class="test-section">
+                <h3>🌊 Water Properties Test</h3>
+                <div id="water-properties"></div>
+            </div>
+            
+            <div class="test-section">
+                <h3>🔥 Lava Properties Test</h3>
+                <div id="lava-properties"></div>
+            </div>
+            
+            <div class="test-section">
+                <h3>⚗️ Acid Properties Test</h3>
+                <div id="acid-properties"></div>
+            </div>
+            
+            <div class="test-section">
+                <h3>❌ Invalid Type Test</h3>
+                <div id="invalid-properties"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎮 Game Integration Test</h3>
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+            <div id="integration-status"></div>
+        </div>
+    </div>
+
+    <!-- Include all required scripts -->
+    <script src="src/js/block-types.js"></script>
+    <script src="src/js/block.js"></script>
+    <script src="src/js/particles.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/fluid-turbulence.js"></script>
+    <script src="src/js/fluid-erosion.js"></script>
+    <script src="src/js/fluid-performance.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        function addStatus(message, type = 'info') {
+            const container = document.getElementById('status-container');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            container.appendChild(statusDiv);
+        }
+
+        function displayProperties(containerId, properties, title) {
+            const container = document.getElementById(containerId);
+            if (!properties) {
+                container.innerHTML = `<div class="status error">❌ ${title} properties not found</div>`;
+                return;
+            }
+
+            let html = `<div class="status success">✅ ${title} properties found</div>`;
+            html += '<div class="properties">';
+            
+            // Display key properties
+            const keyProps = ['density', 'viscosity', 'surfaceTension', 'color', 'transparency'];
+            keyProps.forEach(prop => {
+                if (properties.hasOwnProperty(prop)) {
+                    html += `<div class="property">
+                        <span>${prop}:</span>
+                        <span class="value">${properties[prop]}</span>
+                    </div>`;
+                }
+            });
+            
+            // Display molecular properties if available
+            const molecularProps = ['cohesionStrength', 'vanDerWaalsRange', 'polarMoment'];
+            const hasMolecular = molecularProps.some(prop => properties.hasOwnProperty(prop));
+            if (hasMolecular) {
+                html += '<hr style="border-color: #555; margin: 10px 0;">';
+                html += '<strong>Molecular Properties:</strong>';
+                molecularProps.forEach(prop => {
+                    if (properties.hasOwnProperty(prop)) {
+                        html += `<div class="property">
+                            <span>${prop}:</span>
+                            <span class="value">${properties[prop]}</span>
+                        </div>`;
+                    }
+                });
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Initialize test
+        async function runTests() {
+            addStatus('🚀 Starting getFluidProperties tests...', 'info');
+
+            try {
+                // Create a minimal world for testing
+                const canvas = document.getElementById('gameCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Initialize game components
+                const world = new World(40, 20);
+                const fluidPhysics = new FluidPhysics(world);
+                world.advancedFluidPhysics = fluidPhysics;
+
+                addStatus('✅ FluidPhysics instance created successfully', 'success');
+
+                // Test 1: Check if method exists
+                if (typeof fluidPhysics.getFluidProperties === 'function') {
+                    addStatus('✅ getFluidProperties method exists', 'success');
+                } else {
+                    addStatus('❌ getFluidProperties method NOT found', 'error');
+                    return;
+                }
+
+                // Test 2: Water properties
+                const waterProps = fluidPhysics.getFluidProperties(BlockTypes.WATER);
+                displayProperties('water-properties', waterProps, 'Water');
+                if (waterProps) {
+                    addStatus('✅ Water properties retrieved successfully', 'success');
+                } else {
+                    addStatus('❌ Failed to get water properties', 'error');
+                }
+
+                // Test 3: Lava properties  
+                const lavaProps = fluidPhysics.getFluidProperties(BlockTypes.LAVA);
+                displayProperties('lava-properties', lavaProps, 'Lava');
+                if (lavaProps) {
+                    addStatus('✅ Lava properties retrieved successfully', 'success');
+                } else {
+                    addStatus('❌ Failed to get lava properties', 'error');
+                }
+
+                // Test 4: Acid properties
+                const acidProps = fluidPhysics.getFluidProperties(BlockTypes.ACID);
+                displayProperties('acid-properties', acidProps, 'Acid');
+                if (acidProps) {
+                    addStatus('✅ Acid properties retrieved successfully', 'success');
+                } else {
+                    addStatus('❌ Failed to get acid properties', 'error');
+                }
+
+                // Test 5: Invalid type
+                const invalidProps = fluidPhysics.getFluidProperties(null);
+                const invalidProps2 = fluidPhysics.getFluidProperties(BlockTypes.STONE);
+                if (!invalidProps && !invalidProps2) {
+                    addStatus('✅ Invalid type handling works correctly', 'success');
+                    document.getElementById('invalid-properties').innerHTML = 
+                        '<div class="status success">✅ Correctly returns null for invalid types</div>';
+                } else {
+                    addStatus('❌ Invalid type handling failed', 'error');
+                    document.getElementById('invalid-properties').innerHTML = 
+                        '<div class="status error">❌ Should return null for invalid types</div>';
+                }
+
+                // Test 6: Integration test - create some fluid blocks and test rendering
+                addStatus('🧪 Testing integration with world rendering...', 'info');
+                
+                // Add some water to the world
+                world.setBlock(10, 15, BlockTypes.WATER);
+                world.setBlock(11, 15, BlockTypes.WATER);
+                world.setBlock(12, 15, BlockTypes.LAVA);
+                
+                // Try to render the world (this should call getFluidProperties internally)
+                try {
+                    world.render(ctx, 0, 0);
+                    addStatus('✅ World rendering with fluid properties successful', 'success');
+                    document.getElementById('integration-status').innerHTML = 
+                        '<div class="status success">✅ Game integration test passed - no errors during rendering</div>';
+                } catch (error) {
+                    addStatus(`❌ World rendering failed: ${error.message}`, 'error');
+                    document.getElementById('integration-status').innerHTML = 
+                        `<div class="status error">❌ Rendering error: ${error.message}</div>`;
+                }
+
+                // Test 7: Test method calls from other components
+                addStatus('🔄 Testing calls from other systems...', 'info');
+                
+                // Test turbulence system integration
+                if (world.advancedFluidPhysics.turbulenceSystem) {
+                    try {
+                        // This should internally call getFluidProperties
+                        world.advancedFluidPhysics.turbulenceSystem.update(0.016);
+                        addStatus('✅ Turbulence system integration successful', 'success');
+                    } catch (error) {
+                        addStatus(`❌ Turbulence system error: ${error.message}`, 'error');
+                    }
+                } else {
+                    addStatus('⚠️ Turbulence system not available', 'warning');
+                }
+
+                addStatus('🎉 All tests completed!', 'success');
+                
+            } catch (error) {
+                addStatus(`❌ Test initialization failed: ${error.message}`, 'error');
+                console.error('Test error:', error);
+            }
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌊 Advanced Fluid Physics Demo - Minecraft Browser Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            font-family: 'Courier New', monospace;
+            color: white;
+            overflow: hidden;
+        }
+        
+        .demo-header {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .demo-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+        }
+        
+        .demo-info {
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+        
+        .controls-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+        }
+        
+        .controls-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #81c784;
+        }
+        
+        .control-item {
+            margin-bottom: 8px;
+            font-size: 0.85em;
+        }
+        
+        .physics-info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            max-width: 400px;
+        }
+        
+        .physics-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #ffb74d;
+        }
+        
+        .physics-item {
+            margin-bottom: 5px;
+            font-size: 0.8em;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .physics-value {
+            color: #4fc3f7;
+        }
+        
+        #gameCanvas {
+            display: block;
+        }
+        
+        .feature-badge {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+    </style>
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="stylesheet" href="src/css/game.css">
+</head>
+<body>
+    <div class="demo-header">
+        <div class="demo-title">🌊 Advanced Fluid Physics System</div>
+        <div class="demo-info">✨ Realistic water, lava & acid simulation</div>
+        <div class="demo-info">⚡ Pressure-based flow dynamics</div>
+        <div class="demo-info">🌊 Surface waves & current effects</div>
+        <div class="demo-info">🧪 Chemical reactions & interactions</div>
+    </div>
+    
+    <div class="controls-panel">
+        <div class="controls-title">🎮 Demo Controls</div>
+        <div class="control-item">🏃 <strong>WASD</strong> - Movement</div>
+        <div class="control-item">🏊 <strong>CTRL</strong> - Dive in liquids</div>
+        <div class="control-item">⬆️ <strong>SPACE</strong> - Jump / Surface</div>
+        <div class="control-item">🏗️ <strong>Left Click</strong> - Break blocks</div>
+        <div class="control-item">🏗️ <strong>Right Click</strong> - Place blocks</div>
+        <div class="control-item">🎯 <strong>1-9</strong> - Select blocks</div>
+        <div class="control-item">📋 <strong>C</strong> - Crafting</div>
+        <div class="control-item">📖 <strong>G</strong> - Command guide</div>
+        <div class="control-item">
+            <span class="feature-badge">NEW</span>
+            Advanced fluid interactions!
+        </div>
+    </div>
+    
+    <div class="physics-info">
+        <div class="physics-title">📊 Real-time Physics Data</div>
+        <div class="physics-item">
+            <span>💧 Water Pressure:</span>
+            <span class="physics-value" id="waterPressure">0 Pa</span>
+        </div>
+        <div class="physics-item">
+            <span>🔥 Lava Viscosity:</span>
+            <span class="physics-value" id="lavaViscosity">100000 Pa·s</span>
+        </div>
+        <div class="physics-item">
+            <span>🧪 Acid Corrosion:</span>
+            <span class="physics-value" id="acidCorrosion">Active</span>
+        </div>
+        <div class="physics-item">
+            <span>🌊 Flow Velocity:</span>
+            <span class="physics-value" id="flowVelocity">0 m/s</span>
+        </div>
+        <div class="physics-item">
+            <span>⚖️ Buoyancy Force:</span>
+            <span class="physics-value" id="buoyancyForce">0 N</span>
+        </div>
+        <div class="physics-item">
+            <span>🌡️ Temperature:</span>
+            <span class="physics-value" id="temperature">20°C</span>
+        </div>
+        <div class="physics-item">
+            <span>💨 Surface Waves:</span>
+            <span class="physics-value" id="surfaceWaves">2.5 Hz</span>
+        </div>
+        <div class="physics-item">
+            <span>⚡ Reactions:</span>
+            <span class="physics-value" id="reactions">0</span>
+        </div>
+    </div>
+    
+    <div id="gameContainer" style="position: relative; width: 100vw; height: 100vh;">
+        <canvas id="gameCanvas"></canvas>
+        <div id="musicControl" class="music-control enabled">🎵 Music: ON</div>
+        <div id="loadingScreen" class="loading-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; font-family: 'Courier New', monospace;">
+            <h1 style="font-size: 3em; margin-bottom: 20px; text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8); color: #4fc3f7;">🌊 Advanced Fluid Physics Demo</h1>
+            <p style="font-size: 1.2em; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">Initializing realistic fluid simulation...</p>
+            <div class="loading-bar" style="width: 400px; height: 25px; background: rgba(0, 0, 0, 0.5); border: 3px solid #666; border-radius: 15px; overflow: hidden; position: relative; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);">
+                <div class="loading-progress" style="height: 100%; background: linear-gradient(90deg, #4fc3f7, #29b6f6, #4fc3f7); width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
+            </div>
+            <div class="loading-percentage" style="margin-top: 15px; font-size: 1.3em; font-weight: bold; color: #4fc3f7; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">0%</div>
+        </div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/game.js"></script>
+    
+    <script>
+        console.log('🌊 Advanced Fluid Physics Demo Loading...');
+        
+        // Aggiorna i dati fisici in tempo reale
+        function updatePhysicsDisplay() {
+            if (window.game && window.game.world && window.game.world.advancedFluidPhysics) {
+                const physics = window.game.world.advancedFluidPhysics;
+                const player = window.game.player;
+                
+                if (player) {
+                    const playerBlockX = Math.floor((player.x + player.width / 2) / window.game.world.blockSize);
+                    const playerBlockY = Math.floor((player.y + player.height / 2) / window.game.world.blockSize);
+                    
+                    // Aggiorna i valori
+                    const pressure = physics.getPressureAt(playerBlockX, playerBlockY);
+                    const flowVelocity = physics.getFlowVelocityAt(playerBlockX, playerBlockY);
+                    const surfaceWave = physics.getSurfaceWaveAt(playerBlockX, playerBlockY);
+                    
+                    document.getElementById('waterPressure').textContent = Math.round(pressure) + ' Pa';
+                    document.getElementById('flowVelocity').textContent = flowVelocity.magnitude.toFixed(1) + ' m/s';
+                    document.getElementById('surfaceWaves').textContent = Math.abs(surfaceWave).toFixed(1) + ' px';
+                    
+                    // Simula forza di galleggiamento
+                    const fluidProps = player.getFluidProperties();
+                    if (fluidProps) {
+                        const buoyancy = player.calculateBuoyancy(fluidProps);
+                        document.getElementById('buoyancyForce').textContent = buoyancy.toFixed(1) + ' N';
+                        
+                        if (fluidProps.temperature) {
+                            document.getElementById('temperature').textContent = fluidProps.temperature + '°C';
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Aggiorna ogni secondo
+        setInterval(updatePhysicsDisplay, 1000);
+        
+        // Log del caricamento
+        window.addEventListener('load', () => {
+            console.log('🌊 Advanced Fluid Physics Demo - All systems loaded!');
+            console.log('Features:');
+            console.log('  ✓ Pressure-based fluid dynamics');
+            console.log('  ✓ Viscosity simulation');
+            console.log('  ✓ Buoyancy effects');
+            console.log('  ✓ Surface waves');
+            console.log('  ✓ Chemical reactions');
+            console.log('  ✓ Thermal dynamics');
+            console.log('  ✓ Real-time visualization');
+        });
+    </script>
+</body>
+</html>

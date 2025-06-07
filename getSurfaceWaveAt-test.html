@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>getSurfaceWaveAt Test</title>
+</head>
+<body>
+    <h1>getSurfaceWaveAt Method Test</h1>
+    <div id="results"></div>
+    
+    <script src="src/js/block-types.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function log(message) {
+            results.innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+        
+        log('Testing getSurfaceWaveAt method...');
+        
+        try {
+            // Create a test world
+            const world = new World(20, 20);
+            const fluidPhysics = new FluidPhysics(world);
+            
+            // Add some water blocks
+            world.setBlock(5, 10, BlockTypes.WATER);
+            world.setBlock(6, 10, BlockTypes.WATER);
+            world.setBlock(7, 10, BlockTypes.WATER);
+            
+            // Test 1: Basic method call
+            log('Test 1: Basic method call');
+            const wave1 = fluidPhysics.getSurfaceWaveAt(5, 10);
+            log('Wave at (5,10): ' + wave1 + ' (type: ' + typeof wave1 + ')');
+            
+            // Test 2: Non-water position
+            log('Test 2: Non-water position');
+            const wave2 = fluidPhysics.getSurfaceWaveAt(0, 0);
+            log('Wave at (0,0): ' + wave2 + ' (type: ' + typeof wave2 + ')');
+            
+            // Test 3: Invalid inputs
+            log('Test 3: Invalid inputs');
+            const wave3 = fluidPhysics.getSurfaceWaveAt('invalid', null);
+            log('Wave with invalid inputs: ' + wave3 + ' (type: ' + typeof wave3 + ')');
+            
+            // Test 4: Update surface effects and test again
+            log('Test 4: After updating surface effects');
+            fluidPhysics.updateSurfaceEffects(0.016);
+            const wave4 = fluidPhysics.getSurfaceWaveAt(5, 10);
+            log('Wave at (5,10) after update: ' + wave4 + ' (type: ' + typeof wave4 + ')');
+            
+            log('✅ All tests completed successfully!');
+            
+        } catch (error) {
+            log('❌ Error: ' + error.message);
+            log('Stack: ' + error.stack);
+        }
+    </script>
+</body>
+</html>

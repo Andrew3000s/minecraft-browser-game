@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>getFlowVelocityAt Test</title>
+</head>
+<body>
+    <h1>getFlowVelocityAt Method Test</h1>
+    <div id="results"></div>
+    
+    <script src="src/js/block-types.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function log(message) {
+            results.innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+        
+        log('Testing getFlowVelocityAt method...');
+        
+        try {
+            // Create a test world
+            const world = new World(20, 20);
+            const fluidPhysics = new FluidPhysics(world);
+            
+            // Add some water blocks to create a fluid scenario
+            world.setBlock(5, 10, BlockTypes.WATER);
+            world.setBlock(6, 10, BlockTypes.WATER);
+            world.setBlock(7, 10, BlockTypes.WATER);
+            world.setBlock(5, 11, BlockTypes.WATER);
+            world.setBlock(6, 11, BlockTypes.WATER);
+            
+            // Test 1: Basic method call
+            log('Test 1: Basic method call');
+            const velocity1 = fluidPhysics.getFlowVelocityAt(5, 10);
+            log('Velocity at (5,10): x=' + velocity1.x.toFixed(3) + 
+                ', y=' + velocity1.y.toFixed(3) + 
+                ', magnitude=' + velocity1.magnitude.toFixed(3));
+            
+            // Test 2: Non-water position
+            log('Test 2: Non-water position');
+            const velocity2 = fluidPhysics.getFlowVelocityAt(0, 0);
+            log('Velocity at (0,0): x=' + velocity2.x + 
+                ', y=' + velocity2.y + 
+                ', magnitude=' + velocity2.magnitude);
+            
+            // Test 3: Invalid inputs
+            log('Test 3: Invalid inputs');
+            const velocity3 = fluidPhysics.getFlowVelocityAt('invalid', null);
+            log('Velocity with invalid inputs: x=' + velocity3.x + 
+                ', y=' + velocity3.y + 
+                ', magnitude=' + velocity3.magnitude);
+            
+            // Test 4: Update flow velocity and test retrieval
+            log('Test 4: Manual velocity update and retrieval');
+            fluidPhysics.updateFlowVelocity(8, 8, { x: 10, y: -5 });
+            const velocity4 = fluidPhysics.getFlowVelocityAt(8, 8);
+            log('Velocity at (8,8) after manual update: x=' + velocity4.x + 
+                ', y=' + velocity4.y + 
+                ', magnitude=' + velocity4.magnitude.toFixed(3));
+            
+            // Test 5: Check object structure
+            log('Test 5: Object structure validation');
+            const velocity5 = fluidPhysics.getFlowVelocityAt(5, 10);
+            const hasX = typeof velocity5.x === 'number';
+            const hasY = typeof velocity5.y === 'number';
+            const hasMagnitude = typeof velocity5.magnitude === 'number';
+            log('Object structure valid: x=' + hasX + ', y=' + hasY + ', magnitude=' + hasMagnitude);
+            
+            log('✅ All tests completed successfully!');
+            
+        } catch (error) {
+            log('❌ Error: ' + error.message);
+            log('Stack: ' + error.stack);
+        }
+    </script>
+</body>
+</html>

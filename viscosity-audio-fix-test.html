@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fix: applyViscosityEffects & AudioContext</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .status-panel {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .test-section {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #0f3460;
+        }
+        .status {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .success { background: #27ae60; }
+        .error { background: #e74c3c; }
+        .warning { background: #f39c12; }
+        .info { background: #3498db; }
+        .pending { background: #95a5a6; }
+        
+        #gameCanvas {
+            border: 2px solid #0f3460;
+            background: #87CEEB;
+            margin: 10px 0;
+            display: block;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #2980b9; }
+        button:disabled { 
+            background: #7f8c8d; 
+            cursor: not-allowed; 
+        }
+        
+        .error-log {
+            background: #2c3e50;
+            border: 1px solid #34495e;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .console-error {
+            color: #e74c3c;
+            margin: 2px 0;
+        }
+        
+        .console-log {
+            color: #27ae60;
+            margin: 2px 0;
+        }
+        
+        .console-warn {
+            color: #f39c12;
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Fix: applyViscosityEffects & AudioContext</h1>
+    
+    <div class="status-panel">
+        <!-- Pannello Test Sistema -->
+        <div class="test-section">
+            <h2>🧪 Test Sistema Fluidi</h2>
+            <div id="system-status"></div>
+            
+            <div class="controls">
+                <button onclick="testSystemInitialization()">🚀 Test Inizializzazione</button>
+                <button onclick="testViscosityMethod()">🌊 Test Viscosità</button>
+                <button onclick="testGameLoop()">🔄 Test Game Loop</button>
+            </div>
+            
+            <canvas id="gameCanvas" width="400" height="200"></canvas>
+        </div>
+        
+        <!-- Pannello Test Audio -->
+        <div class="test-section">
+            <h2>🔊 Test Sistema Audio</h2>
+            <div id="audio-status"></div>
+            
+            <div class="controls">
+                <button onclick="testAudioInitialization()">🎵 Test Audio Init</button>
+                <button onclick="testUserInteraction()">👆 Simula Interazione</button>
+                <button onclick="testSoundAfterInteraction()">🔊 Test Suono</button>
+                <button onclick="testChemicalReactionSound()">🧪 Test Reazione</button>
+            </div>
+            
+            <div id="interaction-info" class="status info">
+                ℹ️ L'audio è disabilitato finché non clicchi da qualche parte per soddisfare la policy del browser
+            </div>
+        </div>
+    </div>
+    
+    <!-- Console Errors Monitor -->
+    <div class="test-section" style="margin-top: 20px;">
+        <h2>📊 Monitor Console & Errori</h2>
+        <div class="controls">
+            <button onclick="clearErrorLog()">🗑️ Pulisci Log</button>
+            <button onclick="toggleErrorCapture()" id="captureBtn">⏸️ Pausa Cattura</button>
+        </div>
+        <div id="errorLog" class="error-log"></div>
+    </div>
+
+    <!-- Load game scripts -->
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/fluid-performance.js"></script>
+    <script src="src/js/fluid-turbulence.js"></script>
+    <script src="src/js/fluid-erosion.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let world;
+        let fluidPhysics;
+        let game;
+        let soundSystem;
+        let errorCapture = true;
+        
+        // Console monitoring
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        const originalConsoleLog = console.log;
+        
+        function logToPanel(message, type = 'log') {
+            if (!errorCapture) return;
+            
+            const errorLog = document.getElementById('errorLog');
+            const div = document.createElement('div');
+            div.className = `console-${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            errorLog.appendChild(div);
+            errorLog.scrollTop = errorLog.scrollHeight;
+        }
+        
+        console.error = (...args) => {
+            logToPanel(args.join(' '), 'error');
+            originalConsoleError.apply(console, args);
+        };
+        
+        console.warn = (...args) => {
+            logToPanel(args.join(' '), 'warn');
+            originalConsoleWarn.apply(console, args);
+        };
+        
+        console.log = (...args) => {
+            logToPanel(args.join(' '), 'log');
+            originalConsoleLog.apply(console, args);
+        };
+        
+        // Cattura errori non gestiti
+        window.addEventListener('error', (e) => {
+            logToPanel(`UNCAUGHT ERROR: ${e.message} at ${e.filename}:${e.lineno}`, 'error');
+        });
+        
+        function addStatus(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()} - ${message}`;
+            container.appendChild(div);
+        }
+        
+        function clearErrorLog() {
+            document.getElementById('errorLog').innerHTML = '';
+        }
+        
+        function toggleErrorCapture() {
+            errorCapture = !errorCapture;
+            const btn = document.getElementById('captureBtn');
+            btn.textContent = errorCapture ? '⏸️ Pausa Cattura' : '▶️ Riprendi Cattura';
+        }
+        
+        // Test Sistema Fluidi
+        async function testSystemInitialization() {
+            addStatus('system-status', '🚀 Test inizializzazione sistema...', 'pending');
+            
+            try {
+                // Test World
+                world = new World(30, 15);
+                addStatus('system-status', '✅ World creato', 'success');
+                
+                // Test FluidPhysics initialization
+                world.initializeAdvancedFluidPhysics();
+                fluidPhysics = world.advancedFluidPhysics;
+                addStatus('system-status', '✅ FluidPhysics inizializzato', 'success');
+                
+                // Test se applyViscosityEffects esiste
+                if (typeof fluidPhysics.applyViscosityEffects === 'function') {
+                    addStatus('system-status', '✅ applyViscosityEffects implementato', 'success');
+                } else {
+                    addStatus('system-status', '❌ applyViscosityEffects mancante', 'error');
+                }
+                
+            } catch (error) {
+                addStatus('system-status', `❌ Errore inizializzazione: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testViscosityMethod() {
+            if (!fluidPhysics) {
+                addStatus('system-status', '⚠️ Inizializza prima il sistema', 'warning');
+                return;
+            }
+            
+            addStatus('system-status', '🌊 Test metodo viscosità...', 'pending');
+            
+            try {
+                // Aggiungi un blocco d'acqua
+                const waterBlock = world.createBlock(BlockTypes.WATER, 10, 5);
+                world.setBlock(10, 5, waterBlock);
+                
+                // Test chiamata diretta
+                fluidPhysics.applyViscosityEffects(10, 5, BlockTypes.WATER, 0.016);
+                addStatus('system-status', '✅ applyViscosityEffects chiamato senza errori', 'success');
+                
+                // Test con altri fluidi
+                fluidPhysics.applyViscosityEffects(10, 6, BlockTypes.LAVA, 0.016);
+                addStatus('system-status', '✅ Test viscosità lava completato', 'success');
+                
+            } catch (error) {
+                addStatus('system-status', `❌ Errore test viscosità: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testGameLoop() {
+            addStatus('system-status', '🔄 Test game loop...', 'pending');
+            
+            try {
+                const canvas = document.getElementById('gameCanvas');
+                game = new MinecraftGame(canvas);
+                
+                // Inizializza il gioco
+                await game.initializeAsync();
+                addStatus('system-status', '✅ Game inizializzato senza errori', 'success');
+                
+                // Avvia per qualche frame
+                let frameCount = 0;
+                const testFrames = 10;
+                
+                const testLoop = () => {
+                    try {
+                        game.update(16); // Simula 60fps
+                        frameCount++;
+                        
+                        if (frameCount < testFrames) {
+                            requestAnimationFrame(testLoop);
+                        } else {
+                            addStatus('system-status', `✅ ${testFrames} frame completati senza errori`, 'success');
+                        }
+                    } catch (error) {
+                        addStatus('system-status', `❌ Errore durante game loop: ${error.message}`, 'error');
+                    }
+                };
+                
+                requestAnimationFrame(testLoop);
+                
+            } catch (error) {
+                addStatus('system-status', `❌ Errore test game loop: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test Sistema Audio
+        async function testAudioInitialization() {
+            addStatus('audio-status', '🎵 Test inizializzazione audio...', 'pending');
+            
+            try {
+                soundSystem = new SoundSystem();
+                addStatus('audio-status', '✅ SoundSystem creato', 'success');
+                
+                addStatus('audio-status', `📊 Audio enabled: ${soundSystem.enabled}`, 'info');
+                addStatus('audio-status', `👆 User interacted: ${soundSystem.userInteracted}`, 'info');
+                addStatus('audio-status', `🎵 AudioContext: ${soundSystem.audioContext ? 'Creato' : 'Non creato'}`, 'info');
+                
+            } catch (error) {
+                addStatus('audio-status', `❌ Errore inizializzazione audio: ${error.message}`, 'error');
+            }
+        }
+        
+        function testUserInteraction() {
+            addStatus('audio-status', '👆 Simulazione interazione utente...', 'pending');
+            
+            // Simula click
+            document.dispatchEvent(new Event('click'));
+            
+            setTimeout(() => {
+                if (soundSystem) {
+                    addStatus('audio-status', `✅ User interaction: ${soundSystem.userInteracted}`, 'success');
+                    addStatus('audio-status', `🔊 Audio enabled: ${soundSystem.enabled}`, 'info');
+                } else {
+                    addStatus('audio-status', '⚠️ Inizializza prima il sound system', 'warning');
+                }
+            }, 100);
+        }
+        
+        function testSoundAfterInteraction() {
+            if (!soundSystem) {
+                addStatus('audio-status', '⚠️ Inizializza prima il sound system', 'warning');
+                return;
+            }
+            
+            addStatus('audio-status', '🔊 Test riproduzione suono...', 'pending');
+            
+            try {
+                soundSystem.playTone(440, 0.2); // La 440Hz per 200ms
+                addStatus('audio-status', '✅ playTone chiamato senza errori', 'success');
+            } catch (error) {
+                addStatus('audio-status', `❌ Errore riproduzione: ${error.message}`, 'error');
+            }
+        }
+        
+        function testChemicalReactionSound() {
+            if (!soundSystem) {
+                addStatus('audio-status', '⚠️ Inizializza prima il sound system', 'warning');
+                return;
+            }
+            
+            addStatus('audio-status', '🧪 Test suono reazione chimica...', 'pending');
+            
+            try {
+                // Simula chiamata da reazione chimica
+                soundSystem.playTone(800, 0.1, 'square');
+                addStatus('audio-status', '✅ Suono reazione chiamato senza errori', 'success');
+            } catch (error) {
+                addStatus('audio-status', `❌ Errore suono reazione: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test automatico al caricamento
+        window.addEventListener('load', () => {
+            addStatus('system-status', '🔧 Test automatico avviato...', 'info');
+            addStatus('audio-status', '🔊 Monitor audio attivo...', 'info');
+            
+            setTimeout(() => {
+                testSystemInitialization();
+                testAudioInitialization();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

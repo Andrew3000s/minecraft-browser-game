@@ -8,7 +8,39 @@ class World {
         this.blocks = {};
         this.liquidUpdateCounter = 0; // To slow down liquid physics
         this.liquidUpdateInterval = 30; // Update liquids every 30 ticks (increased from 15)
+        
+        // 🌊 NUOVO: Sistema avanzato di fisica dei fluidi
+        this.advancedFluidPhysics = null; // Inizializzato dopo che il gioco è caricato
+        this.useAdvancedFluidPhysics = true; // Flag per abilitare/disabilitare
+        
         this.generateWorld();
+    }
+
+    // 🌊 Inizializza il sistema avanzato di fisica dei fluidi
+    initializeAdvancedFluidPhysics(game) {
+        this.advancedFluidPhysics = new FluidPhysics(this);
+        this.useAdvancedFluidPhysics = true;
+        
+        // Memorizza riferimento al game se fornito
+        if (game) {
+            this.game = game;
+        }
+        
+        // 🚀 Inizializza sistemi avanzati (turbolenza ed erosione)
+        if (this.advancedFluidPhysics.initializeAdvancedSystems) {
+            this.advancedFluidPhysics.initializeAdvancedSystems();
+        }
+        
+        console.log('🌊 Advanced Fluid Physics System initialized with:');
+        console.log('  ✓ Pressure-based dynamics');
+        console.log('  ✓ Chemical reactions');
+        console.log('  ✓ Surface waves & currents');
+        if (this.advancedFluidPhysics.enableTurbulence) {
+            console.log('  ✓ Turbulence & vortices');
+        }
+        if (this.advancedFluidPhysics.enableErosion) {
+            console.log('  ✓ Erosion & sedimentation');
+        }
     }
 
     generateWorld() {
@@ -214,13 +246,11 @@ class World {
     }
 
     render(ctx, camera, canvasWidth, canvasHeight) {
-        // Calculate visible range
         const startX = Math.max(0, Math.floor(camera.x / this.blockSize) - 1);
         const endX = Math.min(this.width, Math.ceil((camera.x + canvasWidth) / this.blockSize) + 1);
         const startY = Math.max(0, Math.floor(camera.y / this.blockSize) - 1);
         const endY = Math.min(this.height, Math.ceil((camera.y + canvasHeight) / this.blockSize) + 1);
 
-        // Render all visible blocks normally (lighting will be handled by overlay)
         for (let x = startX; x < endX; x++) {
             for (let y = startY; y < endY; y++) {
                 const block = this.getBlockInstance(x, y);
@@ -228,63 +258,259 @@ class World {
                     const screenX = x * this.blockSize - camera.x;
                     const screenY = y * this.blockSize - camera.y;
                     
-                    // Render block at full brightness
-                    block.render(ctx, screenX, screenY, this.blockSize);
+                    // 🌊 Render avanzato per fluidi
+                    if (this.useAdvancedFluidPhysics && this.advancedFluidPhysics && this.isLiquid(block.type)) {
+                        this.renderAdvancedFluid(ctx, x, y, block, screenX, screenY);
+                    } else {
+                        // Render block normale
+                        block.render(ctx, screenX, screenY, this.blockSize);
+                    }
                 }
             }
         }
     }
 
-    // 🔥 DUPLICATE LOGIC FIX: Removed duplicate torch lighting functions
-    // Torch lighting is now handled in game.js with optimized functions
-    // renderTorchLighting() and renderTorchLight() have been consolidated
-    
-    // Get torch light level at specific position (for gameplay mechanics)
-    getTorchLightLevel(worldX, worldY) {
-        const blockX = Math.floor(worldX / this.blockSize);
-        const blockY = Math.floor(worldY / this.blockSize);
-        
-        let maxLightLevel = 0;
-        
-        // Check surrounding area for torches (within 6 block radius for better coverage)
-        for (let dx = -6; dx <= 6; dx++) {
-            for (let dy = -6; dy <= 6; dy++) {
-                const checkX = blockX + dx;
-                const checkY = blockY + dy;
-                const block = this.getBlockInstance(checkX, checkY);
-                
-                if (block && block.type === BlockTypes.TORCH) {
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const lightLevel = Math.max(0, 1 - (distance / 6)); // Updated to match increased range
-                    maxLightLevel = Math.max(maxLightLevel, lightLevel);
-                }
-            }
+    // 🌊 Rendering avanzato per fluidi con effetti visivi realistici
+    renderAdvancedFluid(ctx, blockX, blockY, block, screenX, screenY) {
+        const fluidProps = this.advancedFluidPhysics.getFluidProperties(block.type);
+        if (!fluidProps) {
+            block.render(ctx, screenX, screenY, this.blockSize);
+            return;
         }
+
+        // Salva stato del context
+        ctx.save();
+
+        // Applica trasparenza
+        ctx.globalAlpha = fluidProps.transparency;
+
+        // Calcola offset delle onde per la superficie
+        const surfaceWave = this.advancedFluidPhysics.getSurfaceWaveAt(blockX, blockY);
+        let renderY = screenY;
         
-        return maxLightLevel;
+        // Controlla se è superficie (aria sopra)
+        const blockAbove = this.getBlock(blockX, blockY - 1);
+        if (blockAbove === BlockTypes.AIR) {
+            renderY += surfaceWave;
+        }
+
+        // Render base del fluido
+        ctx.fillStyle = fluidProps.color;
+        ctx.fillRect(screenX, renderY, this.blockSize, this.blockSize);
+
+        // Effetti aggiuntivi basati sul tipo di fluido
+        this.renderFluidEffects(ctx, blockX, blockY, block.type, screenX, renderY);
+
+        // Render indicatori di flusso (correnti)
+        this.renderFlowIndicators(ctx, blockX, blockY, screenX, renderY);
+
+        // Ripristina stato del context
+        ctx.restore();
+
+        // Aggiungi texture base
+        block.addTexture(ctx, screenX, renderY, this.blockSize);
     }
 
-    // Get light level for a specific block position
-    getBlockLightLevel(blockX, blockY) {
-        let maxLightLevel = 0;
-        
-        // Check surrounding area for torches (within 8 block radius for improved coverage)
-        for (let dx = -8; dx <= 8; dx++) {
-            for (let dy = -8; dy <= 8; dy++) {
-                const checkX = blockX + dx;
-                const checkY = blockY + dy;
-                const block = this.getBlockInstance(checkX, checkY);
-                
-                if (block && block.type === BlockTypes.TORCH) {
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    // Smoother falloff for better lighting with increased range
-                    const lightLevel = Math.max(0, 1 - (distance / 8));
-                    maxLightLevel = Math.max(maxLightLevel, lightLevel);
-                }
-            }
+    // 🎨 Effetti visivi specifici per tipo di fluido
+    renderFluidEffects(ctx, blockX, blockY, fluidType, screenX, screenY) {
+        switch (fluidType) {
+            case BlockTypes.WATER:
+                this.renderWaterEffects(ctx, blockX, blockY, screenX, screenY);
+                break;
+            case BlockTypes.LAVA:
+                this.renderLavaEffects(ctx, blockX, blockY, screenX, screenY);
+                break;
+            case BlockTypes.ACID:
+                this.renderAcidEffects(ctx, blockX, blockY, screenX, screenY);
+                break;
         }
+    }
+
+    // 💧 Effetti visivi acqua
+    renderWaterEffects(ctx, blockX, blockY, screenX, screenY) {
+        const time = Date.now() * 0.001;
         
-        return maxLightLevel;
+        // Riflessioni luminose
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#87CEEB';
+        
+        const reflectionOffset = Math.sin(time * 2 + blockX * 0.5) * 3;
+        ctx.fillRect(
+            screenX + reflectionOffset, 
+            screenY + this.blockSize * 0.7, 
+            this.blockSize * 0.6, 
+            this.blockSize * 0.1
+        );
+        
+        ctx.restore();
+
+        // Bolle occasionali
+        if (Math.random() < 0.001) {
+            this.createBubbleEffect(blockX, blockY);
+        }
+    }
+
+    // 🔥 Effetti visivi lava
+    renderLavaEffects(ctx, blockX, blockY, screenX, screenY) {
+        const time = Date.now() * 0.001;
+        
+        // Incandescenza pulsante
+        ctx.save();
+        ctx.globalAlpha = 0.4 + Math.sin(time * 3 + blockX + blockY) * 0.2;
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(screenX, screenY, this.blockSize, this.blockSize);
+        ctx.restore();
+
+        // Scintille occasionali
+        if (Math.random() < 0.002) {
+            this.createSparkEffect(blockX, blockY);
+        }
+
+        // Calore distorsione (effetto ondulatorio)
+        ctx.save();
+        ctx.globalAlpha = 0.15;
+        
+        const heatOffset = Math.sin(time * 4 + blockX * 0.3) * 2;
+        ctx.fillStyle = '#FF4500';
+        ctx.fillRect(
+            screenX + heatOffset, 
+            screenY - 2, 
+            this.blockSize, 
+            4
+        );
+        
+        ctx.restore();
+    }
+
+    // 🧪 Effetti visivi acido
+    renderAcidEffects(ctx, blockX, blockY, screenX, screenY) {
+        const time = Date.now() * 0.001;
+        
+        // Effetto corrosivo (bolle verdi)
+        ctx.save();
+        ctx.globalAlpha = 0.6;
+        
+        const bubbleSize = 3 + Math.sin(time * 5 + blockX + blockY) * 2;
+        ctx.fillStyle = '#90EE90';
+        ctx.beginPath();
+        ctx.arc(
+            screenX + this.blockSize * 0.3 + Math.sin(time + blockX) * 5,
+            screenY + this.blockSize * 0.4 + Math.cos(time + blockY) * 3,
+            bubbleSize,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+        
+        ctx.restore();
+
+        // Vapori tossici occasionali
+        if (Math.random() < 0.003) {
+            this.createToxicVaporEffect(blockX, blockY);
+        }
+    }
+
+    // 💨 Indicatori di flusso (correnti)
+    renderFlowIndicators(ctx, blockX, blockY, screenX, screenY) {
+        const flowVelocity = this.advancedFluidPhysics.getFlowVelocityAt(blockX, blockY);
+        
+        if (flowVelocity.magnitude > 5) {
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            
+            // Disegna freccia di direzione del flusso
+            const centerX = screenX + this.blockSize / 2;
+            const centerY = screenY + this.blockSize / 2;
+            const arrowLength = Math.min(flowVelocity.magnitude * 0.2, this.blockSize * 0.4);
+            
+            const angle = Math.atan2(flowVelocity.y, flowVelocity.x);
+            const endX = centerX + Math.cos(angle) * arrowLength;
+            const endY = centerY + Math.sin(angle) * arrowLength;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            
+            // Punta della freccia
+            const arrowHeadLength = 5;
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowHeadLength * Math.cos(angle - Math.PI / 6),
+                endY - arrowHeadLength * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowHeadLength * Math.cos(angle + Math.PI / 6),
+                endY - arrowHeadLength * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+    }
+
+    // 🎭 Effetti particellari avanzati
+    createBubbleEffect(blockX, blockY) {
+        if (!window.game?.particles) return;
+        
+        const worldX = blockX * this.blockSize + this.blockSize / 2;
+        const worldY = blockY * this.blockSize + this.blockSize / 2;
+        
+        window.game.particles.particles.push(new Particle({
+            x: worldX + (Math.random() - 0.5) * this.blockSize,
+            y: worldY + (Math.random() - 0.5) * this.blockSize,
+            velocityX: (Math.random() - 0.5) * 20,
+            velocityY: -Math.random() * 40 - 20,
+            color: '#E0F6FF',
+            size: Math.random() * 4 + 2,
+            life: 1.0 + Math.random() * 0.5,
+            gravity: -50 // Le bolle salgono
+        }));
+    }
+
+    createSparkEffect(blockX, blockY) {
+        if (!window.game?.particles) return;
+        
+        const worldX = blockX * this.blockSize + this.blockSize / 2;
+        const worldY = blockY * this.blockSize + this.blockSize / 2;
+        
+        for (let i = 0; i < 3; i++) {
+            window.game.particles.particles.push(new Particle({
+                x: worldX + (Math.random() - 0.5) * this.blockSize,
+                y: worldY + (Math.random() - 0.5) * this.blockSize,
+                velocityX: (Math.random() - 0.5) * 100,
+                velocityY: -Math.random() * 100 - 50,
+                color: ['#FFD700', '#FFA500', '#FF6347'][Math.floor(Math.random() * 3)],
+                size: Math.random() * 2 + 1,
+                life: 0.3 + Math.random() * 0.2,
+                gravity: 300
+            }));
+        }
+    }
+
+    createToxicVaporEffect(blockX, blockY) {
+        if (!window.game?.particles) return;
+        
+        const worldX = blockX * this.blockSize + this.blockSize / 2;
+        const worldY = blockY * this.blockSize + this.blockSize / 2;
+        
+        for (let i = 0; i < 2; i++) {
+            window.game.particles.particles.push(new Particle({
+                x: worldX + (Math.random() - 0.5) * this.blockSize,
+                y: worldY - this.blockSize / 2,
+                velocityX: (Math.random() - 0.5) * 30,
+                velocityY: -Math.random() * 60 - 30,
+                color: ['#9ACD32', '#228B22'][Math.floor(Math.random() * 2)],
+                size: Math.random() * 6 + 4,
+                life: 2.0 + Math.random() * 1.0,
+                gravity: -40 // I vapori salgono
+            }));
+        }
     }
 
     // Physics collision detection
@@ -312,7 +538,19 @@ class World {
     }
     
     // 🔧 NEW: Liquid physics system
-    updateLiquidPhysics() {
+    updateLiquidPhysics(deltaTime) {
+        // 🌊 Usa il sistema avanzato se disponibile
+        if (this.useAdvancedFluidPhysics && this.advancedFluidPhysics) {
+            this.advancedFluidPhysics.updateFluidPhysics(deltaTime);
+            return;
+        }
+        
+        // Sistema base di fallback
+        this.updateBasicLiquidPhysics();
+    }
+    
+    // 🔧 Sistema base di fisica dei fluidi (fallback)
+    updateBasicLiquidPhysics() {
         this.liquidUpdateCounter++;
         if (this.liquidUpdateCounter < this.liquidUpdateInterval) {
             return; // Skip this update to slow down liquids

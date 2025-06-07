@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Viscosity Method - Minecraft Browser Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #2b2b2b;
+            color: #ffffff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #4CAF50; }
+        .error { background-color: #f44336; }
+        .warning { background-color: #ff9800; }
+        .info { background-color: #2196F3; }
+        pre {
+            background-color: #1e1e1e;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Viscosity Method - Sistema Fisico Fluidi</h1>
+        
+        <div id="loading" class="status info">
+            🔄 Caricamento sistema fisico fluidi...
+        </div>
+        
+        <div id="results"></div>
+        
+        <button onclick="runTests()" id="testBtn" disabled>▶️ Esegui Test</button>
+        <button onclick="clearResults()">🗑️ Pulisci Risultati</button>
+        
+        <h3>📊 Log in tempo reale:</h3>
+        <pre id="console-log"></pre>
+    </div>
+
+    <!-- Caricamento file necessari -->
+    <script>
+        // Costanti BlockTypes
+        const BlockTypes = {
+            AIR: 0,
+            STONE: 1,
+            DIRT: 2,
+            GRASS: 3,
+            WATER: 4,
+            LAVA: 5,
+            SAND: 6,
+            GRAVEL: 7,
+            WOOD: 8,
+            LEAVES: 9,
+            GLASS: 10,
+            BEDROCK: 11,
+            COAL_ORE: 12,
+            IRON_ORE: 13,
+            GOLD_ORE: 14,
+            DIAMOND_ORE: 15,
+            TNT: 16,
+            ACID: 17
+        };
+
+        // Mock delle dipendenze necessarie
+        class MockWorld {
+            constructor() {
+                this.blocks = new Map();
+            }
+
+            isValidPosition(x, y) {
+                return x >= 0 && x < 100 && y >= 0 && y < 100;
+            }
+
+            getBlock(x, y) {
+                return this.blocks.get(`${x},${y}`) || BlockTypes.AIR;
+            }
+
+            setBlock(x, y, type) {
+                this.blocks.set(`${x},${y}`, type);
+            }
+
+            isLiquid(type) {
+                return [BlockTypes.WATER, BlockTypes.LAVA, BlockTypes.ACID].includes(type);
+            }
+        }
+
+        class MockParticle {
+            constructor(config) {
+                Object.assign(this, config);
+            }
+        }
+
+        class MockParticleSystem {
+            constructor() {
+                this.particles = [];
+            }
+        }
+
+        // Mock window.game
+        window.game = {
+            particles: new MockParticleSystem()
+        };
+
+        // Mock Particle globale
+        window.Particle = MockParticle;
+
+        // Variabili globali
+        let fluidPhysics = null;
+        let testWorld = null;
+
+        // Console log override
+        const originalLog = console.log;
+        const originalError = console.error;
+        const logContainer = document.getElementById('console-log');
+
+        function addToLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logContainer.textContent += logEntry;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '), 'log');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+
+        // Funzione per mostrare risultati
+        function showResult(message, type) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `status ${type}`;
+            resultDiv.innerHTML = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        // Funzione per pulire risultati
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            logContainer.textContent = '';
+        }
+
+        // Test principale del metodo viscosity
+        function runTests() {
+            clearResults();
+            
+            console.log('🧪 Iniziando test del metodo applyViscosityEffects...');
+            
+            try {
+                // Test 1: Verifica esistenza istanza
+                if (!fluidPhysics) {
+                    throw new Error('FluidPhysics non inizializzato');
+                }
+                showResult('✅ Test 1: FluidPhysics istanza creata correttamente', 'success');
+                console.log('FluidPhysics instance:', fluidPhysics);
+
+                // Test 2: Verifica esistenza metodo
+                if (typeof fluidPhysics.applyViscosityEffects !== 'function') {
+                    throw new Error(`applyViscosityEffects non è una funzione. Tipo: ${typeof fluidPhysics.applyViscosityEffects}`);
+                }
+                showResult('✅ Test 2: Metodo applyViscosityEffects esiste', 'success');
+                console.log('applyViscosityEffects type:', typeof fluidPhysics.applyViscosityEffects);
+
+                // Test 3: Lista metodi disponibili
+                const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(fluidPhysics))
+                    .filter(name => typeof fluidPhysics[name] === 'function');
+                console.log('Metodi disponibili in FluidPhysics:', methods);
+                showResult(`📋 Test 3: FluidPhysics ha ${methods.length} metodi disponibili (vedi console)`, 'info');
+
+                // Test 4: Setup scenario di test
+                testWorld.setBlock(10, 10, BlockTypes.WATER);
+                testWorld.setBlock(10, 11, BlockTypes.WATER);
+                testWorld.setBlock(11, 10, BlockTypes.WATER);
+                showResult('✅ Test 4: Scenario di test preparato (acqua a 10,10)', 'success');
+
+                // Test 5: Chiamata al metodo
+                console.log('Chiamando applyViscosityEffects(10, 10, WATER, 0.016)...');
+                fluidPhysics.applyViscosityEffects(10, 10, BlockTypes.WATER, 0.016);
+                showResult('✅ Test 5: applyViscosityEffects chiamato con successo!', 'success');
+
+                // Test 6: Test con diversi fluidi
+                console.log('Test con LAVA...');
+                testWorld.setBlock(15, 15, BlockTypes.LAVA);
+                fluidPhysics.applyViscosityEffects(15, 15, BlockTypes.LAVA, 0.016);
+                showResult('✅ Test 6: applyViscosityEffects funziona con LAVA', 'success');
+
+                console.log('Test con ACID...');
+                testWorld.setBlock(20, 20, BlockTypes.ACID);
+                fluidPhysics.applyViscosityEffects(20, 20, BlockTypes.ACID, 0.016);
+                showResult('✅ Test 7: applyViscosityEffects funziona con ACID', 'success');
+
+                showResult('🎉 TUTTI I TEST COMPLETATI CON SUCCESSO!', 'success');
+                console.log('🎉 Tutti i test del sistema di viscosità completati!');
+
+            } catch (error) {
+                console.error('❌ Errore durante i test:', error);
+                showResult(`❌ Test fallito: ${error.message}`, 'error');
+                
+                // Debug aggiuntivo
+                if (fluidPhysics) {
+                    console.log('Proprietà FluidPhysics:', Object.keys(fluidPhysics));
+                    console.log('Metodi prototipo:', Object.getOwnPropertyNames(Object.getPrototypeOf(fluidPhysics)));
+                }
+            }
+        }
+
+        // Caricamento del sistema FluidPhysics
+        window.addEventListener('load', function() {
+            const loadScript = (src) => {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            };
+
+            console.log('🔄 Caricamento FluidPhysics...');
+            
+            loadScript('src/js/fluid-physics.js')
+                .then(() => {
+                    console.log('✅ FluidPhysics caricato');
+                    
+                    // Inizializza sistema
+                    testWorld = new MockWorld();
+                    fluidPhysics = new FluidPhysics(testWorld);
+                    
+                    document.getElementById('loading').innerHTML = '✅ Sistema fisico fluidi caricato correttamente!';
+                    document.getElementById('loading').className = 'status success';
+                    document.getElementById('testBtn').disabled = false;
+                    
+                    console.log('🎯 Sistema pronto per i test!');
+                })
+                .catch(error => {
+                    console.error('❌ Errore caricamento:', error);
+                    document.getElementById('loading').innerHTML = `❌ Errore caricamento: ${error.message}`;
+                    document.getElementById('loading').className = 'status error';
+                });
+        });
+    </script>
+</body>
+</html>

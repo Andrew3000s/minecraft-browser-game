@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fisica Fluidi - Sistema Completo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background: #27ae60;
+            color: white;
+        }
+        .test-fail {
+            background: #e74c3c;
+            color: white;
+        }
+        .test-info {
+            background: #3498db;
+            color: white;
+        }
+        #gameCanvas {
+            border: 2px solid #0f3460;
+            background: #87CEEB;
+            margin: 10px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌊 Test Sistema Fisica Fluidi Avanzata</h1>
+        
+        <div class="test-section">
+            <h2>🔧 Test Inizializzazione Sistema</h2>
+            <div id="init-tests"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 Test Proprietà Fluidi</h2>
+            <div id="properties-tests"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🌊 Test Funzioni API</h2>
+            <div id="api-tests"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎮 Test Visivo</h2>
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+            <div class="controls">
+                <button onclick="testWaterFlow()">Test Flusso Acqua</button>
+                <button onclick="testLavaFlow()">Test Flusso Lava</button>
+                <button onclick="testChemicalReaction()">Test Reazione Chimica</button>
+                <button onclick="testPressureDynamics()">Test Dinamiche Pressione</button>
+            </div>
+            <div id="visual-tests"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Performance & Stats</h2>
+            <div id="performance-stats"></div>
+        </div>
+    </div>
+
+    <!-- Load game scripts -->
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/fluid-performance.js"></script>
+    <script src="src/js/fluid-turbulence.js"></script>
+    <script src="src/js/fluid-erosion.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/world.js"></script>
+
+    <script>
+        let world;
+        let fluidPhysics;
+        let canvas;
+        let ctx;
+        
+        // 🚀 Test runner
+        function addTestResult(containerId, testName, passed, details = '') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result test-${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <strong>${passed ? '✅' : '❌'} ${testName}</strong>
+                ${details ? `<br><small>${details}</small>` : ''}
+            `;
+            container.appendChild(div);
+            return passed;
+        }
+        
+        function addInfoResult(containerId, title, info) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = 'test-result test-info';
+            div.innerHTML = `<strong>ℹ️ ${title}</strong><br><small>${info}</small>`;
+            container.appendChild(div);
+        }
+        
+        // 🧪 Test inizializzazione
+        function runInitializationTests() {
+            // Test 1: Verifica caricamento classi
+            const test1 = typeof FluidPhysics !== 'undefined';
+            addTestResult('init-tests', 'Caricamento FluidPhysics', test1, 
+                test1 ? 'Classe FluidPhysics caricata correttamente' : 'Classe FluidPhysics non trovata');
+            
+            const test2 = typeof World !== 'undefined';
+            addTestResult('init-tests', 'Caricamento World', test2,
+                test2 ? 'Classe World caricata correttamente' : 'Classe World non trovata');
+            
+            // Test 3: Creazione mondo
+            try {
+                world = new World(50, 25);
+                world.initializeAdvancedFluidPhysics();
+                fluidPhysics = world.advancedFluidPhysics;
+                addTestResult('init-tests', 'Creazione World & FluidPhysics', true, 
+                    'Mondo e sistema fluidi inizializzati correttamente');
+            } catch (error) {
+                addTestResult('init-tests', 'Creazione World & FluidPhysics', false, 
+                    `Errore: ${error.message}`);
+                return false;
+            }
+            
+            // Test 4: Verifica sistemi avanzati
+            const test4 = fluidPhysics && typeof fluidPhysics.fluidProperties === 'object';
+            addTestResult('init-tests', 'Proprietà Fluidi', test4,
+                test4 ? 'Proprietà fluidi caricate correttamente' : 'Proprietà fluidi non trovate');
+            
+            return true;
+        }
+        
+        // 🧪 Test proprietà fluidi
+        function runPropertiesTests() {
+            if (!fluidPhysics) return;
+            
+            // Test proprietà acqua
+            const waterProps = fluidPhysics.getFluidProperties(BlockTypes.WATER);
+            const test1 = waterProps && waterProps.density === 1000;
+            addTestResult('properties-tests', 'Proprietà Acqua', test1,
+                test1 ? `Densità: ${waterProps.density} kg/m³, Viscosità: ${waterProps.viscosity} Pa·s` :
+                'Proprietà acqua non corrette');
+            
+            // Test proprietà lava
+            const lavaProps = fluidPhysics.getFluidProperties(BlockTypes.LAVA);
+            const test2 = lavaProps && lavaProps.density === 2800;
+            addTestResult('properties-tests', 'Proprietà Lava', test2,
+                test2 ? `Densità: ${lavaProps.density} kg/m³, Viscosità: ${lavaProps.viscosity} Pa·s` :
+                'Proprietà lava non corrette');
+            
+            // Test proprietà acido
+            const acidProps = fluidPhysics.getFluidProperties(BlockTypes.ACID);
+            const test3 = acidProps && acidProps.density === 1200;
+            addTestResult('properties-tests', 'Proprietà Acido', test3,
+                test3 ? `Densità: ${acidProps.density} kg/m³, Viscosità: ${acidProps.viscosity} Pa·s` :
+                'Proprietà acido non corrette');
+        }
+        
+        // 🧪 Test API
+        function runAPITests() {
+            if (!fluidPhysics) return;
+            
+            // Test metodi API
+            const test1 = typeof fluidPhysics.getFluidProperties === 'function';
+            addTestResult('api-tests', 'getFluidProperties()', test1);
+            
+            const test2 = typeof fluidPhysics.getSurfaceWaveAt === 'function';
+            addTestResult('api-tests', 'getSurfaceWaveAt()', test2);
+            
+            const test3 = typeof fluidPhysics.getFlowVelocityAt === 'function';
+            addTestResult('api-tests', 'getFlowVelocityAt()', test3);
+            
+            // Test chiamate API
+            try {
+                const wave = fluidPhysics.getSurfaceWaveAt(10, 10);
+                const test4 = wave && typeof wave.amplitude === 'number';
+                addTestResult('api-tests', 'Test getSurfaceWaveAt()', test4,
+                    test4 ? `Ampiezza: ${wave.amplitude.toFixed(4)}` : 'Return non valido');
+                
+                const flow = fluidPhysics.getFlowVelocityAt(10, 10);
+                const test5 = flow && typeof flow.x === 'number' && typeof flow.y === 'number';
+                addTestResult('api-tests', 'Test getFlowVelocityAt()', test5,
+                    test5 ? `Velocità: (${flow.x.toFixed(4)}, ${flow.y.toFixed(4)})` : 'Return non valido');
+            } catch (error) {
+                addTestResult('api-tests', 'Test chiamate API', false, `Errore: ${error.message}`);
+            }
+        }
+        
+        // 🎮 Test visivi
+        function setupVisualTests() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // Inizializza canvas con alcuni blocchi di test
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            addInfoResult('visual-tests', 'Canvas Pronto', 'Clicca i pulsanti sopra per testare visivamente i fluidi');
+        }
+        
+        function testWaterFlow() {
+            if (!world || !ctx) return;
+            
+            ctx.fillStyle = '#4169E1';
+            for (let x = 10; x < 20; x++) {
+                for (let y = 10; y < 15; y++) {
+                    ctx.fillRect(x * 16, y * 16, 16, 16);
+                }
+            }
+            addInfoResult('visual-tests', 'Test Acqua', 'Simulazione flusso acqua attivata (blu)');
+        }
+        
+        function testLavaFlow() {
+            if (!world || !ctx) return;
+            
+            ctx.fillStyle = '#FF4500';
+            for (let x = 30; x < 40; x++) {
+                for (let y = 10; y < 15; y++) {
+                    ctx.fillRect(x * 16, y * 16, 16, 16);
+                }
+            }
+            addInfoResult('visual-tests', 'Test Lava', 'Simulazione flusso lava attivata (arancione)');
+        }
+        
+        function testChemicalReaction() {
+            if (!fluidPhysics) return;
+            
+            // Simula reazione acqua + lava
+            const result = fluidPhysics.processChemicalReactions(10, 10, BlockTypes.WATER, BlockTypes.LAVA);
+            addInfoResult('visual-tests', 'Test Reazione Chimica', 
+                `Reazione Acqua + Lava simulata: ${result ? 'Pietra generata' : 'Nessuna reazione'}`);
+        }
+        
+        function testPressureDynamics() {
+            if (!fluidPhysics) return;
+            
+            const pressure = fluidPhysics.calculatePressure(10, 20, BlockTypes.WATER);
+            addInfoResult('visual-tests', 'Test Pressione', 
+                `Pressione calcolata a profondità 20: ${pressure.toFixed(2)} Pa`);
+        }
+        
+        // 📊 Performance stats
+        function showPerformanceStats() {
+            if (!fluidPhysics || !fluidPhysics.performanceManager) {
+                addInfoResult('performance-stats', 'Performance Manager', 'Non disponibile o non inizializzato');
+                return;
+            }
+            
+            const stats = fluidPhysics.performanceManager.getStats();
+            if (stats) {
+                addInfoResult('performance-stats', 'Statistiche Performance', 
+                    `FPS medio: ${stats.averageFps || 'N/A'}, Particelle attive: ${stats.activeParticles || 0}`);
+            } else {
+                addInfoResult('performance-stats', 'Statistiche Performance', 'Stats non disponibili');
+            }
+        }
+        
+        // 🚀 Esegui tutti i test
+        async function runAllTests() {
+            console.log('🌊 Avvio test sistema fisica fluidi...');
+            
+            if (runInitializationTests()) {
+                runPropertiesTests();
+                runAPITests();
+                setupVisualTests();
+                showPerformanceStats();
+            }
+            
+            console.log('✅ Test completati!');
+        }
+        
+        // Avvia test al caricamento
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>

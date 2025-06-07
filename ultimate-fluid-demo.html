@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌪️ Ultimate Fluid Physics Demo - Minecraft Browser Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            font-family: 'Courier New', monospace;
+            color: white;
+            overflow: hidden;
+        }
+        
+        .demo-header {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border: 2px solid #4fc3f7;
+        }
+        
+        .demo-title {
+            font-size: 1.6em;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .demo-info {
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+        
+        .advanced-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            max-width: 320px;
+            border: 2px solid #ff6b6b;
+        }
+        
+        .controls-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .control-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        .toggle-button {
+            background: #4fc3f7;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-button:hover {
+            background: #29b6f6;
+            transform: scale(1.05);
+        }
+        
+        .toggle-button.disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .physics-panel {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            max-width: 400px;
+            border: 2px solid #81c784;
+        }
+        
+        .physics-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #81c784;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .physics-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+        }
+        
+        .physics-value {
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+        
+        .stats-panel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+            border: 2px solid #ff9800;
+        }
+        
+        .stats-title {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #ff9800;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .loading-bar {
+            width: 450px;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 3px solid #666;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7, #29b6f6, #4fc3f7);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .feature-badge {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-header">
+        <div class="demo-title">🌪️ Ultimate Fluid Physics System</div>
+        <div class="demo-info">✨ Realistic water, lava & acid simulation</div>
+        <div class="demo-info">⚡ Pressure-based flow dynamics</div>
+        <div class="demo-info">🌊 Surface waves & current effects</div>
+        <div class="demo-info">🧪 Chemical reactions & interactions</div>
+        <div class="demo-info">
+            <span class="feature-badge">NEW</span>
+            🌪️ Turbulence & vortex simulation
+        </div>
+        <div class="demo-info">
+            <span class="feature-badge">NEW</span>
+            🪨 Erosion & sedimentation
+        </div>
+    </div>
+    
+    <div class="advanced-controls">
+        <div class="controls-title">🎛️ Advanced Physics Controls</div>
+        
+        <div class="control-toggle">
+            <span>🌪️ Turbulence System</span>
+            <button class="toggle-button" id="turbulenceToggle">ON</button>
+        </div>
+        
+        <div class="control-toggle">
+            <span>🪨 Erosion System</span>
+            <button class="toggle-button" id="erosionToggle">ON</button>
+        </div>
+        
+        <div class="control-toggle">
+            <span>🌊 Surface Waves</span>
+            <button class="toggle-button" id="wavesToggle">ON</button>
+        </div>
+        
+        <div class="control-toggle">
+            <span>🧪 Chemical Reactions</span>
+            <button class="toggle-button" id="reactionsToggle">ON</button>
+        </div>
+          <div class="control-toggle">
+            <span>🌡️ Thermodynamics</span>
+            <button class="toggle-button" id="thermoToggle">ON</button>
+        </div>
+        
+        <div class="control-toggle">
+            <span>⚡ Performance Optimization</span>
+            <button class="toggle-button" id="performanceToggle">ON</button>
+        </div>
+        
+        <div class="control-toggle">
+            <span>🎯 Adaptive Quality</span>
+            <button class="toggle-button" id="adaptiveToggle">ON</button>
+        </div>
+        
+        <hr style="margin: 10px 0; border-color: #666;">
+        
+        <div style="font-size: 0.8em; color: #ccc;">
+            <div>🎮 WASD - Movement</div>
+            <div>🏊 CTRL - Dive in liquids</div>
+            <div>⬆️ SPACE - Jump / Surface</div>
+            <div>🏗️ Left Click - Break blocks</div>
+            <div>🏗️ Right Click - Place blocks</div>
+        </div>
+    </div>
+    
+    <div class="physics-panel">
+        <div class="physics-title">📊 Real-time Physics Data</div>
+        <div class="physics-item">
+            <span>💧 Water Pressure:</span>
+            <span class="physics-value" id="waterPressure">0 Pa</span>
+        </div>
+        <div class="physics-item">
+            <span>🔥 Lava Viscosity:</span>
+            <span class="physics-value" id="lavaViscosity">100000 Pa·s</span>
+        </div>
+        <div class="physics-item">
+            <span>🧪 Acid Corrosion:</span>
+            <span class="physics-value" id="acidCorrosion">Active</span>
+        </div>
+        <div class="physics-item">
+            <span>🌊 Flow Velocity:</span>
+            <span class="physics-value" id="flowVelocity">0 m/s</span>
+        </div>
+        <div class="physics-item">
+            <span>⚖️ Buoyancy Force:</span>
+            <span class="physics-value" id="buoyancyForce">0 N</span>
+        </div>
+        <div class="physics-item">
+            <span>🌡️ Temperature:</span>
+            <span class="physics-value" id="temperature">20°C</span>
+        </div>
+        <div class="physics-item">
+            <span>💨 Surface Waves:</span>
+            <span class="physics-value" id="surfaceWaves">2.5 Hz</span>
+        </div>
+        <div class="physics-item">
+            <span>🌪️ Turbulence:</span>
+            <span class="physics-value" id="turbulenceLevel">0%</span>
+        </div>
+    </div>
+    
+    <div class="stats-panel">
+        <div class="stats-title">📈 System Statistics</div>
+        <div class="physics-item">
+            <span>⚡ Reactions Count:</span>
+            <span class="physics-value" id="reactions">0</span>
+        </div>
+        <div class="physics-item">
+            <span>🌀 Active Vortices:</span>
+            <span class="physics-value" id="vortices">0</span>
+        </div>
+        <div class="physics-item">
+            <span>🪨 Total Erosion:</span>
+            <span class="physics-value" id="totalErosion">0</span>
+        </div>
+        <div class="physics-item">
+            <span>🏗️ Sediment Sites:</span>
+            <span class="physics-value" id="sedimentSites">0</span>
+        </div>
+        <div class="physics-item">
+            <span>💧 Active Fluids:</span>
+            <span class="physics-value" id="activeFluids">0</span>
+        </div>        <div class="physics-item">
+            <span>🎯 FPS:</span>
+            <span class="physics-value" id="fps">60</span>
+        </div>
+        <div class="physics-item">
+            <span>⚡ Quality Level:</span>
+            <span class="physics-value" id="qualityLevel">HIGH</span>
+        </div>
+        <div class="physics-item">
+            <span>📊 Frame Time:</span>
+            <span class="physics-value" id="frameTime">16.7 ms</span>
+        </div>
+        <div class="physics-item">
+            <span>🔧 Optimizations:</span>
+            <span class="physics-value" id="optimizations">0</span>
+        </div>
+    </div>
+    
+    <div id="gameContainer" style="position: relative; width: 100vw; height: 100vh;">
+        <canvas id="gameCanvas"></canvas>
+        <div id="musicControl" class="music-control enabled">🎵 Music: ON</div>
+        <div id="loadingScreen" class="loading-screen">
+            <h1 style="font-size: 3.5em; margin-bottom: 20px; text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8); color: #4fc3f7;">🌪️ Ultimate Fluid Physics Demo</h1>
+            <p style="font-size: 1.3em; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">Initializing advanced fluid simulation with turbulence & erosion...</p>
+            <div class="loading-bar">
+                <div class="loading-progress" style="width: 0%;"></div>
+            </div>
+            <div class="loading-percentage" style="margin-top: 15px; font-size: 1.4em; font-weight: bold; color: #4fc3f7; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">0%</div>
+        </div>
+    </div>
+      <script src="src/js/utils.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/particles.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/fluid-turbulence.js"></script>
+    <script src="src/js/fluid-erosion.js"></script>
+    <script src="src/js/fluid-performance.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/game.js"></script>
+    
+    <script>
+        console.log('🌪️ Ultimate Fluid Physics Demo Loading...');
+        
+        // Sistema di controlli avanzati
+        let controlsInitialized = false;
+        
+        function initializeAdvancedControls() {
+            if (controlsInitialized || !window.game?.world?.advancedFluidPhysics) return;
+            
+            const physics = window.game.world.advancedFluidPhysics;
+            
+            // Toggle Turbulence
+            document.getElementById('turbulenceToggle').addEventListener('click', function() {
+                const enabled = physics.toggleTurbulence();
+                this.textContent = enabled ? 'ON' : 'OFF';
+                this.className = enabled ? 'toggle-button' : 'toggle-button disabled';
+                console.log(`🌪️ Turbulence system ${enabled ? 'enabled' : 'disabled'}`);
+            });
+            
+            // Toggle Erosion
+            document.getElementById('erosionToggle').addEventListener('click', function() {
+                const enabled = physics.toggleErosion();
+                this.textContent = enabled ? 'ON' : 'OFF';
+                this.className = enabled ? 'toggle-button' : 'toggle-button disabled';
+                console.log(`🪨 Erosion system ${enabled ? 'enabled' : 'disabled'}`);
+            });
+            
+            // Placeholder toggles per altri sistemi
+            ['waves', 'reactions', 'thermo'].forEach(system => {
+                const button = document.getElementById(system + 'Toggle');
+                if (button) {
+                    button.addEventListener('click', function() {
+                        console.log(`🎛️ ${system} toggle clicked (feature coming soon)`);
+                    });
+                }
+            });
+            
+            controlsInitialized = true;
+            console.log('🎛️ Advanced controls initialized');
+        }
+        
+        // Aggiorna i dati fisici in tempo reale
+        function updateAdvancedPhysicsDisplay() {
+            if (window.game && window.game.world && window.game.world.advancedFluidPhysics) {
+                const physics = window.game.world.advancedFluidPhysics;
+                const player = window.game.player;
+                
+                if (player) {
+                    const playerBlockX = Math.floor((player.x + player.width / 2) / window.game.world.blockSize);
+                    const playerBlockY = Math.floor((player.y + player.height / 2) / window.game.world.blockSize);
+                    
+                    // Dati fisici base
+                    const pressure = physics.getPressureAt(playerBlockX, playerBlockY);
+                    const flowVelocity = physics.getFlowVelocityAt(playerBlockX, playerBlockY);
+                    const surfaceWave = physics.getSurfaceWaveAt(playerBlockX, playerBlockY);
+                    
+                    document.getElementById('waterPressure').textContent = Math.round(pressure) + ' Pa';
+                    document.getElementById('flowVelocity').textContent = flowVelocity.magnitude.toFixed(1) + ' m/s';
+                    document.getElementById('surfaceWaves').textContent = Math.abs(surfaceWave).toFixed(1) + ' px';
+                    
+                    // Dati turbolenza
+                    const turbulence = physics.getTurbulenceAt(playerBlockX, playerBlockY);
+                    document.getElementById('turbulenceLevel').textContent = (turbulence * 100).toFixed(1) + '%';
+                    
+                    // Statistiche erosione
+                    const erosionStats = physics.getErosionStats();
+                    if (erosionStats) {
+                        document.getElementById('totalErosion').textContent = erosionStats.totalErosion;
+                        document.getElementById('sedimentSites').textContent = erosionStats.activeSedimentSites;
+                    }
+                      // Vortici attivi
+                    if (physics.turbulenceSystem) {
+                        const vortexCount = physics.turbulenceSystem.vortexMap.size;
+                        document.getElementById('vortices').textContent = vortexCount;
+                    }
+                    
+                    // 🚀 Statistiche Performance Manager
+                    const perfStats = physics.getPerformanceStats();
+                    if (perfStats) {
+                        document.getElementById('fps').textContent = perfStats.fps;
+                        document.getElementById('qualityLevel').textContent = perfStats.qualityLevel;
+                        document.getElementById('frameTime').textContent = perfStats.averageFrameTime.toFixed(1) + ' ms';
+                        document.getElementById('optimizations').textContent = perfStats.optimizationsApplied;
+                    }
+                    
+                    // Player buoyancy
+                    const fluidProps = player.getFluidProperties();
+                    if (fluidProps) {
+                        const buoyancy = player.calculateBuoyancy(fluidProps);
+                        document.getElementById('buoyancyForce').textContent = buoyancy.toFixed(1) + ' N';
+                        
+                        if (fluidProps.temperature) {
+                            document.getElementById('temperature').textContent = fluidProps.temperature + '°C';
+                        }
+                    }
+                }
+                
+                // Conta fluidi attivi
+                let activeFluidCount = 0;
+                for (let x = 0; x < physics.world.width; x += 5) {
+                    for (let y = 0; y < physics.world.height; y += 5) {
+                        if (physics.world.isLiquid(physics.world.getBlock(x, y))) {
+                            activeFluidCount++;
+                        }
+                    }
+                }
+                document.getElementById('activeFluids').textContent = activeFluidCount;
+            }
+        }
+        
+        // FPS counter
+        let lastTime = 0;
+        let frameCount = 0;
+        function updateFPS() {
+            frameCount++;
+            const now = Date.now();
+            if (now - lastTime >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastTime = now;
+            }
+        }
+          // Funzione per inizializzare controlli avanzati
+        function initializeAdvancedControls() {
+            if (!window.game?.world?.advancedFluidPhysics) return;
+            
+            const physics = window.game.world.advancedFluidPhysics;
+            
+            // Controllo Turbulence
+            const turbulenceToggle = document.getElementById('turbulenceToggle');
+            if (turbulenceToggle && !turbulenceToggle.onclick) {
+                turbulenceToggle.onclick = () => {
+                    const enabled = physics.toggleTurbulence();
+                    turbulenceToggle.textContent = enabled ? 'ON' : 'OFF';
+                    turbulenceToggle.className = enabled ? 'toggle-button' : 'toggle-button disabled';
+                };
+            }
+            
+            // Controllo Erosion
+            const erosionToggle = document.getElementById('erosionToggle');
+            if (erosionToggle && !erosionToggle.onclick) {
+                erosionToggle.onclick = () => {
+                    const enabled = physics.toggleErosion();
+                    erosionToggle.textContent = enabled ? 'ON' : 'OFF';
+                    erosionToggle.className = enabled ? 'toggle-button' : 'toggle-button disabled';
+                };
+            }
+            
+            // Controllo Performance Optimization
+            const performanceToggle = document.getElementById('performanceToggle');
+            if (performanceToggle && !performanceToggle.onclick) {
+                performanceToggle.onclick = () => {
+                    const enabled = physics.togglePerformanceOptimization();
+                    performanceToggle.textContent = enabled ? 'ON' : 'OFF';
+                    performanceToggle.className = enabled ? 'toggle-button' : 'toggle-button disabled';
+                };
+            }
+            
+            // Controllo Adaptive Quality
+            const adaptiveToggle = document.getElementById('adaptiveToggle');
+            if (adaptiveToggle && !adaptiveToggle.onclick) {
+                adaptiveToggle.onclick = () => {
+                    if (physics.performanceManager) {
+                        if (physics.performanceManager.adaptiveQuality) {
+                            physics.disableAdaptiveQuality();
+                            adaptiveToggle.textContent = 'OFF';
+                            adaptiveToggle.className = 'toggle-button disabled';
+                        } else {
+                            physics.enableAdaptiveQuality();
+                            adaptiveToggle.textContent = 'ON';
+                            adaptiveToggle.className = 'toggle-button';
+                        }
+                    }
+                };
+            }
+        }
+        
+        // Aggiorna ogni secondo
+        setInterval(() => {
+            updateAdvancedPhysicsDisplay();
+            updateFPS();
+            initializeAdvancedControls();
+        }, 1000);
+        
+        // Log del caricamento
+        window.addEventListener('load', () => {
+            console.log('🌪️ Ultimate Fluid Physics Demo - All systems loaded!');
+            console.log('Advanced Features:');
+            console.log('  ✓ Pressure-based fluid dynamics');
+            console.log('  ✓ Viscosity simulation');
+            console.log('  ✓ Buoyancy effects');
+            console.log('  ✓ Surface waves');
+            console.log('  ✓ Chemical reactions');
+            console.log('  ✓ Thermal dynamics');
+            console.log('  ✓ Turbulence & vortices');
+            console.log('  ✓ Erosion & sedimentation');
+            console.log('  ✓ Real-time controls');
+            console.log('  ✓ Performance monitoring');
+        });
+    </script>
+</body>
+</html>

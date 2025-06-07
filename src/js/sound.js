@@ -1,10 +1,10 @@
 // Simple sound system for Minecraft browser game
 // Uses Web Audio API to generate basic sounds
 
-class SoundSystem {
-    constructor() {
+class SoundSystem {    constructor() {
         this.audioContext = null;
-        this.enabled = true;
+        this.enabled = false; // Disabilitato finché non c'è interazione utente
+        this.userInteracted = false; // Traccia se l'utente ha già interagito
         this.volume = 0.3;
         
         // Music system
@@ -14,19 +14,69 @@ class SoundSystem {
         this.musicGainNode = null;
         
         this.initAudio();
-    }
-    
-    initAudio() {
+        
+        // Aggiungi listener per la prima interazione utente
+        this.addUserInteractionListeners();
+    }    initAudio() {
         try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Non inizializziamo l'AudioContext immediatamente per evitare il warning
+            // Verrà inizializzato al primo tentativo di riproduzione dopo interazione utente
+            // Manteniamo enabled = false finché non c'è interazione
         } catch (e) {
             console.warn('Web Audio API not supported, sound disabled');
             this.enabled = false;
         }
     }
     
-    playTone(frequency, duration, type = 'sine', volume = this.volume) {
-        if (!this.enabled || !this.audioContext) return;
+    // Aggiunge listener per la prima interazione utente
+    addUserInteractionListeners() {
+        const enableAudio = () => {
+            if (!this.userInteracted) {
+                this.userInteracted = true;
+                this.enabled = true;
+                console.log('🔊 Audio enabled after user interaction');
+                
+                // Rimuovi i listener dopo la prima interazione
+                document.removeEventListener('click', enableAudio);
+                document.removeEventListener('keydown', enableAudio);
+                document.removeEventListener('touchstart', enableAudio);
+            }
+        };
+        
+        // Aggiungi listener per vari tipi di interazione
+        document.addEventListener('click', enableAudio, { once: true });
+        document.addEventListener('keydown', enableAudio, { once: true });
+        document.addEventListener('touchstart', enableAudio, { once: true });
+    }
+    
+    // Metodo per inizializzare l'AudioContext solo quando necessario e dopo interazione utente
+    ensureAudioContext() {
+        if (!this.enabled || !this.userInteracted) {
+            return false; // Non creare AudioContext se non c'è stata interazione utente
+        }
+        
+        if (!this.audioContext) {
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('🎵 AudioContext created after user interaction');
+            } catch (e) {
+                console.warn('Failed to create AudioContext:', e);
+                this.enabled = false;
+                return false;
+            }
+        }
+        
+        // Resume il context se è sospeso
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume().catch(e => {
+                console.warn('Failed to resume AudioContext:', e);
+            });
+        }
+        
+        return this.audioContext && this.audioContext.state !== 'closed';
+    }
+      playTone(frequency, duration, type = 'sine', volume = this.volume) {
+        if (!this.enabled || !this.ensureAudioContext()) return;
         
         const oscillator = this.audioContext.createOscillator();
         const gainNode = this.audioContext.createGain();
@@ -76,8 +126,10 @@ class SoundSystem {
     }
     
     playWaterSplash() {
-        this.playTone(600 + Math.random() * 200, 0.15, 'triangle', 0.1);
-    }    playExplosion() {
+                this.playTone(600 + Math.random() * 200, 0.15, 'triangle', 0.1);
+    }
+    
+    playExplosion() {
         // Simulate a complex explosion sound
         // Low rumble
         this.playTone(50 + Math.random() * 20, 0.5, 'sawtooth', this.volume * 1.2); 
@@ -85,7 +137,7 @@ class SoundSystem {
         setTimeout(() => this.playTone(800 + Math.random() * 200, 0.1, 'square', this.volume * 0.8), 50);
         // Debris/noise
         setTimeout(() => {
-            if (!this.enabled || !this.audioContext) return;
+            if (!this.enabled || !this.ensureAudioContext()) return;
             const bufferSize = this.audioContext.sampleRate * 0.5; // 0.5 seconds of noise
             const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
             const output = buffer.getChannelData(0);

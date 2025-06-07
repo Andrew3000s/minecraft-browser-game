@@ -168,305 +168,219 @@ class Player {
     }
 
     handleInput(input, deltaTime) {
+        // 🐛 DEBUG: Verify handleInput is being called
+        if (Math.random() < 0.01) { // Log occasionally
+            console.log("🐛 DEBUG: Player.handleInput called with input:", input);
+        }
+        
         const movement = input.getMovementInput();
         
         // Check diving state
         this.isDiving = input.isDiving();
         
-        // Swimming mechanics in liquids
+        // 🌊 Sistema avanzato di fisica dei fluidi per il player
         if (this.inLiquid) {
-            this.isSwimming = true;
-            
-            // Horizontal movement in liquid (slower)
-            if (movement.x !== 0) {
-                this.velocityX = movement.x * this.speed * 0.6; // 60% speed in liquid
-                this.facing = movement.x > 0 ? 1 : -1;
-            } else {
-                this.velocityX *= 0.9; // Higher friction in liquid
-            }
-            
-            // Vertical movement in liquid
-            if (movement.y !== 0) {
-                this.velocityY = movement.y * this.speed * 0.5; // Slower vertical movement
-            } else if (!this.isDiving) {
-                // Float to surface when not diving
-                this.velocityY = Math.max(this.velocityY - 50 * deltaTime, -30);
-            }
-            
-            // Diving with Ctrl
-            if (this.isDiving) {
-                this.velocityY = Math.min(this.velocityY + 100 * deltaTime, 100);
-            }
-            
-            // Reduce gravity in liquid
-            this.gravity = 200;
+            this.handleAdvancedFluidMovement(movement, deltaTime);
         } else {
-            this.isSwimming = false;
-            this.gravity = 800; // Normal gravity
-            
-            // Normal horizontal movement
-            if (movement.x !== 0) {
-                this.velocityX = movement.x * this.speed;
-                this.facing = movement.x > 0 ? 1 : -1;
-            } else {
-                this.velocityX *= 0.8; // Friction
-            }
+            this.handleNormalMovement(movement, deltaTime);
         }
         
         // Jumping (only when on ground or if in a liquid to allow jumping out)
-        if (input.isJumping() && (this.onGround || this.inLiquid)) { // MODIFIED
+        if (input.isJumping() && (this.onGround || this.inLiquid)) {
             this.velocityY = -this.jumpPower;
-            this.onGround = false; // Player is no longer on ground after jumping
+            this.onGround = false;
             
-            if (window.game?.sound) {
-                window.game.sound.playJump();
-                // Add jump dust only if the jump was initiated from solid ground
-                // Approximated by checking if not inLiquid at the moment of jump
-                if (!this.inLiquid && window.game?.particles) { 
-                    window.game.particles.addJumpDust(this.x, this.y);
+            if (this.inLiquid && window.game?.particles) {
+                // Splash effect when jumping out of liquid
+                window.game.particles.addWaterSplash(this.x + this.width / 2, this.y + this.height);
+            }
+        }
+
+        // 🔥 CRITICAL FIX: Handle mouse clicks for mining and placing
+        // Handle left click for mining OR combat
+        if (input.isMouseLeftPressed()) {
+            const mousePos = input.getMousePosition();
+            
+            // Check if we're targeting an entity first (for combat)
+            const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, window.game.camera);
+            let entityUnderMouse = null;
+            
+            if (window.game?.entityManager) {
+                for (const entity of window.game.entityManager.entities) {
+                    if (!entity.alive) continue;
+                    
+                    if (worldPos.x >= entity.x && worldPos.x <= entity.x + entity.width &&
+                        worldPos.y >= entity.y && worldPos.y <= entity.y + entity.height) {
+                        entityUnderMouse = entity;
+                        break;
+                    }
                 }
             }
-        }
-        
-        // Mouse interactions
-        const mousePos = input.getMousePosition();
-        if (input.isMouseLeftPressed()) {
-            // Try mining first, if no block to mine then try combat
-            this.handleMining(mousePos, deltaTime);
             
-            // If we didn't start mining, try combat
-            if (!this.miningBlock) {
+            if (entityUnderMouse) {
+                // Combat: attacking an entity
                 this.handleCombat(mousePos);
+            } else {
+                // Mining: no entity under mouse, try to mine block
+                this.handleMining(mousePos, deltaTime);
             }
         } else {
-            this.miningProgress = 0;
-            this.miningBlock = null;
+            // Reset mining when not clicking
+            if (this.miningBlock) {
+                this.miningProgress = 0;
+                this.miningBlock = null;
+                this.isMining = false;
+            }
         }
-        
+
+        // Handle right click for placing
         if (input.isMouseRightPressed()) {
+            const mousePos = input.getMousePosition();
             this.handlePlacing(mousePos);
         }
-        
-        // Inventory scrolling
-        const wheelDelta = input.getWheelDelta();
-        if (wheelDelta !== 0) {
-            this.activeSlot = (this.activeSlot + (wheelDelta > 0 ? 1 : -1) + 9) % 9;
-        }
     }
 
-    handleMining(mousePos, deltaTime) {
-        // 🔥 RACE CONDITION FIX: Safely access game camera
-        const camera = window.game?.camera;
-        if (!camera) return; // Early exit if camera not available
+    // 🌊 Gestione movimento avanzato nei fluidi
+    handleAdvancedFluidMovement(movement, deltaTime) {
+        this.isSwimming = true;
         
-        const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, camera);
-        const blockX = Math.floor(worldPos.x / this.world.blockSize);
-        const blockY = Math.floor(worldPos.y / this.world.blockSize);
-        
-        // Check if block is in range - improved detection with precise coordinates
-        const playerCenterX = this.x + this.width / 2;
-        const playerCenterY = this.y + this.height / 2;
-        const blockCenterX = blockX * this.world.blockSize + this.world.blockSize / 2;
-        const blockCenterY = blockY * this.world.blockSize + this.world.blockSize / 2;
-        
-        const distance = Utils.distance(playerCenterX, playerCenterY, blockCenterX, blockCenterY);
-        
-        // Better range calculation - more precise mining range
-        const minRange = 10; // Reduced minimum for very close mining
-        const maxRange = 180; // Optimal range for consistent mining
-        
-        if (distance < minRange || distance > maxRange) {
-            // Reset mining if out of range
-            this.miningProgress = 0;
-            this.miningBlock = null;
+        // Ottieni proprietà del fluido corrente
+        const fluidProps = this.getFluidProperties();
+        if (!fluidProps) {
+            // Fallback al sistema base
+            this.handleBasicFluidMovement(movement, deltaTime);
             return;
         }
         
-        const block = this.world.getBlockInstance(blockX, blockY);
-        if (!block || !block.isBreakable()) {
-            // Reset mining if block is not valid
-            this.miningProgress = 0;
-            this.miningBlock = null;
-            return;
-        }
+        // Calcola resistenza al movimento basata su viscosità
+        const viscosityFactor = Math.min(fluidProps.viscosity / 1000, 0.9);
+        const speedMultiplier = 1.0 - viscosityFactor;
         
-        const currentBlock = `${blockX},${blockY}`;
-        if (this.miningBlock !== currentBlock) {
-            this.miningBlock = currentBlock;
-            this.miningProgress = 0;
-            // 🔥 FIXED: Removed mining debug log for cleaner console output
-        }
-        
-        // Start mining animation
-        if (!this.isMining) {
-            this.isMining = true;
-            this.actionAnimationTime = 0;
-        }
-        
-        // Check if player has diamond pickaxe or any pickaxe tool
-        const activeItem = this.inventory[this.activeSlot];
-        const hasDiamondPickaxe = activeItem && activeItem.type === BlockTypes.DIAMOND_PICKAXE;
-        const hasPickaxe = hasDiamondPickaxe; // For now, only diamond pickaxe available
-        
-        // Mining speed calculation
-        let miningSpeed = this.miningSpeed;
-        
-        if (hasDiamondPickaxe && block.type !== BlockTypes.BEDROCK) {
-            // Diamond pickaxe: instant break for most blocks
-            miningSpeed = 10; // Very fast mining
-        } else if (hasPickaxe) {
-            // Regular pickaxe: 2x speed
-            miningSpeed = this.miningSpeed * 2;
+        // Movimento orizzontale nel fluido
+        if (movement.x !== 0) {
+            this.velocityX = movement.x * this.speed * speedMultiplier;
+            this.facing = movement.x > 0 ? 1 : -1;
         } else {
-            // Hand mining: slower for hard blocks
-            if (block.type === BlockTypes.STONE || 
-                block.type === BlockTypes.COAL_ORE || 
-                block.type === BlockTypes.IRON_ORE || 
-                block.type === BlockTypes.DIAMOND_ORE) {
-                miningSpeed = this.miningSpeed * 0.3; // Much slower by hand
-            }
+            // Attrito aumentato basato su viscosità
+            this.velocityX *= (0.8 - viscosityFactor * 0.3);
         }
         
-        this.miningProgress += deltaTime * miningSpeed;
+        // Movimento verticale nel fluido
+        if (movement.y !== 0) {
+            this.velocityY = movement.y * this.speed * speedMultiplier * 0.7;
+        } else if (!this.isDiving) {
+            // Galleggiamento basato su densità del fluido
+            const buoyancyForce = this.calculateBuoyancy(fluidProps);
+            this.velocityY += buoyancyForce * deltaTime;
+        }
         
-        if (this.miningProgress >= block.getHardness()) {
-            const brokenBlockType = this.world.breakBlock(
-                blockX * this.world.blockSize, 
-                blockY * this.world.blockSize
-            );
-            
-            if (brokenBlockType !== null) {
-                this.addToInventory(brokenBlockType, 1);
-                // Increment blocks mined counter for Game Over statistics
-                this.blocksMined++;
-                
-                // Add break effects
-                if (window.game) {
-                    window.game.sound.playBlockBreak();
-                    window.game.particles.addBlockBreakEffect(
-                        blockX * this.world.blockSize, 
-                        blockY * this.world.blockSize, 
-                        brokenBlockType
-                    );
-                }
-            }
-            
-            this.miningProgress = 0;
-            this.miningBlock = null;
+        // Immersione con Ctrl
+        if (this.isDiving) {
+            const sinkRate = 100 * (1 + viscosityFactor);
+            this.velocityY = Math.min(this.velocityY + sinkRate * deltaTime, 100);
+        }
+        
+        // Effetti di corrente
+        this.applyFluidCurrents(deltaTime);
+        
+        // Gravità ridotta nel fluido
+        this.gravity = 200 * (1 - fluidProps.density / 3000);
+    }
+
+    // 🏊 Movimento base nei fluidi (fallback)
+    handleBasicFluidMovement(movement, deltaTime) {
+        this.isSwimming = true;
+        
+        // Horizontal movement in liquid (slower)
+        if (movement.x !== 0) {
+            this.velocityX = movement.x * this.speed * 0.6; // 60% speed in liquid
+            this.facing = movement.x > 0 ? 1 : -1;
+        } else {
+            this.velocityX *= 0.9; // Higher friction in liquid
+        }
+        
+        // Vertical movement in liquid
+        if (movement.y !== 0) {
+            this.velocityY = movement.y * this.speed * 0.5; // Slower vertical movement
+        } else if (!this.isDiving) {
+            // Float to surface when not diving
+            this.velocityY = Math.max(this.velocityY - 50 * deltaTime, -30);
+        }
+        
+        // Diving with Ctrl
+        if (this.isDiving) {
+            this.velocityY = Math.min(this.velocityY + 100 * deltaTime, 100);
+        }
+        
+        // Reduce gravity in liquid
+        this.gravity = 200;
+    }
+
+    // 🚶 Movimento normale (fuori dai fluidi)
+    handleNormalMovement(movement, deltaTime) {
+        this.isSwimming = false;
+        this.gravity = 800; // Normal gravity
+        
+        // Normal horizontal movement
+        if (movement.x !== 0) {
+            this.velocityX = movement.x * this.speed;
+            this.facing = movement.x > 0 ? 1 : -1;
+        } else {
+            this.velocityX *= 0.8; // Friction
         }
     }
 
-    handlePlacing(mousePos) {
-        // 🔥 RACE CONDITION FIX: Safely access game camera
-        const camera = window.game?.camera;
-        if (!camera) return; // Early exit if camera not available
+    // 🌊 Ottieni proprietà del fluido in cui si trova il player
+    getFluidProperties() {
+        if (!this.world?.advancedFluidPhysics) return null;
         
-        const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, camera);
-        const blockX = Math.floor(worldPos.x / this.world.blockSize);
-        const blockY = Math.floor(worldPos.y / this.world.blockSize);
+        const playerBlockX = Math.floor((this.x + this.width / 2) / this.world.blockSize);
+        const playerBlockY = Math.floor((this.y + this.height / 2) / this.world.blockSize);
         
-        // Check if block is in range
-        const distance = Utils.distance(
-            this.x + this.width / 2, this.y + this.height / 2,
-            blockX * this.world.blockSize + this.world.blockSize / 2,
-            blockY * this.world.blockSize + this.world.blockSize / 2
-        );
-        
-        if (distance > 150) return; // Placing range limit
-        
-        const activeItem = this.inventory[this.activeSlot];
-        if (!activeItem || activeItem.count <= 0) return;
-        
-        // Check if item is placeable - prevent placing mob materials and tools
-        if (!Block.isPlaceable(activeItem.type)) {
-            if (window.game && window.game.notifications) {
-                const itemName = this.getItemDisplayName(activeItem.type);
-                window.game.notifications.addNotification(
-                    `${itemName} cannot be placed as a block!`, 
-                    'warning', 
-                    2000
-                );
-            }
-            return;
-        }
-        
-        // Check if position would collide with player
-        const blockWorldX = blockX * this.world.blockSize;
-        const blockWorldY = blockY * this.world.blockSize;
-        if (this.wouldCollideWithPlayer(blockWorldX, blockWorldY, this.world.blockSize, this.world.blockSize)) {
-            return;
-        }
-        
-        // Special rules for torch placement - only on solid blocks
-        if (activeItem.type === BlockTypes.TORCH) {
-            if (!this.canPlaceTorchAt(blockX, blockY)) {
-                if (window.game && window.game.notifications) {
-                    window.game.notifications.addNotification(
-                        'Torches can only be placed on solid blocks!', 
-                        'warning', 
-                        2000
-                    );
-                }
-                return;
-            }
-        }
-        
-        if (this.world.placeBlock(blockWorldX, blockWorldY, activeItem.type)) {
-            // Start placing animation
-            this.isPlacing = true;
-            this.actionAnimationTime = 0;
-            
-            activeItem.count--;
-            if (activeItem.count <= 0) {
-                this.inventory[this.activeSlot] = null;
-            }
-            
-            // Increment blocks placed counter for Game Over statistics
-            this.blocksPlaced++;
-            
-            // Add place effects
-            if (window.game) {
-                window.game.sound.playBlockPlace();
-                // Add block placement particle effect
-                window.game.particles.addBlockPlaceEffect(
-                    blockWorldX + this.world.blockSize / 2, 
-                    blockWorldY + this.world.blockSize / 2, 
-                    activeItem.type
-                );
-            }
-        }
+        const blockType = this.world.getBlock(playerBlockX, playerBlockY);
+        return this.world.advancedFluidPhysics.getFluidProperties(blockType);
     }
 
-    canPlaceTorchAt(blockX, blockY) {
-        // Check if target position is air
-        if (this.world.getBlock(blockX, blockY) !== BlockTypes.AIR) {
-            return false;
-        }
+    // ⚖️ Calcola forza di galleggiamento
+    calculateBuoyancy(fluidProps) {
+        // Forza di galleggiamento: F = ρ_fluid * V_submerged * g
+        // Semplificata per il gioco
+        const playerDensity = 985; // kg/m³ (corpo umano in acqua)
+        const densityDifference = fluidProps.density - playerDensity;
         
-        // Check for solid blocks adjacent to the torch position (like real Minecraft)
-        const adjacentPositions = [
-            { x: blockX, y: blockY + 1 }, // Below
-            { x: blockX, y: blockY - 1 }, // Above
-            { x: blockX - 1, y: blockY }, // Left
-            { x: blockX + 1, y: blockY }, // Right
-        ];
+        // Galleggiamento positivo (sale) se il fluido è più denso
+        // Galleggiamento negativo (affonda) se il fluido è meno denso
+        const buoyancyForce = (densityDifference / 1000) * 50; // Scala per il gioco
         
-        // At least one adjacent block must be solid for torch support
-        for (const pos of adjacentPositions) {
-            const block = this.world.getBlockInstance(pos.x, pos.y);
-            if (block && block.isSolid()) {
-                return true;
-            }
-        }
-        
-        return false; // No solid support found
+        return Math.max(-100, Math.min(100, buoyancyForce));
     }
 
-    wouldCollideWithPlayer(x, y, width, height) {
-        return !(this.x + this.width <= x || 
-                this.x >= x + width || 
-                this.y + this.height <= y || 
-                this.y >= y + height);
+    // 🌊 Applica effetti delle correnti fluide
+    applyFluidCurrents(deltaTime) {
+        if (!this.world?.advancedFluidPhysics) return;
+        
+        const playerBlockX = Math.floor((this.x + this.width / 2) / this.world.blockSize);
+        const playerBlockY = Math.floor((this.y + this.height / 2) / this.world.blockSize);
+        
+        // Ottieni corrente locale
+        const current = this.world.advancedFluidPhysics.getCurrentAt(playerBlockX, playerBlockY);
+        if (!current) return;
+        
+        // Applica forza della corrente
+        const currentForceX = Math.cos(current.direction) * current.strength * deltaTime;
+        const currentForceY = Math.sin(current.direction) * current.strength * deltaTime;
+        
+        this.velocityX += currentForceX;
+        this.velocityY += currentForceY;
+        
+        // Limita velocità massima causata dalle correnti
+        const maxCurrentVelocity = 150;
+        if (Math.abs(this.velocityX) > maxCurrentVelocity) {
+            this.velocityX = Math.sign(this.velocityX) * maxCurrentVelocity;
+        }
+        if (Math.abs(this.velocityY) > maxCurrentVelocity) {
+            this.velocityY = Math.sign(this.velocityY) * maxCurrentVelocity;
+        }
     }
 
     updatePhysics(deltaTime) {
@@ -648,6 +562,292 @@ class Player {
         this.updateDamageAnimation(deltaTime); // Update damage animation every frame
     }
 
+    // 🔥 CRITICAL FIX: Implement handleMining method for left click block breaking
+    handleMining(mousePos, deltaTime) {
+        console.log("🐛 DEBUG: handleMining called", mousePos, deltaTime); // DEBUG
+        if (!window.game || !this.world) {
+            console.log("🐛 DEBUG: Missing game or world"); // DEBUG
+            return;
+        }
+
+        // Convert mouse position to world coordinates using real game camera
+        const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, window.game.camera);
+        const blockX = Math.floor(worldPos.x / this.world.blockSize);
+        const blockY = Math.floor(worldPos.y / this.world.blockSize);
+        
+        console.log("🐛 DEBUG: Target block:", blockX, blockY); // DEBUG
+
+        // Check if block is in range (improved range from FINAL_FIXES_COMPLETED.md)
+        const distance = Utils.distance(
+            this.x + this.width / 2, this.y + this.height / 2,
+            blockX * this.world.blockSize + this.world.blockSize / 2,
+            blockY * this.world.blockSize + this.world.blockSize / 2
+        );
+
+        const minRange = 20; // Minimum distance to prevent issues
+        const maxRange = 150; // Normal mining range - restored from test value
+        
+        console.log("🐛 DEBUG: Mining distance:", distance, "min:", minRange, "max:", maxRange); // DEBUG
+        
+        if (distance < minRange || distance > maxRange) {
+            console.log("🐛 DEBUG: Out of mining range"); // DEBUG
+            // Reset mining if out of range
+            if (this.miningBlock) {
+                this.miningProgress = 0;
+                this.miningBlock = null;
+                this.isMining = false;
+            }
+            return;
+        }
+
+        const block = this.world.getBlockInstance(blockX, blockY);
+        console.log("🐛 DEBUG: Block at position:", block); // DEBUG
+        if (!block || !block.isBreakable()) {
+            console.log("🐛 DEBUG: Block not breakable or doesn't exist"); // DEBUG
+            // Reset mining if no valid block
+            if (this.miningBlock) {
+                this.miningProgress = 0;
+                this.miningBlock = null;
+                this.isMining = false;
+            }
+            return;
+        }
+
+        const blockKey = `${blockX},${blockY}`;
+
+        // Check if we're mining a different block
+        if (this.miningBlock && this.miningBlock !== blockKey) {
+            // Reset mining for new block
+            this.miningProgress = 0;
+        }
+
+        this.miningBlock = blockKey;
+        this.isMining = true;
+        this.actionAnimationTime = 0;
+
+        // Check if player has diamond pickaxe for instant mining
+        const activeItem = this.inventory[this.activeSlot];
+        const hasDiamondPickaxe = activeItem && activeItem.type === BlockTypes.DIAMOND_PICKAXE;
+
+        console.log("🐛 DEBUG: Has diamond pickaxe:", hasDiamondPickaxe); // DEBUG
+
+        if (hasDiamondPickaxe) {
+            // Instant mining with diamond pickaxe
+            console.log("🐛 DEBUG: Instant mining"); // DEBUG
+            this.completeMining(blockX, blockY, block);
+        } else {
+            // Progressive mining
+            this.miningProgress += deltaTime * this.miningSpeed;
+            console.log("🐛 DEBUG: Progressive mining progress:", this.miningProgress, "/", block.getHardness()); // DEBUG
+
+            if (this.miningProgress >= block.getHardness()) {
+                console.log("🐛 DEBUG: Mining complete"); // DEBUG
+                this.completeMining(blockX, blockY, block);
+            }
+        }
+    }
+
+    // Helper method to complete mining
+    completeMining(blockX, blockY, block) {
+        // Break the block
+        const brokenBlockType = this.world.breakBlock(
+            blockX * this.world.blockSize, 
+            blockY * this.world.blockSize
+        );
+
+        if (brokenBlockType) {
+            // Add to inventory
+            this.addToInventory(brokenBlockType, 1);
+
+            // Update statistics
+            this.blocksMined++;
+
+            // Play effects
+            if (window.game.sound) {
+                window.game.sound.playBlockBreak();
+            }
+
+            if (window.game.particles) {
+                window.game.particles.addBlockBreakEffect(
+                    blockX * this.world.blockSize + this.world.blockSize / 2,
+                    blockY * this.world.blockSize + this.world.blockSize / 2,
+                    brokenBlockType
+                );
+            }
+
+            // Reset mining state
+            this.miningProgress = 0;
+            this.miningBlock = null;
+            this.isMining = false;
+        }
+    }
+
+    // 🔥 CRITICAL FIX: Implement handlePlacing method for right click block placement
+    handlePlacing(mousePos) {
+        console.log("🐛 DEBUG: handlePlacing called", mousePos); // DEBUG
+        if (!window.game || !this.world) {
+            console.log("🐛 DEBUG: Missing game or world in placing"); // DEBUG
+            return;
+        }
+
+        const activeItem = this.inventory[this.activeSlot];
+        console.log("🐛 DEBUG: Active item:", activeItem); // DEBUG
+        if (!activeItem || activeItem.count <= 0) {
+            console.log("🐛 DEBUG: No active item or count is 0"); // DEBUG
+            return;
+        }
+
+        // Check if item is placeable (no mob drops or tools)
+        if (!Block.isPlaceable(activeItem.type)) {
+            console.log("🐛 DEBUG: Item not placeable:", activeItem.type); // DEBUG
+            if (window.game.notifications) {
+                window.game.notifications.addNotification(
+                    `${this.getItemDisplayName(activeItem.type)} cannot be placed as a block!`,
+                    'warning',
+                    2000
+                );
+            }
+            return;
+        }
+
+        // Convert mouse position to world coordinates using real game camera
+        const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, window.game.camera);
+        const blockX = Math.floor(worldPos.x / this.world.blockSize);
+        const blockY = Math.floor(worldPos.y / this.world.blockSize);
+        
+        console.log("🐛 DEBUG: Placing target block:", blockX, blockY); // DEBUG
+
+        // Check if block is in range
+        const distance = Utils.distance(
+            this.x + this.width / 2, this.y + this.height / 2,
+            blockX * this.world.blockSize + this.world.blockSize / 2,
+            blockY * this.world.blockSize + this.world.blockSize / 2
+        );
+
+        console.log("🐛 DEBUG: Placing distance:", distance); // DEBUG
+
+        if (distance > 150) { // Normal placing range - restored from test value
+            console.log("🐛 DEBUG: Out of placing range"); // DEBUG
+            return; // Max placing range
+        }
+
+        // Check if position is valid for placing
+        const currentBlock = this.world.getBlock(blockX, blockY);
+        console.log("🐛 DEBUG: Current block at position:", currentBlock); // DEBUG
+        if (currentBlock !== BlockTypes.AIR && !this.world.isLiquid(currentBlock)) {
+            console.log("🐛 DEBUG: Cannot place on solid block"); // DEBUG
+            return; // Can't place on solid blocks
+        }
+
+        // Special rules for torch placement - only on solid blocks
+        if (activeItem.type === BlockTypes.TORCH) {
+            console.log("🐛 DEBUG: Trying to place torch"); // DEBUG
+            if (!this.canPlaceTorchAt(blockX, blockY)) {
+                if (window.game.notifications) {
+                    window.game.notifications.addNotification(
+                        'Torches can only be placed on solid blocks!', 
+                        'warning', 
+                        2000
+                    );
+                }
+                console.log("🐛 DEBUG: Cannot place torch at position"); // DEBUG
+                return;
+            }
+        }
+
+        // Place the block
+        console.log("🐛 DEBUG: Attempting to place block"); // DEBUG
+        const placed = this.world.placeBlock(
+            blockX * this.world.blockSize,
+            blockY * this.world.blockSize,
+            activeItem.type
+        );
+
+        console.log("🐛 DEBUG: Block placed:", placed); // DEBUG
+
+        if (placed) {
+            // Reduce item count
+            activeItem.count--;
+            if (activeItem.count <= 0) {
+                this.inventory[this.activeSlot] = null;
+            }
+
+            // Update statistics
+            this.blocksPlaced++;
+
+            // Play effects
+            if (window.game.sound) {
+                window.game.sound.playBlockPlace();
+            }
+
+            if (window.game.particles) {
+                window.game.particles.addBlockBreakEffect(
+                    blockX * this.world.blockSize + this.world.blockSize / 2,
+                    blockY * this.world.blockSize + this.world.blockSize / 2,
+                    activeItem.type
+                );
+            }
+
+            // Start placing animation
+            this.isPlacing = true;
+            this.actionAnimationTime = 0;
+
+            // Update inventory UI
+            if (window.game.updateInventory) {
+                window.game.updateInventory();
+            }
+            
+            console.log("🐛 DEBUG: Placing completed successfully"); // DEBUG
+        }
+    }
+
+    // Helper method to check if torch can be placed at position
+    canPlaceTorchAt(blockX, blockY) {
+        // Check for solid blocks in adjacent positions (support for torch)
+        const adjacentPositions = [
+            { x: blockX, y: blockY + 1 }, // Below
+            { x: blockX, y: blockY - 1 }, // Above  
+            { x: blockX - 1, y: blockY }, // Left
+            { x: blockX + 1, y: blockY }  // Right
+        ];
+
+        for (const pos of adjacentPositions) {
+            if (this.world.isValidPosition(pos.x, pos.y)) {
+                const adjacentBlock = this.world.getBlockInstance(pos.x, pos.y);
+                if (adjacentBlock && adjacentBlock.isSolid()) {
+                    return true; // Found at least one solid adjacent block
+                }
+            }
+        }
+
+        return false; // No solid adjacent blocks found
+    }
+
+    updateAnimation(deltaTime) {
+        this.animationTime += deltaTime;
+        if (Math.abs(this.velocityX) > 10) {
+            this.animationFrame = Math.floor(this.animationTime * 8) % 4;
+        } else {
+            this.animationFrame = 0;
+        }
+
+        // Update action animations
+        if (this.isMining || this.isAttacking || this.isPlacing) {
+            this.actionAnimationTime += deltaTime * 1000; // Convert to milliseconds
+            
+            const currentDuration = this.isPlacing ? this.placingAnimationDuration : this.actionAnimationDuration;
+            
+            if (this.actionAnimationTime >= currentDuration) {
+                this.isMining = false;
+                this.isAttacking = false;
+                this.isPlacing = false;
+                this.actionAnimationTime = 0;
+            }
+        }
+        
+        this.updateDamageAnimation(deltaTime); // Update damage animation every frame
+    }
+
     addToInventory(blockType, count) {
         // Try to add to existing stack
         for (let i = 0; i < this.inventory.length; i++) {
@@ -776,8 +976,7 @@ class Player {
         this.isAttacking = true;
         this.actionAnimationTime = 0;
         
-        const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, 
-            { x: this.x - 400, y: this.y - 300 });
+        const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, window.game.camera);
         
         // Check if there are entities in attack range (all entities, not just hostile)
         if (window.game?.entityManager) {

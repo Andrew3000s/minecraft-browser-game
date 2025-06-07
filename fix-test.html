@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Rapido - Fix isLiquid</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            font-family: Arial, sans-serif; 
+            background: #1a1a2e; 
+            color: #fff; 
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+        }
+        .success { background: #27ae60; }
+        .error { background: #e74c3c; }
+        .warning { background: #f39c12; }
+        .info { background: #3498db; }
+        #gameCanvas { 
+            border: 2px solid #0f3460; 
+            background: #87CEEB; 
+            margin: 10px 0; 
+        }
+        button {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Fix: isLiquid Error</h1>
+    
+    <div id="status"></div>
+    
+    <h2>🎮 Test Gioco Completo</h2>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div>
+        <button onclick="startGameTest()">🎮 Avvia Test Gioco</button>
+        <button onclick="testFluidAPI()">🌊 Test API Fluidi</button>
+        <button onclick="addWater()">💧 Aggiungi Acqua</button>
+        <button onclick="addLava()">🔥 Aggiungi Lava</button>
+    </div>
+    
+    <div id="gameStatus"></div>
+
+    <!-- Load game scripts -->
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/fluid-performance.js"></script>
+    <script src="src/js/fluid-turbulence.js"></script>
+    <script src="src/js/fluid-erosion.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let game;
+        let testWorld;
+        let canvas;
+        let ctx;
+        
+        function addStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            statusDiv.appendChild(div);
+            console.log(message);
+        }
+        
+        function addGameStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('gameStatus');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            statusDiv.appendChild(div);
+        }
+        
+        async function startGameTest() {
+            addGameStatus('🚀 Avvio test gioco completo...', 'info');
+            
+            try {
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+                
+                // Test inizializzazione game
+                game = new MinecraftGame(canvas);
+                addGameStatus('✅ MinecraftGame creato', 'success');
+                
+                // Inizializza game in modalità test
+                await game.initializeAsync();
+                addGameStatus('✅ Game inizializzato senza errori', 'success');
+                
+                // Avvia game loop
+                game.start();
+                addGameStatus('✅ Game loop avviato', 'success');
+                
+                addGameStatus('🎮 Gioco avviato con successo! Test isLiquid fix completato.', 'success');
+                
+            } catch (error) {
+                addGameStatus(`❌ Errore durante test: ${error.message}`, 'error');
+                console.error('Errore test:', error);
+            }
+        }
+        
+        async function testFluidAPI() {
+            addStatus('🧪 Test API Fluidi...', 'info');
+            
+            try {
+                // Crea world di test
+                testWorld = new World(50, 25);
+                testWorld.initializeAdvancedFluidPhysics();
+                addStatus('✅ World e FluidPhysics creati', 'success');
+                
+                const fluidPhysics = testWorld.advancedFluidPhysics;
+                
+                // Test getFluidProperties
+                const waterProps = fluidPhysics.getFluidProperties(BlockTypes.WATER);
+                if (waterProps && waterProps.density === 1000) {
+                    addStatus('✅ getFluidProperties(WATER) funziona', 'success');
+                } else {
+                    addStatus('❌ getFluidProperties(WATER) fallito', 'error');
+                }
+                
+                // Test getSurfaceWaveAt
+                const wave = fluidPhysics.getSurfaceWaveAt(10, 10);
+                if (wave && typeof wave.amplitude === 'number') {
+                    addStatus('✅ getSurfaceWaveAt funziona', 'success');
+                } else {
+                    addStatus('❌ getSurfaceWaveAt fallito', 'error');
+                }
+                
+                // Test getFlowVelocityAt
+                const flow = fluidPhysics.getFlowVelocityAt(10, 10);
+                if (flow && typeof flow.x === 'number' && typeof flow.y === 'number') {
+                    addStatus('✅ getFlowVelocityAt funziona', 'success');
+                } else {
+                    addStatus('❌ getFlowVelocityAt fallito', 'error');
+                }
+                
+                // Test isLiquid tramite world
+                const isWaterLiquid = testWorld.isLiquid(BlockTypes.WATER);
+                const isStoneNotLiquid = !testWorld.isLiquid(BlockTypes.STONE);
+                if (isWaterLiquid && isStoneNotLiquid) {
+                    addStatus('✅ isLiquid funziona correttamente', 'success');
+                } else {
+                    addStatus('❌ isLiquid non funziona', 'error');
+                }
+                
+                addStatus('🎉 Tutti i test API completati!', 'success');
+                
+            } catch (error) {
+                addStatus(`❌ Errore test API: ${error.message}`, 'error');
+                console.error('Errore API:', error);
+            }
+        }
+        
+        function addWater() {
+            if (!testWorld) {
+                addGameStatus('⚠️ Crea prima il world con "Test API Fluidi"', 'warning');
+                return;
+            }
+            
+            // Aggiungi acqua in una zona
+            for (let x = 20; x < 30; x++) {
+                for (let y = 10; y < 15; y++) {
+                    const block = testWorld.createBlock(BlockTypes.WATER, x, y);
+                    testWorld.setBlock(x, y, block);
+                }
+            }
+            
+            addGameStatus('💧 Acqua aggiunta al mondo di test', 'info');
+        }
+        
+        function addLava() {
+            if (!testWorld) {
+                addGameStatus('⚠️ Crea prima il world con "Test API Fluidi"', 'warning');
+                return;
+            }
+            
+            // Aggiungi lava in una zona
+            for (let x = 35; x < 45; x++) {
+                for (let y = 10; y < 15; y++) {
+                    const block = testWorld.createBlock(BlockTypes.LAVA, x, y);
+                    testWorld.setBlock(x, y, block);
+                }
+            }
+            
+            addGameStatus('🔥 Lava aggiunta al mondo di test', 'info');
+        }
+        
+        // Test automatico al caricamento
+        window.addEventListener('load', () => {
+            addStatus('🔧 Fix isLiquid - Test automatico avviato', 'info');
+            
+            setTimeout(() => {
+                testFluidAPI();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
