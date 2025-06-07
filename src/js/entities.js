@@ -228,8 +228,7 @@ class Entity {
         this.burnDamageRate = 1; // Damage per second when burning
         this.lastBurnDamageTime = 0;
         this.burnEffectTime = 0; // For visual burn effect animation
-        this.canBurnInSunlight = this.isHostile; // Only hostile mobs burn in sunlight
-          // 🏔️ FALL DAMAGE SYSTEM: Track falling height for damage calculation
+        this.canBurnInSunlight = this.isHostile; // Only hostile mobs burn in sunlight        // 🏔️ FALL DAMAGE SYSTEM: Track falling height for damage calculation
         this.fallStartHeight = this.y; // Height when falling started  
         this.maxFallHeight = this.y;   // Maximum height reached during fall
         this.isFalling = false;        // Whether entity is currently falling
@@ -237,6 +236,7 @@ class Entity {
         this.fallDamageMultiplier = 1; // Damage per block fallen above minimum
         this.lastGroundY = this.y;     // Last Y position when on ground
         this.isVoluntaryJump = false;  // Track if currently in a voluntary jump
+        this.maxVoluntaryJumpProtection = 5 * 32; // Max distance protected for voluntary jumps (5 blocks)
     }
     
     getHostileFlag() {
@@ -1162,8 +1162,18 @@ class Entity {
                 this.isFalling = true;
                 this.fallStartHeight = this.maxFallHeight; // Use the highest point reached
             }
-            // DON'T clear voluntary jump flag here - only clear it when landing
-            // This allows voluntary jumps to remain protected throughout the entire jump
+            
+            // ⚠️ VOLUNTARY JUMP PROTECTION LIMIT: Disable protection if falling too far
+            if (this.isVoluntaryJump) {
+                const currentFallDistance = this.y - this.maxFallHeight;
+                if (currentFallDistance > this.maxVoluntaryJumpProtection) {
+                    this.isVoluntaryJump = false; // Disable protection after falling 5+ blocks
+                    // Note: Entities don't show notifications like players, but protection is removed
+                }
+            }
+            
+            // DON'T clear voluntary jump flag here - only clear it when landing or protection limit reached
+            // This allows voluntary jumps to remain protected throughout the entire jump (up to the limit)
         } else if (this.velocityY < 0) {
             // Moving upward - update maximum height reached
             this.maxFallHeight = Math.min(this.maxFallHeight, this.y);

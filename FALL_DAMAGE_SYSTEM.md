@@ -94,6 +94,8 @@ this.isFalling = false;
 this.minDamageHeight = 3 * 32;
 this.fallDamageMultiplier = 1;
 this.lastGroundY = this.y;
+this.isVoluntaryJump = false;
+this.maxVoluntaryJumpProtection = 5 * 32; // Max 5 blocks protection
 ```
 
 ### Key Methods:
@@ -178,13 +180,21 @@ Il sistema replica fedelmente il comportamento di Minecraft:
 
 ## 🎉 IMPLEMENTATION STATUS: COMPLETE ✅
 
-Il sistema di fall damage è ora completamente funzionale per tutti gli esseri viventi nel gioco, con meccaniche autentiche di Minecraft, effetti visivi appropriati e ottimizzazioni delle performance. Il sistema si integra perfettamente con la fisica esistente del gioco.
+Il sistema di fall damage è ora completamente funzionale per tutti gli esseri viventi nel gioco, con meccaniche autentiche di Minecraft, effetti visivi appropriati, ottimizzazioni delle performance e **protezione limitata per salti volontari**. 
+
+### 🆕 NEW FEATURE: Limited Voluntary Jump Protection
+- **Protection Scope**: Salti volontari sono protetti dal fall damage
+- **Protection Limit**: Protezione disattivata dopo cadute superiori a 5 blocchi
+- **Smart Logic**: Previene abusi mentre mantiene la meccanica autentica
+- **Universal Application**: Applicato sia a Player che a tutte le Entity
+
+Il sistema si integra perfettamente con la fisica esistente del gioco e replica fedelmente il comportamento di Minecraft.
 
 ---
 
 **🎮 COME TESTARE IL SISTEMA:**
 1. Avvia il gioco
-2. Costruisci una torre alta (almeno 5 blocchi)
-3. Salta dall'alto
-4. Osserva il danno ricevuto e gli effetti visivi
-5. Testa anche con i mob facendoli cadere da altezze diverse
+2. Costruisci una torre alta (almeno 7-8 blocchi)
+3. Salta dall'alto - dovresti ricevere danno dopo i primi 5 blocchi di caduta
+4. Testa anche con i mob facendoli cadere da altezze diverse
+5. Verifica che salti brevi (<5 blocchi) non causino mai danno

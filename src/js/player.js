@@ -105,6 +105,7 @@ class Player {
         this.fallDamageMultiplier = 1; // Damage per block fallen above minimum
         this.lastGroundY = this.y;     // Last Y position when on ground
         this.isVoluntaryJump = false;  // Track if currently in a voluntary jump
+        this.maxVoluntaryJumpProtection = 5 * 32; // Max distance protected for voluntary jumps (5 blocks)
         
         // Swimming and oxygen system
         this.inLiquid = false;
@@ -1758,8 +1759,21 @@ class Player {
                 this.isFalling = true;
                 this.fallStartHeight = this.maxFallHeight; // Use the highest point reached
             }
-            // DON'T clear voluntary jump flag here - only clear it when landing
-            // This allows voluntary jumps to remain protected throughout the entire jump
+            
+            // ⚠️ VOLUNTARY JUMP PROTECTION LIMIT: Disable protection if falling too far
+            if (this.isVoluntaryJump) {
+                const currentFallDistance = this.y - this.maxFallHeight;
+                if (currentFallDistance > this.maxVoluntaryJumpProtection) {
+                    this.isVoluntaryJump = false; // Disable protection after falling 5+ blocks
+                    if (window.game?.notifications) {
+                        window.game.notifications.addNotification(
+                            '⚠️ High fall detected - Fall damage protection disabled!',
+                            'warning',
+                            2500
+                        );
+                    }
+                }
+            }
         } else if (this.velocityY < 0) {
             // Moving upward - update maximum height reached
             this.maxFallHeight = Math.min(this.maxFallHeight, this.y);
