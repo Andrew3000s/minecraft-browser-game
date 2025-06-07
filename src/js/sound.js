@@ -34,7 +34,7 @@ class SoundSystem {    constructor() {
             if (!this.userInteracted) {
                 this.userInteracted = true;
                 this.enabled = true;
-                console.log('🔊 Audio enabled after user interaction');
+                // 🔥 FIXED: Removed debug log for cleaner console output
                 
                 // Rimuovi i listener dopo la prima interazione
                 document.removeEventListener('click', enableAudio);
@@ -58,7 +58,7 @@ class SoundSystem {    constructor() {
         if (!this.audioContext) {
             try {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                console.log('🎵 AudioContext created after user interaction');
+                // 🔥 FIXED: Removed debug log for cleaner console output
             } catch (e) {
                 console.warn('Failed to create AudioContext:', e);
                 this.enabled = false;

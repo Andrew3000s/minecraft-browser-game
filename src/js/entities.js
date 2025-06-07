@@ -307,7 +307,7 @@ class Entity {
         if (currentTime - this.spawnTime > this.maxLifespan) {
             this.naturalDeath = true;
             this.alive = false;
-            console.log(`${this.type} naturally despawned after ${Math.round((currentTime - this.spawnTime) / 1000)}s`);
+            // 🔥 FIXED: Removed debug log for cleaner console output
             return;
         }
 
@@ -732,7 +732,7 @@ class Entity {
             window.game.sound.playPlayerDamage(); // Using available sound function
         }
         
-        console.log(`Skeleton shot arrow at target from (${Math.round(arrowX)}, ${Math.round(arrowY)}) towards (${Math.round(targetX)}, ${Math.round(targetY)})`);
+        // 🔥 FIXED: Removed debug log for cleaner console output
     }
     
     findNearbyPeacefulMobs() {
@@ -906,7 +906,7 @@ class Entity {
             }
         }
         
-        console.log(`Creeper explosion destroyed ${blocksDestroyed} blocks! (Minimum 2 guaranteed)`); // Debug log
+        // 🔥 FIXED: Removed debug log for cleaner console output
     }
       handleCollisions(world) {
         // Safety checks to prevent crashes
@@ -1099,14 +1099,14 @@ class Entity {
             } else {
                 this.killedBy = 'environment'; // Or other cause
             }
-            console.log(`Entity ${this.type} died. Killed by: ${this.killedBy}`); // Debug log
+            // 🔥 FIXED: Removed debug log for cleaner console output
             this.onDeath();
         }
     }onDeath() {
         // Only count kills and drop items if killed by player (not natural death)
         // AND only if the entity that died is NOT the player itself.
         // AND only if the killer is the player (not another mob)
-        console.log(`onDeath called for ${this.type}. Killed by: ${this.killedBy}, Natural death: ${this.naturalDeath}`); // Debug log
+        // 🔥 FIXED: Removed debug log for cleaner console output
         if (!this.naturalDeath && this.killedBy === 'player') { // Ensure killedBy property is set by the attacker
             // 🔥 RACE CONDITION FIX: Safe access to game systems
             if (window.game?.entityManager) {
@@ -1120,7 +1120,7 @@ class Entity {
             
             // Drop items when mob dies (only when killed by player)
             if (this.dropItems && this.dropItems.length > 0) {
-                console.log(`${this.type} died and was killed by player. Dropping items:`, this.dropItems); // Debug log
+                // 🔥 FIXED: Removed debug log for cleaner console output
                 // Actually add items to player's materials inventory (NOT main inventory)
                 if (window.game?.player) {
                     this.dropItems.forEach(item => {
@@ -1129,12 +1129,12 @@ class Entity {
                             // Force adding to materials inventory for mob drops
                             const added = window.game.player.addToMaterialsInventory(materialType, item.amount);
                             if (added) {
-                                console.log(`✅ ${item.amount}x ${item.name} added to materials inventory`);
+                                // 🔥 FIXED: Removed debug log for cleaner console output
                             } else {
-                                console.log(`❌ Failed to add ${item.name} - materials inventory full`);
+                                // 🔥 FIXED: Removed debug log for cleaner console output
                             }
                         } else {
-                            console.log(`⚠️ Unknown drop type: ${item.name}`);
+                            // 🔥 FIXED: Removed debug log for cleaner console output
                         }
                     });
                 }
@@ -1159,18 +1159,18 @@ class Entity {
                 
                 // Log detailed drops for implementation reference
                 this.dropItems.forEach(item => {
-                    console.log(`- ${item.amount}x ${item.name} (${item.type})`);
+                    // 🔥 FIXED: Removed debug log for cleaner console output
                 });
             }
         } else if (this.naturalDeath) {
-            console.log(`${this.type} despawned naturally (TTL expired)`);
+            // 🔥 FIXED: Removed debug log for cleaner console output
         } else if (this.killedBy === 'mob') {
             // Mob killed by another mob
-            console.log(`${this.type} was killed by another mob.`);
+            // 🔥 FIXED: Removed debug log for cleaner console output
             // No loot, sound, or notification for the player in this case.
         } else {
             // Mob killed by environment or other non-player kill
-            console.log(`${this.type} was killed by ${this.killedBy || 'unknown'}`);
+            // 🔥 FIXED: Removed debug log for cleaner console output
             // No loot, sound, or notification for the player in this case.
         }
     }    render(ctx, camera) {
@@ -1179,7 +1179,7 @@ class Entity {
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;        // Debug: log entity position occasionally (less frequent)
         if (!this.lastDebugLog || Date.now() - this.lastDebugLog > 10000) {
-            console.log(`Entity ${this.type} at world(${Math.round(this.x)}, ${Math.round(this.y)}) screen(${Math.round(screenX)}, ${Math.round(screenY)})`);
+            // 🔥 FIXED: Removed debug log for cleaner console output
             this.lastDebugLog = Date.now();
         }
         
@@ -1551,7 +1551,7 @@ class EntityManager {
         this.entitiesKilled = 0; // Track killed entities for Game Over stats
         
         // Debug: Log initialization
-        console.log("EntityManager initialized with maxEntities:", this.maxEntities);
+        // 🔥 FIXED: Removed debug log for cleaner console output
     }
     
     update(deltaTime, world, player) {
@@ -1588,7 +1588,7 @@ class EntityManager {
         }
           // Debug: Log spawn attempt conditions
         if (this.spawnTimer > spawnCooldown) {
-            console.log(`Attempting to spawn: timer=${Math.round(this.spawnTimer)}, cooldown=${Math.round(spawnCooldown)}, entities=${this.entities.length}/${this.maxEntities}`);
+            // 🔥 FIXED: Removed debug log for cleaner console output
         }
           // Check for entity spawn attempts
         if (this.spawnTimer >= spawnCooldown && this.entities.length < this.maxEntities) {
@@ -1667,7 +1667,7 @@ class EntityManager {
         this.entities.push(entity);
           const timeOfDay = window.game?.timeSystem ? 
             (window.game.timeSystem.isNight() ? 'Night' : 'Day') : 'Unknown';
-        console.log(`Spawned ${entityType} at (${Math.round(spawnX)}, ${Math.round(groundY)}) during ${timeOfDay} (outside viewport)`);
+        // 🔥 FIXED: Removed debug log for cleaner console output
     }
     
     isPositionNearPlayer(x, y, player, minDistance) {

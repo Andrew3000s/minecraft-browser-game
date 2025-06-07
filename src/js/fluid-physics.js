@@ -624,14 +624,13 @@ class FluidPhysics {
                     if (y > 60) {
                         ambientTemp += (y - 60) * 0.5; // Geotermia
                     }
-                    
-                    // Evaporazione
-                    if (blockType === BlockTypes.WATER && ambientTemp > 80) {
-                        if (Math.random() < fluidProps.evaporationRate * deltaTime) {
-                            this.world.setBlock(x, y, BlockTypes.AIR);
-                            this.generateSteamEffect(x, y);
-                        }
-                    }
+                      // Evaporazione - DISABILITATA
+                    // if (blockType === BlockTypes.WATER && ambientTemp > 80) {
+                    //     if (Math.random() < fluidProps.evaporationRate * deltaTime) {
+                    //         this.world.setBlock(x, y, BlockTypes.AIR);
+                    //         this.generateSteamEffect(x, y);
+                    //     }
+                    // }
                     
                     // Solidificazione lava
                     if (blockType === BlockTypes.LAVA && ambientTemp < 800) {
@@ -1140,14 +1139,20 @@ class FluidPhysics {
                         // Potenziale di Lennard-Jones semplificato: V(r) = 4ε[(σ/r)^12 - (σ/r)^6]
                         const sigma = molecularSize; // Distanza a potenziale zero
                         const epsilon = cohesionStrength; // Profondità del pozzo di potenziale
-                        
-                        if (distance > 0 && distance <= vanDerWaalsRange) {
+                          if (distance > 0 && distance <= vanDerWaalsRange) {
                             const r_norm = sigma / distance;
-                            const lj_force = 24 * epsilon * (2 * Math.pow(r_norm, 12) - Math.pow(r_norm, 6)) / distance;
+                            // FIX: Riduci drasticamente le forze tra fluidi dello stesso tipo
+                            // Le forze originali causano auto-interazioni eccessive quando 
+                            // lo stesso liquido interagisce con se stesso
+                            const sameTypeReduction = 0.001; // Riduzione del 99.9%
+                            const reducedEpsilon = epsilon * sameTypeReduction;
                             
-                            // Forza di attrazione/repulsione
-                            cohesionForce.x += (dx / distance) * lj_force * 0.01;
-                            cohesionForce.y += (dy / distance) * lj_force * 0.01;
+                            // Usa versione semplificata di Lennard-Jones per evitare forze esplosive
+                            const lj_force = reducedEpsilon * (1.0 / (distance * distance)) * 0.001;
+                            
+                            // Applica forza molto ridotta per prevenire scomparsa fluidi
+                            cohesionForce.x += (dx / distance) * lj_force;
+                            cohesionForce.y += (dy / distance) * lj_force;
                         }
                     }
                 }
@@ -1176,13 +1181,12 @@ class FluidPhysics {
         const fluidProps = this.fluidProperties[fluidType];
         const polarMoment = fluidProps.polarMoment || 0;
         let hBondForce = { x: 0, y: 0 };
-        
-        if (polarMoment > 0) {
-            // Forza legami idrogeno proporzionale al momento di dipolo
-            const bondStrength = polarMoment * 0.1;
-            const orientationEffect = Math.sin(Date.now() * 0.001 + x + y) * 0.5; // Orientazione dinamica
+          if (polarMoment > 0) {
+            // FIX: Riduci forza legami idrogeno per prevenire auto-interazioni eccessive
+            const bondStrength = polarMoment * 0.001; // Ridotto da 0.1 a 0.001
+            const orientationEffect = 0.1; // Semplificato e ridotto
             
-            // Legami idrogeno creano forze direzionali
+            // Legami idrogeno creano forze direzionali molto ridotte
             for (let dx = -1; dx <= 1; dx++) {
                 for (let dy = -1; dy <= 1; dy++) {
                     if (dx === 0 && dy === 0) continue;
@@ -1194,10 +1198,11 @@ class FluidPhysics {
                         const block = this.world.getBlock(nx, ny);
                         if (block === fluidType) {
                             const distance = Math.sqrt(dx*dx + dy*dy);
-                            const bondForce = bondStrength * orientationEffect / (distance * distance);
+                            // FIX: Forza molto ridotta per evitare auto-interazioni problematiche
+                            const bondForce = bondStrength * orientationEffect / (distance * distance + 1.0);
                             
-                            hBondForce.x += (dx / distance) * bondForce;
-                            hBondForce.y += (dy / distance) * bondForce;
+                            hBondForce.x += (dx / distance) * bondForce * 0.01;
+                            hBondForce.y += (dy / distance) * bondForce * 0.01;
                         }
                     }
                 }

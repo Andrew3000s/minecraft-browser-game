@@ -168,10 +168,7 @@ class Player {
     }
 
     handleInput(input, deltaTime) {
-        // 🐛 DEBUG: Verify handleInput is being called
-        if (Math.random() < 0.01) { // Log occasionally
-            console.log("🐛 DEBUG: Player.handleInput called with input:", input);
-        }
+        // Input handling without debug logging
         
         const movement = input.getMovementInput();
         
@@ -564,9 +561,7 @@ class Player {
 
     // 🔥 CRITICAL FIX: Implement handleMining method for left click block breaking
     handleMining(mousePos, deltaTime) {
-        console.log("🐛 DEBUG: handleMining called", mousePos, deltaTime); // DEBUG
         if (!window.game || !this.world) {
-            console.log("🐛 DEBUG: Missing game or world"); // DEBUG
             return;
         }
 
@@ -574,8 +569,6 @@ class Player {
         const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, window.game.camera);
         const blockX = Math.floor(worldPos.x / this.world.blockSize);
         const blockY = Math.floor(worldPos.y / this.world.blockSize);
-        
-        console.log("🐛 DEBUG: Target block:", blockX, blockY); // DEBUG
 
         // Check if block is in range (improved range from FINAL_FIXES_COMPLETED.md)
         const distance = Utils.distance(
@@ -587,10 +580,7 @@ class Player {
         const minRange = 20; // Minimum distance to prevent issues
         const maxRange = 150; // Normal mining range - restored from test value
         
-        console.log("🐛 DEBUG: Mining distance:", distance, "min:", minRange, "max:", maxRange); // DEBUG
-        
         if (distance < minRange || distance > maxRange) {
-            console.log("🐛 DEBUG: Out of mining range"); // DEBUG
             // Reset mining if out of range
             if (this.miningBlock) {
                 this.miningProgress = 0;
@@ -601,9 +591,7 @@ class Player {
         }
 
         const block = this.world.getBlockInstance(blockX, blockY);
-        console.log("🐛 DEBUG: Block at position:", block); // DEBUG
         if (!block || !block.isBreakable()) {
-            console.log("🐛 DEBUG: Block not breakable or doesn't exist"); // DEBUG
             // Reset mining if no valid block
             if (this.miningBlock) {
                 this.miningProgress = 0;
@@ -629,19 +617,14 @@ class Player {
         const activeItem = this.inventory[this.activeSlot];
         const hasDiamondPickaxe = activeItem && activeItem.type === BlockTypes.DIAMOND_PICKAXE;
 
-        console.log("🐛 DEBUG: Has diamond pickaxe:", hasDiamondPickaxe); // DEBUG
-
         if (hasDiamondPickaxe) {
             // Instant mining with diamond pickaxe
-            console.log("🐛 DEBUG: Instant mining"); // DEBUG
             this.completeMining(blockX, blockY, block);
         } else {
             // Progressive mining
             this.miningProgress += deltaTime * this.miningSpeed;
-            console.log("🐛 DEBUG: Progressive mining progress:", this.miningProgress, "/", block.getHardness()); // DEBUG
 
             if (this.miningProgress >= block.getHardness()) {
-                console.log("🐛 DEBUG: Mining complete"); // DEBUG
                 this.completeMining(blockX, blockY, block);
             }
         }
@@ -684,22 +667,17 @@ class Player {
 
     // 🔥 CRITICAL FIX: Implement handlePlacing method for right click block placement
     handlePlacing(mousePos) {
-        console.log("🐛 DEBUG: handlePlacing called", mousePos); // DEBUG
         if (!window.game || !this.world) {
-            console.log("🐛 DEBUG: Missing game or world in placing"); // DEBUG
             return;
         }
 
         const activeItem = this.inventory[this.activeSlot];
-        console.log("🐛 DEBUG: Active item:", activeItem); // DEBUG
         if (!activeItem || activeItem.count <= 0) {
-            console.log("🐛 DEBUG: No active item or count is 0"); // DEBUG
             return;
         }
 
         // Check if item is placeable (no mob drops or tools)
         if (!Block.isPlaceable(activeItem.type)) {
-            console.log("🐛 DEBUG: Item not placeable:", activeItem.type); // DEBUG
             if (window.game.notifications) {
                 window.game.notifications.addNotification(
                     `${this.getItemDisplayName(activeItem.type)} cannot be placed as a block!`,
@@ -714,8 +692,6 @@ class Player {
         const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, window.game.camera);
         const blockX = Math.floor(worldPos.x / this.world.blockSize);
         const blockY = Math.floor(worldPos.y / this.world.blockSize);
-        
-        console.log("🐛 DEBUG: Placing target block:", blockX, blockY); // DEBUG
 
         // Check if block is in range
         const distance = Utils.distance(
@@ -724,24 +700,18 @@ class Player {
             blockY * this.world.blockSize + this.world.blockSize / 2
         );
 
-        console.log("🐛 DEBUG: Placing distance:", distance); // DEBUG
-
         if (distance > 150) { // Normal placing range - restored from test value
-            console.log("🐛 DEBUG: Out of placing range"); // DEBUG
             return; // Max placing range
         }
 
         // Check if position is valid for placing
         const currentBlock = this.world.getBlock(blockX, blockY);
-        console.log("🐛 DEBUG: Current block at position:", currentBlock); // DEBUG
         if (currentBlock !== BlockTypes.AIR && !this.world.isLiquid(currentBlock)) {
-            console.log("🐛 DEBUG: Cannot place on solid block"); // DEBUG
             return; // Can't place on solid blocks
         }
 
         // Special rules for torch placement - only on solid blocks
         if (activeItem.type === BlockTypes.TORCH) {
-            console.log("🐛 DEBUG: Trying to place torch"); // DEBUG
             if (!this.canPlaceTorchAt(blockX, blockY)) {
                 if (window.game.notifications) {
                     window.game.notifications.addNotification(
@@ -750,20 +720,16 @@ class Player {
                         2000
                     );
                 }
-                console.log("🐛 DEBUG: Cannot place torch at position"); // DEBUG
                 return;
             }
         }
 
         // Place the block
-        console.log("🐛 DEBUG: Attempting to place block"); // DEBUG
         const placed = this.world.placeBlock(
             blockX * this.world.blockSize,
             blockY * this.world.blockSize,
             activeItem.type
         );
-
-        console.log("🐛 DEBUG: Block placed:", placed); // DEBUG
 
         if (placed) {
             // Reduce item count
@@ -796,8 +762,6 @@ class Player {
             if (window.game.updateInventory) {
                 window.game.updateInventory();
             }
-            
-            console.log("🐛 DEBUG: Placing completed successfully"); // DEBUG
         }
     }
 
@@ -1534,7 +1498,7 @@ class Player {
 
     // Handle player death
     die(attacker) {
-        console.log('Player died!', attacker ? `Killed by ${attacker.type || 'unknown'}` : 'Unknown cause');
+        // 🔥 FIXED: Removed debug log for cleaner console output
         
         // Trigger the game's death handling system
         if (window.game && window.game.handlePlayerDeath) {

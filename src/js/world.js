@@ -31,16 +31,7 @@ class World {
             this.advancedFluidPhysics.initializeAdvancedSystems();
         }
         
-        console.log('🌊 Advanced Fluid Physics System initialized with:');
-        console.log('  ✓ Pressure-based dynamics');
-        console.log('  ✓ Chemical reactions');
-        console.log('  ✓ Surface waves & currents');
-        if (this.advancedFluidPhysics.enableTurbulence) {
-            console.log('  ✓ Turbulence & vortices');
-        }
-        if (this.advancedFluidPhysics.enableErosion) {
-            console.log('  ✓ Erosion & sedimentation');
-        }
+        // 🔥 FIXED: Removed debug logs for cleaner console output
     }
 
     generateWorld() {
@@ -237,8 +228,8 @@ class World {
         const blockY = Math.floor(y / this.blockSize);
         
         const currentBlock = this.getBlock(blockX, blockY);
-        // Allow placing blocks if the current block is AIR or any liquid
-        if (currentBlock === BlockTypes.AIR || this.isLiquid(currentBlock)) {
+        // Allow placing blocks only on AIR (not on liquids)
+        if (currentBlock === BlockTypes.AIR) {
             this.setBlock(blockX, blockY, blockType);
             return true;
         }

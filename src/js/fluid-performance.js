@@ -71,7 +71,7 @@ class FluidPerformanceManager {
             if (currentIndex < levels.length - 1) {
                 this.qualityLevel = levels[currentIndex + 1];
                 this.stats.optimizationsApplied++;
-                console.log(`⚡ Quality reduced to ${this.qualityLevel} (avg frame time: ${currentTime.toFixed(2)}ms)`);
+                // 🔥 FIXED: Removed debug log for cleaner console output
             }
         } else if (currentTime < targetTime * 0.8 && this.qualityLevel !== 'HIGH') {
             // Performance buona, aumenta qualità
@@ -79,7 +79,7 @@ class FluidPerformanceManager {
             const currentIndex = levels.indexOf(this.qualityLevel);
             if (currentIndex > 0) {
                 this.qualityLevel = levels[currentIndex - 1];
-                console.log(`⚡ Quality increased to ${this.qualityLevel} (avg frame time: ${currentTime.toFixed(2)}ms)`);
+                // 🔥 FIXED: Removed debug log for cleaner console output
             }
         }
     }
@@ -282,18 +282,18 @@ class FluidPerformanceManager {
         if (this.lodLevels[level]) {
             this.qualityLevel = level;
             this.adaptiveQuality = false;
-            console.log(`⚡ Quality manually set to ${level}`);
+            // 🔥 FIXED: Removed debug log for cleaner console output
         }
     }
     
     enableAdaptiveQuality() {
         this.adaptiveQuality = true;
-        console.log('⚡ Adaptive quality enabled');
+        // 🔥 FIXED: Removed debug log for cleaner console output
     }
     
     disableAdaptiveQuality() {
         this.adaptiveQuality = false;
-        console.log('⚡ Adaptive quality disabled');
+        // 🔥 FIXED: Removed debug log for cleaner console output
     }
     
     // 🔧 Reset statistics

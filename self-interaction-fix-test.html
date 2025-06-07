@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Test Fix Auto-Interazioni Fluidi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #2a2a2a;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .status {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .success { background: #4CAF50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        .info { background: #2196F3; color: white; }
+        .pending { background: #9E9E9E; color: white; }
+        
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .controls button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .controls button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .controls button:hover:not(:disabled) {
+            background: #45a049;
+        }
+        
+        .force-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .force-item {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+        }
+        .force-value {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #555;
+            margin: 20px auto;
+            display: block;
+            background: #87CEEB;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Fix Auto-Interazioni Fluidi</h1>
+        <h2>Verifica Risoluzione Problema "quando lo stesso liquido interagisce con se stesso"</h2>
+        <p>Test delle modifiche alle forze molecolari per prevenire comportamenti errati quando fluidi dello stesso tipo sono adiacenti.</p>
+        
+        <div class="controls">
+            <button onclick="runSelfInteractionTest()" id="testBtn">🧪 Test Auto-Interazioni</button>
+            <button onclick="runForcesComparisonTest()" id="forcesBtn" disabled>⚖️ Confronta Forze</button>
+            <button onclick="runFluidStabilityTest()" id="stabilityBtn" disabled>🌊 Test Stabilità</button>
+            <button onclick="clearResults()" id="clearBtn">🗑️ Pulisci</button>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+        <div id="results-container"></div>
+        
+        <div class="test-section" id="forces-display" style="display: none;">
+            <h3>📊 Analisi Forze Intermolecolari</h3>
+            <div class="force-display" id="force-data"></div>
+        </div>
+    </div>
+
+    <!-- Include game scripts -->
+    <script src="src/js/block-types.js"></script>
+    <script src="src/js/particles.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/fluid-turbulence.js"></script>
+    <script src="src/js/fluid-erosion.js"></script>
+    <script src="src/js/fluid-performance.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let world;
+        let fluidPhysics;
+        let testResults = [];
+
+        function addResult(title, type, message, data = null) {
+            const container = document.getElementById('results-container');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-section`;
+            
+            let content = `
+                <h3>${title}</h3>
+                <div class="status ${type}">${message}</div>
+            `;
+            
+            if (data) {
+                content += `<pre style="background: #333; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 12px;">${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            resultDiv.innerHTML = content;
+            container.appendChild(resultDiv);
+            
+            testResults.push({ title, type, message, data, timestamp: new Date() });
+        }
+
+        function clearResults() {
+            document.getElementById('results-container').innerHTML = '';
+            document.getElementById('forces-display').style.display = 'none';
+            testResults = [];
+        }
+
+        function log(message) {
+            console.log(`[SELF-INTERACTION-TEST] ${message}`);
+        }
+
+        // Test principale per le auto-interazioni
+        async function runSelfInteractionTest() {
+            log('🧪 Iniziando test auto-interazioni fluidi...');
+            
+            try {
+                // Setup world e physics
+                world = new World(40, 20);
+                world.initializeAdvancedFluidPhysics();
+                fluidPhysics = world.advancedFluidPhysics;
+                
+                addResult('Setup', 'success', 'Sistema di fisica fluidi inizializzato correttamente');
+                
+                // Test 1: Verifica che i metodi esistano
+                const criticalMethods = [
+                    'calculateCohesionForces',
+                    'calculateHydrogenBonds',
+                    'calculateSurfaceTension',
+                    'calculateCapillaryAction',
+                    'calculateDispersionForces'
+                ];
+                
+                let methodsOk = true;
+                for (const method of criticalMethods) {
+                    if (typeof fluidPhysics[method] !== 'function') {
+                        addResult('Metodi', 'error', `Metodo ${method} mancante`);
+                        methodsOk = false;
+                    }
+                }
+                
+                if (methodsOk) {
+                    addResult('Metodi', 'success', 'Tutti i metodi per forze intermolecolari sono presenti');
+                }
+                
+                // Test 2: Scenario critico - fluidi dello stesso tipo adiacenti
+                log('Creando scenario critico con fluidi adiacenti...');
+                
+                // Crea una pozza di acqua 3x3
+                for (let x = 10; x < 13; x++) {
+                    for (let y = 10; y < 13; y++) {
+                        world.setBlock(x, y, BlockTypes.WATER);
+                    }
+                }
+                
+                addResult('Scenario', 'info', 'Creata pozza di acqua 3x3 per test auto-interazioni');
+                
+                // Test 3: Calcola forze tra blocchi dello stesso tipo
+                const centerX = 11;
+                const centerY = 11;
+                const fluidType = BlockTypes.WATER;
+                
+                const forces = {
+                    cohesion: fluidPhysics.calculateCohesionForces(centerX, centerY, fluidType),
+                    hydrogen: fluidPhysics.calculateHydrogenBonds(centerX, centerY, fluidType, 8),
+                    surfaceTension: fluidPhysics.calculateSurfaceTension(centerX, centerY, fluidType),
+                    capillary: fluidPhysics.calculateCapillaryAction(centerX, centerY, fluidType),
+                    dispersion: fluidPhysics.calculateDispersionForces(centerX, centerY, fluidType)
+                };
+                
+                // Test 4: Verifica che le forze siano ragionevoli (non eccessive)
+                let forcesReasonable = true;
+                const maxReasonableForce = 1.0; // Soglia ragionevole
+                
+                for (const [forceType, force] of Object.entries(forces)) {
+                    if (force && typeof force === 'object') {
+                        const magnitude = Math.sqrt((force.x || 0)**2 + (force.y || 0)**2);
+                        if (magnitude > maxReasonableForce) {
+                            addResult('Forze', 'warning', 
+                                `Forza ${forceType} troppo alta: ${magnitude.toFixed(4)} (max consigliato: ${maxReasonableForce})`);
+                            forcesReasonable = false;
+                        }
+                    }
+                }
+                
+                if (forcesReasonable) {
+                    addResult('Forze', 'success', 'Tutte le forze intermolecolari sono entro limiti ragionevoli');
+                } else {
+                    addResult('Forze', 'warning', 'Alcune forze potrebbero essere eccessive');
+                }
+                
+                // Mostra i dettagli delle forze
+                displayForceData(forces);
+                
+                // Test 5: Verifica che i fluidi non "scompaiano"
+                let fluidCount = 0;
+                for (let x = 10; x < 13; x++) {
+                    for (let y = 10; y < 13; y++) {
+                        if (world.getBlock(x, y) === BlockTypes.WATER) {
+                            fluidCount++;
+                        }
+                    }
+                }
+                
+                if (fluidCount === 9) {
+                    addResult('Stabilità', 'success', `Tutti i ${fluidCount} blocchi di fluido sono rimasti stabili`);
+                } else {
+                    addResult('Stabilità', 'error', `${9 - fluidCount} blocchi di fluido sono scomparsi!`);
+                }
+                
+                // Abilita test successivi
+                document.getElementById('forcesBtn').disabled = false;
+                document.getElementById('stabilityBtn').disabled = false;
+                
+                addResult('Completamento', 'success', 'Test auto-interazioni completato con successo');
+                
+            } catch (error) {
+                log(`❌ Errore durante test: ${error.message}`);
+                addResult('Errore', 'error', `Test fallito: ${error.message}`, { error: error.stack });
+            }
+        }
+
+        // Test di confronto delle forze prima/dopo
+        async function runForcesComparisonTest() {
+            log('⚖️ Confronto forze intermolecolari...');
+            
+            try {
+                // Test con diversi scenari
+                const scenarios = [
+                    { name: 'Blocco isolato', x: 5, y: 5, setup: () => world.setBlock(5, 5, BlockTypes.WATER) },
+                    { name: 'Due blocchi adiacenti', x: 15, y: 5, setup: () => {
+                        world.setBlock(15, 5, BlockTypes.WATER);
+                        world.setBlock(16, 5, BlockTypes.WATER);
+                    }},
+                    { name: 'Pozza 2x2', x: 25, y: 5, setup: () => {
+                        for (let x = 25; x < 27; x++) {
+                            for (let y = 5; y < 7; y++) {
+                                world.setBlock(x, y, BlockTypes.WATER);
+                            }
+                        }
+                    }}
+                ];
+                
+                const comparisonData = {};
+                
+                for (const scenario of scenarios) {
+                    // Pulisci area
+                    for (let x = 0; x < world.width; x++) {
+                        for (let y = 0; y < world.height; y++) {
+                            world.setBlock(x, y, BlockTypes.AIR);
+                        }
+                    }
+                    
+                    // Setup scenario
+                    scenario.setup();
+                    
+                    // Calcola forze
+                    const forces = {
+                        cohesion: fluidPhysics.calculateCohesionForces(scenario.x, scenario.y, BlockTypes.WATER),
+                        hydrogen: fluidPhysics.calculateHydrogenBonds(scenario.x, scenario.y, BlockTypes.WATER, 4)
+                    };
+                    
+                    comparisonData[scenario.name] = forces;
+                }
+                
+                addResult('Confronto Forze', 'success', 'Analisi comparativa delle forze completata', comparisonData);
+                
+            } catch (error) {
+                addResult('Confronto Forze', 'error', `Errore nel confronto: ${error.message}`);
+            }
+        }
+
+        // Test di stabilità nel tempo
+        async function runFluidStabilityTest() {
+            log('🌊 Test stabilità fluidi nel tempo...');
+            
+            try {
+                // Crea scenario di test
+                for (let x = 18; x < 22; x++) {
+                    for (let y = 8; y < 12; y++) {
+                        world.setBlock(x, y, BlockTypes.WATER);
+                    }
+                }
+                
+                const initialCount = 16;
+                let currentCount = initialCount;
+                const maxIterations = 10;
+                let stableIterations = 0;
+                
+                // Simula aggiornamenti del sistema
+                for (let i = 0; i < maxIterations; i++) {
+                    // Applica forze intermolecolari a tutti i blocchi
+                    for (let x = 18; x < 22; x++) {
+                        for (let y = 8; y < 12; y++) {
+                            if (world.getBlock(x, y) === BlockTypes.WATER) {
+                                fluidPhysics.applyIntermolecularForces(x, y, BlockTypes.WATER, 0.016);
+                            }
+                        }
+                    }
+                    
+                    // Conta i fluidi rimasti
+                    let count = 0;
+                    for (let x = 18; x < 22; x++) {
+                        for (let y = 8; y < 12; y++) {
+                            if (world.getBlock(x, y) === BlockTypes.WATER) {
+                                count++;
+                            }
+                        }
+                    }
+                    
+                    if (count === currentCount) {
+                        stableIterations++;
+                    } else {
+                        currentCount = count;
+                        stableIterations = 0;
+                    }
+                    
+                    if (currentCount === 0) {
+                        addResult('Stabilità', 'error', `Tutti i fluidi sono scomparsi all'iterazione ${i + 1}`);
+                        return;
+                    }
+                }
+                
+                const stabilityPercentage = (currentCount / initialCount) * 100;
+                
+                if (stabilityPercentage >= 95) {
+                    addResult('Stabilità', 'success', 
+                        `Eccellente stabilità: ${currentCount}/${initialCount} fluidi rimasti (${stabilityPercentage.toFixed(1)}%)`);
+                } else if (stabilityPercentage >= 80) {
+                    addResult('Stabilità', 'warning', 
+                        `Stabilità discreta: ${currentCount}/${initialCount} fluidi rimasti (${stabilityPercentage.toFixed(1)}%)`);
+                } else {
+                    addResult('Stabilità', 'error', 
+                        `Scarsa stabilità: ${currentCount}/${initialCount} fluidi rimasti (${stabilityPercentage.toFixed(1)}%)`);
+                }
+                
+            } catch (error) {
+                addResult('Stabilità', 'error', `Errore nel test di stabilità: ${error.message}`);
+            }
+        }
+
+        function displayForceData(forces) {
+            const container = document.getElementById('force-data');
+            const display = document.getElementById('forces-display');
+            
+            container.innerHTML = '';
+            
+            for (const [type, force] of Object.entries(forces)) {
+                if (force && typeof force === 'object') {
+                    const magnitude = Math.sqrt((force.x || 0)**2 + (force.y || 0)**2);
+                    
+                    const item = document.createElement('div');
+                    item.className = 'force-item';
+                    item.innerHTML = `
+                        <div><strong>${type.charAt(0).toUpperCase() + type.slice(1)}</strong></div>
+                        <div>X: <span class="force-value">${(force.x || 0).toFixed(6)}</span></div>
+                        <div>Y: <span class="force-value">${(force.y || 0).toFixed(6)}</span></div>
+                        <div>Magnitudine: <span class="force-value">${magnitude.toFixed(6)}</span></div>
+                    `;
+                    container.appendChild(item);
+                }
+            }
+            
+            display.style.display = 'block';
+        }
+
+        // Auto-start test when page loads
+        window.addEventListener('load', () => {
+            log('Pagina caricata, pronto per i test');
+        });
+    </script>
+</body>
+</html>

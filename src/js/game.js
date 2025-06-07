@@ -257,7 +257,7 @@ class MinecraftGame {    constructor() {
                 musicControl.textContent = isEnabled ? '🎵 Music: ON' : '🔇 Music: OFF';
                 musicControl.className = isEnabled ? 'music-control enabled' : 'music-control disabled';
                 
-                console.log(`Music ${isEnabled ? 'enabled' : 'disabled'}`);
+                // 🔥 FIXED: Removed debug log for cleaner console output
             });
             
             // Start background music by default
@@ -505,7 +505,7 @@ class MinecraftGame {    constructor() {
         
         // 🐛 DEBUG: Verify game loop is calling player update
         if (Math.random() < 0.01) { // Log occasionally
-            console.log("🐛 DEBUG: Game loop updating player, input:", this.input);
+            // Game loop updating player
         }        // Update entities
         this.entityManager.update(deltaTime, this.world, this.player);        
 
@@ -1003,7 +1003,8 @@ class MinecraftGame {    constructor() {
 
     start() {
         if (!this.isLoaded) {
-            console.log('Game not loaded yet, waiting...');            setTimeout(() => this.start(), 100);
+            // 🔥 FIXED: Removed debug log for cleaner console output
+            setTimeout(() => this.start(), 100);
             return;
         }
         
@@ -1021,13 +1022,13 @@ class MinecraftGame {    constructor() {
 
     handlePlayerDeath(deathPosition) { // Added deathPosition parameter
         // This method is called from player.js when the player's health reaches 0
-        console.log(`Player has died at ${deathPosition.x}, ${deathPosition.y}. Initiating game over sequence.`);
+        // 🔥 FIXED: Removed debug log for cleaner console output
         this.lastDeathPosition = deathPosition; // Store for respawn
         this.triggerGameOver(this.survivalTime); // MODIFIED: Pass survival time
     }
 
     triggerGameOver(survivalTime) { // MODIFIED: Accept survivalTime
-        console.log('Game Over triggered - Player died!');
+        // 🔥 FIXED: Removed debug log for cleaner console output
         
         // Stop the game loop
         this.gameRunning = false;
@@ -1131,7 +1132,7 @@ class MinecraftGame {    constructor() {
         }
     }    // Method to restart the game
     restartGame() {
-        console.log("Restarting game...");
+        // 🔥 FIXED: Removed debug log for cleaner console output
         this.hideGameOverScreen(); // Ensure game over screen is hidden
 
         // Stop current game loop and reset all timers
@@ -1166,12 +1167,12 @@ class MinecraftGame {    constructor() {
         // 3. Determine spawn position: near last death or world spawn
         let spawnX, spawnY;
         if (this.lastDeathPosition) {
-            console.log("Attempting to respawn near last death location.");
+            // 🔥 FIXED: Removed debug log for cleaner console output
             const safeSpawn = this.findSafeSpawnNear(this.lastDeathPosition.x, this.lastDeathPosition.y);
             spawnX = safeSpawn.x;
             spawnY = safeSpawn.y;
         } else {
-            console.log("No last death position, respawning at world spawn.");
+            // 🔥 FIXED: Removed debug log for cleaner console output
             spawnX = this.world.width * this.world.blockSize / 2;
             spawnY = this.findSpawnY(spawnX);
         }
@@ -1202,7 +1203,7 @@ class MinecraftGame {    constructor() {
         // 9. Start the game again
         this.isLoaded = true; // Mark as loaded to allow start
         this.start();
-        console.log("Game restarted.");
+        // 🔥 FIXED: Removed debug log for cleaner console output
     }
 
     clearDynamicUI() {
@@ -1218,7 +1219,7 @@ class MinecraftGame {    constructor() {
     }
 
     findSafeSpawnNear(targetX, targetY, searchRadius = 10, maxAttempts = 20) {
-        console.log(`Finding safe spawn near ${targetX}, ${targetY}`);
+        // 🔥 FIXED: Removed debug log for cleaner console output
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             // Try a random offset within the search radius
             const offsetX = (Math.random() - 0.5) * 2 * searchRadius * this.world.blockSize;
@@ -1247,7 +1248,7 @@ class MinecraftGame {    constructor() {
                     
                     const finalX = spawnCandidateX * this.world.blockSize;
                     const finalY = y * this.world.blockSize;
-                    console.log(`Safe spawn found at ${finalX}, ${finalY}`);
+                    // 🔥 FIXED: Removed debug log for cleaner console output
                     return { x: finalX, y: finalY };
                 }
             }
@@ -1444,7 +1445,7 @@ class TimeSystem {
         const randomStartTime = Math.random() * this.dayLength;
         this.gameTime = randomStartTime;
         
-        console.log(`Game started at random time: ${this.getTimeString()} (${this.isDay() ? 'Day' : 'Night'})`);
+        // 🔥 FIXED: Removed debug log for cleaner console output
     }
     
     update(deltaTime) {
@@ -1535,7 +1536,7 @@ class TimeSystem {
 
 // Initialize and start the game when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, starting Minecraft game...');
+    // 🔥 FIXED: Removed debug log for cleaner console output
     
     // Add a small delay to ensure all scripts are fully loaded
     setTimeout(() => {
