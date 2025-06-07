@@ -165,6 +165,24 @@ class ParticleSystem {
             }));
         }
     }
+
+    addSunlightFireEffect(x, y) {
+        // Add orange/red fire particles for hostile mobs burning in sunlight
+        const numParticles = 6;
+        
+        for (let i = 0; i < numParticles; i++) {
+            this.particles.push(new Particle({
+                x: x + (Math.random() - 0.5) * 25,
+                y: y + (Math.random() - 0.5) * 20,
+                velocityX: (Math.random() - 0.5) * 40,
+                velocityY: -Math.random() * 60 - 30,
+                color: ['#FF4500', '#FF6600', '#FFD700', '#FF8C00', '#DC143C'][Math.floor(Math.random() * 5)],
+                size: Math.random() * 3 + 1,
+                life: 0.8 + Math.random() * 0.4,
+                gravity: -20 // Fire rises up
+            }));
+        }
+    }
 }
 
 class Particle {

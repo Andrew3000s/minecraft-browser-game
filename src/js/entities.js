@@ -209,9 +209,7 @@ class Entity {
             this.bowDrawTime = 800; // Time to draw bow before shooting
             this.isDrawingBow = false;
             this.bowDrawStartTime = 0;
-        }
-
-        // Liquid and Oxygen properties for mobs
+        }        // Liquid and Oxygen properties for mobs
         this.inWater = false; // True if head is in water
         this.inLiquid = false; // True if any part is in any liquid (water, lava, acid)
         this.oxygen = 100;
@@ -224,6 +222,13 @@ class Entity {
         // By default, mobs cannot breathe underwater. Specific mobs (e.g., fish, squid if added) could override this.
         // Undead mobs (Zombies, Skeletons) should not take drowning damage.
         this.canBreatheUnderwater = (this.type === EntityTypes.ZOMBIE || this.type === EntityTypes.SKELETON);
+        
+        // 🔥 SUNLIGHT BURN SYSTEM: Properties for hostile mobs burning in daylight
+        this.isBurning = false;
+        this.burnDamageRate = 1; // Damage per second when burning
+        this.lastBurnDamageTime = 0;
+        this.burnEffectTime = 0; // For visual burn effect animation
+        this.canBurnInSunlight = this.isHostile; // Only hostile mobs burn in sunlight
     }
     
     getHostileFlag() {
@@ -344,13 +349,14 @@ class Entity {
             this.alive = false;
             // 🔥 FIXED: Removed debug log for cleaner console output
             return;
-        }
-
-        // Liquid and oxygen updates
+        }        // Liquid and oxygen updates
         if (world) { // Ensure world is available
             this.checkLiquidStatus(world);
             this.updateOxygen(deltaTime);
         }
+        
+        // 🔥 SUNLIGHT BURN SYSTEM: Hostile mobs burn during daylight
+        this.updateSunlightBurn(deltaTime);
           // Simple AI behavior
         this.updateAI(deltaTime, player, world);
         
@@ -1112,12 +1118,51 @@ class Entity {
                     // console.log(`${this.type} taking ${this.lowOxygenDamageRate} damage from drowning`);
                      // Optional: Add particle effect for mob drowning
                 }
-            }
-        } else {
+            }        } else {
             // Recover oxygen if not in water (head not submerged)
             if (this.oxygen < this.maxOxygen) {
                 this.oxygen += this.oxygenRecoveryRate * deltaTime;
                 if (this.oxygen > this.maxOxygen) this.oxygen = this.maxOxygen;
+            }
+        }
+    }
+
+    updateSunlightBurn(deltaTime) {
+        if (!this.alive || !this.canBurnInSunlight) return;
+        
+        // Check if it's daytime and mob is exposed to sunlight
+        const isDay = window.game?.timeSystem?.isDay() || false;
+        
+        if (isDay && !this.inWater) {
+            // Start burning if not already burning
+            if (!this.isBurning) {
+                this.isBurning = true;
+                this.burnEffectTime = 0;
+                
+                // Show notification for hostile mob burning
+                if (window.game?.notifications) {
+                    window.game.notifications.addNotification(
+                        `☀️ ${this.type.toUpperCase()} burns in sunlight!`, 
+                        'warning', 
+                        3000
+                    );
+                }
+            }
+            
+            // Apply burn damage
+            const now = Date.now();
+            if (now - this.lastBurnDamageTime > 1000) { // Damage every second
+                this.takeDamage(this.burnDamageRate, 'sunlight');
+                this.lastBurnDamageTime = now;
+            }
+            
+            // Update burn effect animation
+            this.burnEffectTime += deltaTime;
+        } else {
+            // Stop burning if it's night or mob is in water
+            if (this.isBurning) {
+                this.isBurning = false;
+                this.burnEffectTime = 0;
             }
         }
     }    takeDamage(amount, attacker = null) { // Added attacker parameter
@@ -1216,11 +1261,26 @@ class Entity {
         ctx.save();
         ctx.globalCompositeOperation = 'source-over'; // Normal rendering for entities
         
+        // Add fire visual effects for burning mobs
+        if (this.isBurning && this.isHostile) {
+            this.renderBurningEffects(ctx, screenX, screenY);
+        }
+        
         this.renderEntity(ctx, screenX, screenY);
         
         // Health bar for hostile mobs or when damaged
         if ((this.isHostile || this.health < this.maxHealth) && this.health > 0) {
             this.renderHealthBar(ctx, screenX, screenY);
+        }
+        
+        // Add fire particles for burning mobs
+        if (this.isBurning && this.isHostile) {
+            // Add fire particles periodically
+            if (Math.random() < 0.3 && window.game?.particles) {
+                const centerX = this.x + this.width / 2;
+                const centerY = this.y + this.height / 2;
+                window.game.particles.addSunlightFireEffect(centerX, centerY);
+            }
         }
         
         ctx.restore();
@@ -1553,6 +1613,45 @@ class Entity {
         // Health
         ctx.fillStyle = healthRatio > 0.5 ? '#00FF00' : healthRatio > 0.25 ? '#FFFF00' : '#FF0000';
         ctx.fillRect(x, y - 6, barWidth * healthRatio, barHeight);
+    }
+
+    renderBurningEffects(ctx, screenX, screenY) {
+        if (!this.isBurning) return;
+        
+        // Animate burning effect using burnEffectTime
+        const time = this.burnEffectTime;
+        const flickerIntensity = Math.sin(time * 8) * 0.3 + 0.7;
+        
+        ctx.save();
+        
+        // Create flickering fire overlay
+        ctx.globalAlpha = 0.4 * flickerIntensity;
+        ctx.fillStyle = '#FF4500';
+        ctx.fillRect(screenX - 2, screenY - 2, this.width + 4, this.height + 4);
+        
+        // Add bright fire edges
+        ctx.globalAlpha = 0.6 * flickerIntensity;
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(screenX - 1, screenY - 1, this.width + 2, this.height + 2);
+        
+        // Add core fire effect
+        ctx.globalAlpha = 0.3 * flickerIntensity;
+        ctx.fillStyle = '#FF6600';
+        ctx.fillRect(screenX, screenY, this.width, this.height);
+        
+        // Add flame-like spikes around the mob
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 + time * 2;
+            const flameX = screenX + this.width / 2 + Math.cos(angle) * (this.width / 2 + 3);
+            const flameY = screenY + this.height / 2 + Math.sin(angle) * (this.height / 2 + 3);
+            const flameSize = 2 + Math.sin(time * 6 + i) * 1;
+            
+            ctx.globalAlpha = 0.5 * flickerIntensity;
+            ctx.fillStyle = '#FF4500';
+            ctx.fillRect(flameX - flameSize/2, flameY - flameSize/2, flameSize, flameSize);
+        }
+        
+        ctx.restore();
     }
 }
 
