@@ -173,9 +173,29 @@ class Entity {
         this.explosionTimer = 0;
         this.explosionDelay = 2000; // 2 seconds fuse time
         this.explosionRadius = 40; // Explosion radius for block damage
-        this.lastCountdownSound = 0; // Track when last countdown sound played
+        this.lastCountdownSound = 0; // Track when last countdown sound played          // Drop items        
+        this.dropItems = this.getDropItems();
+        console.log(`🎒 Entity ${this.type} initialized with dropItems:`, this.dropItems);
         
-        // Drop items        this.dropItems = this.getDropItems();
+        // 🔧 FAILSAFE: If dropItems is empty for friendly mobs, force some default drops
+        if ((!this.dropItems || this.dropItems.length === 0) && !this.isHostile) {
+            console.log(`⚠️ FAILSAFE: ${this.type} had no drops, forcing default drops`);
+            switch(this.type) {
+                case 'chicken':
+                    this.dropItems = [{ type: 'food', name: 'chicken', amount: 1 }];
+                    break;
+                case 'pig':
+                    this.dropItems = [{ type: 'food', name: 'pork', amount: 1 }];
+                    break;
+                case 'cow':
+                    this.dropItems = [{ type: 'food', name: 'beef', amount: 1 }];
+                    break;
+                case 'sheep':
+                    this.dropItems = [{ type: 'food', name: 'mutton', amount: 1 }];
+                    break;
+            }
+            console.log(`✅ FAILSAFE: ${this.type} now has dropItems:`, this.dropItems);
+        }
         this.lastAttackTime = 0;
         this.attackCooldown = 1000; // 1 second between attacks
         this.killedBy = null; // Tracks who killed this entity (\'player\', \'mob\', etc.)
@@ -237,39 +257,69 @@ class Entity {
             default:
                 return 300000; // Default: 5 minutes
         }
-    }
-      getDropItems() {
+    }    getDropItems() {
         // Define what items each mob drops when killed
+        console.log(`🎯 getDropItems() called for entity type: "${this.type}", EntityTypes.CHICKEN: "${EntityTypes.CHICKEN}"`);
+        console.log(`🎯 Type comparison: this.type === EntityTypes.CHICKEN is ${this.type === EntityTypes.CHICKEN}`);
+        
         switch(this.type) {
             case EntityTypes.PIG:
-                return [{ type: 'food', name: 'pork', amount: 1 + Math.floor(Math.random() * 2) }];
+                const pigDrops = [{ type: 'food', name: 'pork', amount: 1 + Math.floor(Math.random() * 2) }];
+                console.log(`🐷 PIG drops:`, pigDrops);
+                return pigDrops;
             case EntityTypes.COW:
-                return [
+                const cowDrops = [
                     { type: 'food', name: 'beef', amount: 1 + Math.floor(Math.random() * 2) },
                     { type: 'material', name: 'leather', amount: Math.floor(Math.random() * 2) }
                 ];
+                console.log(`🐄 COW drops:`, cowDrops);
+                return cowDrops;
             case EntityTypes.CHICKEN:
-                return [
+                const chickenDrops = [
                     { type: 'food', name: 'chicken', amount: 1 },
                     { type: 'material', name: 'feather', amount: Math.floor(Math.random() * 3) }
                 ];
+                console.log(`🐔 CHICKEN drops:`, chickenDrops);
+                return chickenDrops;
             case EntityTypes.SHEEP:
-                return [
+                const sheepDrops = [
                     { type: 'food', name: 'mutton', amount: 1 + Math.floor(Math.random() * 2) },
                     { type: 'material', name: 'wool', amount: 1 + Math.floor(Math.random() * 2) }
                 ];
+                console.log(`🐑 SHEEP drops:`, sheepDrops);
+                return sheepDrops;
             case EntityTypes.ZOMBIE:
-                return Math.random() < 0.1 ? [{ type: 'material', name: 'bone', amount: 1 }] : [];
+                const zombieDrops = Math.random() < 0.1 ? [{ type: 'material', name: 'bone', amount: 1 }] : [];
+                console.log(`🧟 ZOMBIE drops:`, zombieDrops);
+                return zombieDrops;
             case EntityTypes.SKELETON:
-                return [
+                const skeletonDrops = [
                     { type: 'material', name: 'bone', amount: 1 + Math.floor(Math.random() * 2) },
                     { type: 'weapon', name: 'arrow', amount: Math.floor(Math.random() * 3) }
                 ];
+                console.log(`💀 SKELETON drops:`, skeletonDrops);
+                return skeletonDrops;
             case EntityTypes.SPIDER:
-                return [{ type: 'material', name: 'string', amount: Math.floor(Math.random() * 3) }];
+                const spiderDrops = [{ type: 'material', name: 'string', amount: Math.floor(Math.random() * 3) }];
+                console.log(`🕷️ SPIDER drops:`, spiderDrops);
+                return spiderDrops;
             case EntityTypes.CREEPER:
-                return [{ type: 'explosive', name: 'gunpowder', amount: Math.floor(Math.random() * 2) }];
+                const creeperDrops = [{ type: 'explosive', name: 'gunpowder', amount: Math.floor(Math.random() * 2) }];
+                console.log(`💥 CREEPER drops:`, creeperDrops);
+                return creeperDrops;
             default:
+                console.log(`❓ Unknown entity type: "${this.type}", available types:`, Object.values(EntityTypes));
+                console.log(`❓ Exact type comparison:`, {
+                    type: this.type,
+                    pig: this.type === EntityTypes.PIG,
+                    cow: this.type === EntityTypes.COW,
+                    chicken: this.type === EntityTypes.CHICKEN,
+                    sheep: this.type === EntityTypes.SHEEP,
+                    zombie: this.type === EntityTypes.ZOMBIE,
+                    skeleton: this.type === EntityTypes.SKELETON,
+                    spider: this.type === EntityTypes.SPIDER,
+                    creeper: this.type === EntityTypes.CREEPER
+                });
                 return [];
         }
     }
@@ -1087,27 +1137,49 @@ class Entity {
         }
     }    takeDamage(amount, attacker = null) { // Added attacker parameter
         this.health -= amount;
+        
+        // DEBUG: Log every damage taken to trace player detection issues
+        console.log(`🩸 ${this.type} taking ${amount} damage`, {
+            health: this.health,
+            attacker: attacker,
+            attackerType: typeof attacker,
+            attackerConstructor: attacker?.constructor?.name,
+            hasInventory: !!(attacker?.inventory),
+            hasMaterialsInventory: !!(attacker?.materialsInventory),
+            attackerIsHostile: attacker?.isHostile,
+            attackerEntityType: attacker?.type
+        });
+        
         if (this.health <= 0) {
             this.alive = false;
-            // Ensure attacker is correctly identified
-            if (attacker && attacker instanceof Player) { // Check if attacker is a Player instance
+            
+            // More robust attacker identification that doesn't rely on instanceof
+            if (attacker && attacker.constructor && attacker.constructor.name === 'Player') {
                 this.killedBy = 'player';
-            } else if (attacker && attacker instanceof Entity) { // Check if attacker is an Entity instance
+                console.log(`✅ ${this.type} killed by player (constructor method)`);
+            } else if (attacker && attacker.type && typeof attacker.type === 'string' && attacker.isHostile !== undefined) {
+                // This is likely an Entity (has type property and isHostile flag)
                 this.killedBy = 'mob';
-            } else if (typeof attacker === 'string') { // Check if attacker is a string (e.g., 'liquid', 'drowning')
-                this.killedBy = attacker; // Use the string directly
+                console.log(`🤖 ${this.type} killed by mob: ${attacker.type}`);
+            } else if (typeof attacker === 'string') {
+                // String attacker (e.g., 'liquid', 'drowning', 'environment')
+                this.killedBy = attacker;
+                console.log(`🌊 ${this.type} killed by environment: ${attacker}`);
+            } else if (attacker && attacker.inventory && attacker.materialsInventory) {
+                // Another way to detect player - has inventory properties
+                this.killedBy = 'player';
+                console.log(`✅ ${this.type} killed by player (inventory method)`);
             } else {
-                this.killedBy = 'environment'; // Or other cause
+                this.killedBy = 'environment';
+                console.log(`❓ ${this.type} killed by unknown/environment`);
             }
-            // 🔥 FIXED: Removed debug log for cleaner console output
+            
+            console.log(`💀 ${this.type} death result: killedBy = '${this.killedBy}'`);
             this.onDeath();
         }
     }onDeath() {
         // Only count kills and drop items if killed by player (not natural death)
-        // AND only if the entity that died is NOT the player itself.
-        // AND only if the killer is the player (not another mob)
-        // 🔥 FIXED: Removed debug log for cleaner console output
-        if (!this.naturalDeath && this.killedBy === 'player') { // Ensure killedBy property is set by the attacker
+        if (!this.naturalDeath && this.killedBy === 'player') {
             // 🔥 RACE CONDITION FIX: Safe access to game systems
             if (window.game?.entityManager) {
                 window.game.entityManager.entitiesKilled++;
@@ -1120,7 +1192,6 @@ class Entity {
             
             // Drop items when mob dies (only when killed by player)
             if (this.dropItems && this.dropItems.length > 0) {
-                // 🔥 FIXED: Removed debug log for cleaner console output
                 // Actually add items to player's materials inventory (NOT main inventory)
                 if (window.game?.player) {
                     this.dropItems.forEach(item => {
@@ -1129,12 +1200,12 @@ class Entity {
                             // Force adding to materials inventory for mob drops
                             const added = window.game.player.addToMaterialsInventory(materialType, item.amount);
                             if (added) {
-                                // 🔥 FIXED: Removed debug log for cleaner console output
+                                console.log(`✅ Mob Drop: Added ${item.amount}x ${item.name} to materials inventory`);
                             } else {
-                                // 🔥 FIXED: Removed debug log for cleaner console output
+                                console.log(`❌ Mob Drop: Failed to add ${item.amount}x ${item.name} (inventory full?)`);
                             }
                         } else {
-                            // 🔥 FIXED: Removed debug log for cleaner console output
+                            console.log(`⚠️ Mob Drop: Unknown drop type '${item.name}' - cannot map to block type`);
                         }
                     });
                 }
@@ -1156,24 +1227,17 @@ class Entity {
                         );
                     }
                 }
-                
-                // Log detailed drops for implementation reference
-                this.dropItems.forEach(item => {
-                    // 🔥 FIXED: Removed debug log for cleaner console output
-                });
+            } else {
+                console.log(`💀 ${this.type.toUpperCase()} killed by player but has no drops`);
             }
         } else if (this.naturalDeath) {
-            // 🔥 FIXED: Removed debug log for cleaner console output
+            // Natural death - no drops
         } else if (this.killedBy === 'mob') {
-            // Mob killed by another mob
-            // 🔥 FIXED: Removed debug log for cleaner console output
-            // No loot, sound, or notification for the player in this case.
+            // Mob killed by another mob - no drops
         } else {
-            // Mob killed by environment or other non-player kill
-            // 🔥 FIXED: Removed debug log for cleaner console output
-            // No loot, sound, or notification for the player in this case.
+            // Killed by environment or other - no drops
         }
-    }    render(ctx, camera) {
+    }render(ctx, camera) {
         if (!this.alive) return;
         
         const screenX = this.x - camera.x;

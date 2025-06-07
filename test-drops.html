@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mob Drop System Test - Minecraft Browser Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #2a2a2a;
+            color: #fff;
+        }
+        .header {
+            text-align: center;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #3a3a3a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .command {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-family: monospace;
+            border: 1px solid #555;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: monospace;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        .warning {
+            background: #ff9800;
+            color: black;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        #output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Mob Drop System Test</h1>
+            <p>Test the enhanced mob drop system with debug logging</p>
+        </div>
+
+        <div class="warning">
+            ⚠️ <strong>Important:</strong> This page tests the drop system. Make sure to have the main game running and open the browser console (F12) to see detailed debug output!
+        </div>
+
+        <div class="test-section">
+            <h2>🚀 Quick Start</h2>
+            <p>1. <a href="index.html" target="_blank">Open the main game</a></p>
+            <p>2. Press F12 to open developer console</p>
+            <p>3. Look for mobs to spawn (pigs, cows, chickens, etc.)</p>
+            <p>4. Attack mobs with left-click and watch console for debug output</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Manual Test Commands</h2>
+            <p>Copy these commands into the browser console of the main game:</p>
+            
+            <div class="command">
+                <strong>Spawn a test pig near player:</strong><br>
+                game.entityManager.spawnEntity('pig', game.player.x + 100, game.player.y);
+            </div>
+
+            <div class="command">
+                <strong>Spawn a test cow near player:</strong><br>
+                game.entityManager.spawnEntity('cow', game.player.x + 100, game.player.y);
+            </div>
+
+            <div class="command">
+                <strong>Check current mobs:</strong><br>
+                console.log('Current entities:', game.entityManager.entities.map(e => ({ type: e.type, health: e.health, alive: e.alive })));
+            </div>
+
+            <div class="command">
+                <strong>Check player materials inventory:</strong><br>
+                console.log('Materials inventory:', game.player.materialsInventory);
+            </div>
+
+            <div class="command">
+                <strong>Force kill nearest mob as player test:</strong><br>
+                let nearestMob = game.entityManager.entities.find(e => e.alive && e.type !== 'player');<br>
+                if (nearestMob) { nearestMob.takeDamage(100, game.player); console.log('Forced mob death for testing'); }
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 What to Look For</h2>
+            <h3>In the Console:</h3>
+            <ul>
+                <li><strong>🩸 Entity taking damage:</strong> Shows attacker detection details</li>
+                <li><strong>✅ Killed by player (constructor method):</strong> Player detection working</li>
+                <li><strong>💀 Death result:</strong> Shows who killed the mob</li>
+                <li><strong>✅ Mob Drop: Added Nx item:</strong> Items successfully added to inventory</li>
+                <li><strong>❌ Mob Drop: Failed to add:</strong> Inventory full or other issues</li>
+            </ul>
+            
+            <h3>In the Game:</h3>
+            <ul>
+                <li><strong>Green notification:</strong> "ENTITY KILLED! Dropped: ..." message</li>
+                <li><strong>Sparkle effects:</strong> Visual effects where mob died</li>
+                <li><strong>Materials inventory:</strong> Check with TAB key</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🗂️ Expected Drop Items</h2>
+            <ul>
+                <li><strong>🐷 Pig:</strong> 1-2x Pork</li>
+                <li><strong>🐄 Cow:</strong> 1-2x Beef + 0-1x Leather</li>
+                <li><strong>🐔 Chicken:</strong> 1x Chicken + 0-2x Feather</li>
+                <li><strong>🐑 Sheep:</strong> 1-2x Mutton + 1-2x Wool</li>
+                <li><strong>🧟 Zombie:</strong> 0-2x Rotten Flesh</li>
+                <li><strong>💀 Skeleton:</strong> 0-2x Bone + 0-1x Arrow</li>
+                <li><strong>🕷️ Spider:</strong> 0-2x String</li>
+                <li><strong>💥 Creeper:</strong> 0-1x Gunpowder</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Live Test Output</h2>
+            <button class="button" onclick="runTest()">🧪 Run Drop Test</button>
+            <button class="button" onclick="clearOutput()">🗑️ Clear Output</button>
+            <div id="output">Click "Run Drop Test" to execute tests...\n</div>
+        </div>
+    </div>
+
+    <script>
+        function addOutput(text) {
+            const output = document.getElementById('output');
+            output.textContent += new Date().toLocaleTimeString() + ' - ' + text + '\n';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = '';
+        }
+
+        function runTest() {
+            clearOutput();
+            addOutput('🧪 Starting mob drop system test...');
+            
+            // Test if we can access the game
+            if (typeof window.game === 'undefined') {
+                addOutput('❌ Game not found! Please open the main game first (index.html)');
+                addOutput('💡 Open index.html in another tab and run this test there');
+                return;
+            }
+
+            addOutput('✅ Game object found');
+            
+            // Test entity manager
+            if (!window.game.entityManager) {
+                addOutput('❌ Entity manager not found!');
+                return;
+            }
+            
+            addOutput(`✅ Entity manager found with ${window.game.entityManager.entities.length} entities`);
+            
+            // Test player
+            if (!window.game.player) {
+                addOutput('❌ Player not found!');
+                return;
+            }
+            
+            addOutput('✅ Player found');
+            addOutput(`📍 Player position: (${Math.round(window.game.player.x)}, ${Math.round(window.game.player.y)})`);
+            
+            // Show current entities
+            const entities = window.game.entityManager.entities.filter(e => e.alive);
+            addOutput(`🎯 Current alive entities: ${entities.length}`);
+            entities.forEach(e => {
+                addOutput(`  - ${e.type} at (${Math.round(e.x)}, ${Math.round(e.y)}) health: ${e.health}`);
+            });
+            
+            // Test spawning a pig for testing
+            try {
+                addOutput('🐷 Spawning test pig near player...');
+                const testX = window.game.player.x + 100;
+                const testY = window.game.player.y;
+                
+                // Check if spawn function exists
+                if (window.game.entityManager.spawnEntity) {
+                    window.game.entityManager.spawnEntity('pig', testX, testY);
+                    addOutput('✅ Test pig spawned successfully');
+                    addOutput('🎯 Try attacking it with left-click and check console for debug output!');
+                } else {
+                    addOutput('❌ spawnEntity method not found');
+                }
+            } catch (error) {
+                addOutput(`❌ Error spawning pig: ${error.message}`);
+            }
+            
+            // Check materials inventory
+            if (window.game.player.materialsInventory) {
+                const materials = window.game.player.materialsInventory.filter(item => item !== null);
+                addOutput(`📦 Current materials inventory: ${materials.length} items`);
+                materials.forEach((item, index) => {
+                    addOutput(`  - Slot ${index}: ${item.count}x ${item.type}`);
+                });
+            }
+            
+            addOutput('🏁 Test complete! Attack mobs and watch console for debug output.');
+        }
+
+        // Auto-detect if we're in the game context
+        window.addEventListener('load', () => {
+            if (typeof window.game !== 'undefined') {
+                addOutput('🎮 Game detected! You can run tests directly.');
+            } else {
+                addOutput('ℹ️ Open the main game (index.html) to run tests.');
+            }
+        });
+    </script>
+</body>
+</html>
