@@ -175,11 +175,13 @@ class Entity {
         this.explosionRadius = 40; // Explosion radius for block damage
         this.lastCountdownSound = 0; // Track when last countdown sound played
         
-        // Drop items
-        this.dropItems = this.getDropItems();
+        // Drop items        this.dropItems = this.getDropItems();
         this.lastAttackTime = 0;
         this.attackCooldown = 1000; // 1 second between attacks
         this.killedBy = null; // Tracks who killed this entity (\'player\', \'mob\', etc.)
+        
+        // Smart jumping system
+        this.lastJumpTime = 0; // Track last jump time for cooldown
 
         // Skeleton-specific ranged attack properties
         if (this.type === EntityTypes.SKELETON) {
@@ -314,9 +316,8 @@ class Entity {
             this.checkLiquidStatus(world);
             this.updateOxygen(deltaTime);
         }
-        
-        // Simple AI behavior
-        this.updateAI(deltaTime, player);
+          // Simple AI behavior
+        this.updateAI(deltaTime, player, world);
         
         // Apply gravity
         this.velocityY += 800 * deltaTime; // Gravity
@@ -337,9 +338,8 @@ class Entity {
         // Remove if fallen too far
         if (this.y > world.height * world.blockSize + 100) {
             this.alive = false;
-        }
-    }
-      updateAI(deltaTime, player) {
+        }    }
+      updateAI(deltaTime, player, world) {
         const now = Date.now();
         const distanceToPlayer = this.getDistanceToPlayer(player);
           // Hostile behavior - find targets (player or peaceful mobs)
@@ -447,18 +447,46 @@ class Entity {
                 }
             }
         }
-        
-        // Move towards target
+          // Move towards target
         const deltaX = this.targetX - this.x;
         if (Math.abs(deltaX) > 8) {
             this.facing = deltaX > 0 ? 1 : -1;
+            
+            // Check if mob has been stuck in same position
+            const currentPos = { x: Math.floor(this.x), y: Math.floor(this.y) };
+            if (!this.lastPosition) {
+                this.lastPosition = currentPos;
+                this.stuckCounter = 0;
+            }
+              // If mob hasn't moved much, increment stuck counter
+            const distanceMoved = Math.abs(currentPos.x - this.lastPosition.x) + Math.abs(currentPos.y - this.lastPosition.y);
+            if (distanceMoved < 3) { // Reduced threshold for more sensitive detection
+                this.stuckCounter = (this.stuckCounter || 0) + 1;
+            } else {
+                this.stuckCounter = 0;
+                this.lastPosition = currentPos;
+            }
+            
+            // If stuck for too long, try alternative behavior
+            if (this.stuckCounter > 20) { // Reduced from 30 to 20 (about 0.33 seconds)
+                // Try to jump more aggressively
+                if (this.onGround && this.shouldJump(world)) {
+                    this.jump();
+                }
+                
+                // Or try moving in a slightly different direction
+                if (this.stuckCounter > 40) { // After 0.66 seconds, change target slightly
+                    this.targetX += (Math.random() - 0.5) * 48; // Smaller random offset
+                    this.stuckCounter = 0;
+                }
+            }
+            
             this.velocityX = this.facing * this.moveSpeed;
         } else {
             this.velocityX *= 0.8; // Slow down when near target
         }
-        
-        // Jump if there's an obstacle
-        if (this.shouldJump()) {
+          // Jump if there's an obstacle
+        if (this.shouldJump(world)) {
             this.jump();
         }
     }
@@ -479,16 +507,105 @@ class Entity {
         const dx = this.x - (player.x + player.width / 2);
         const dy = this.y - (player.y + player.height / 2);
         return Math.sqrt(dx * dx + dy * dy);
+    }    shouldJump(world) {
+        if (!this.onGround || !world) return false;
+          // Check for jump cooldown to prevent spam jumping
+        const now = Date.now();
+        if (!this.lastJumpTime) this.lastJumpTime = 0;
+        if (now - this.lastJumpTime < 750) return false; // Reduced from 1000ms to 750ms
+        
+        // Only jump if we're actively moving
+        if (Math.abs(this.velocityX) < 5) return false;
+          // Intelligent obstacle detection
+        const obstacleInfo = this.detectObstacleAhead(world);
+        if (obstacleInfo.hasObstacle && obstacleInfo.canJumpOver) {
+            this.lastJumpTime = now;
+            // Optional debug logging (uncomment for testing)
+            // console.log(`${this.type} jumping over ${obstacleInfo.height}-block obstacle`);
+            return true;
+        }
+        
+        // Small chance for random jumping (reduced from 2% to 0.3%)
+        return Math.random() < 0.003;
+    }
+      detectObstacleAhead(world) {
+        if (!world) return { hasObstacle: false, canJumpOver: false };
+        
+        // Look ahead in the direction of movement with improved distance
+        const lookAheadDistance = this.width + 12; // Look further ahead
+        const checkX = this.facing > 0 ? 
+            this.x + this.width + lookAheadDistance : 
+            this.x - lookAheadDistance;
+        
+        // Check for obstacles at mob's foot level and above
+        const mobFootY = this.y + this.height;
+        const mobCenterX = Math.floor(checkX / world.blockSize);
+        const mobFootBlockY = Math.floor(mobFootY / world.blockSize);
+        
+        // Also check one block closer for more reliable detection
+        const checkXClose = this.facing > 0 ? 
+            this.x + this.width + 4 : 
+            this.x - 4;
+        const mobCenterXClose = Math.floor(checkXClose / world.blockSize);
+        
+        // Check if there's a solid block directly ahead at foot level (both close and far)
+        const blockAhead = world.getBlock(mobCenterX, mobFootBlockY);
+        const blockAheadClose = world.getBlock(mobCenterXClose, mobFootBlockY);
+        const blockAbove = world.getBlock(mobCenterX, mobFootBlockY - 1);
+        const blockAbove2 = world.getBlock(mobCenterX, mobFootBlockY - 2);
+        
+        // Check both close and far ahead positions
+        const hasObstacleAhead = (blockAhead !== BlockTypes.AIR && world.isSolid(mobCenterX, mobFootBlockY)) ||
+                                (blockAheadClose !== BlockTypes.AIR && world.isSolid(mobCenterXClose, mobFootBlockY));
+        
+        if (hasObstacleAhead) {
+            // There's an obstacle - check if we can jump over it
+            const obstacleHeight = Math.max(
+                this.getObstacleHeight(world, mobCenterX, mobFootBlockY),
+                this.getObstacleHeight(world, mobCenterXClose, mobFootBlockY)
+            );
+            
+            const canJumpOver = obstacleHeight <= 2 && // Can jump over 1-2 block high obstacles
+                               blockAbove2 === BlockTypes.AIR; // Need clear space above for landing
+            
+            return { 
+                hasObstacle: true, 
+                canJumpOver: canJumpOver,
+                height: obstacleHeight 
+            };
+        }
+        
+        return { hasObstacle: false, canJumpOver: false };
     }
     
-    shouldJump() {
-        return this.onGround && Math.random() < 0.02; // 2% chance per frame when on ground
+    getObstacleHeight(world, blockX, startY) {
+        let height = 0;
+        let checkY = startY;
+        
+        // Count how many blocks high the obstacle is (max 4 blocks to avoid infinite loops)
+        while (height < 4 && checkY >= 0 && world.isSolid(blockX, checkY)) {
+            height++;
+            checkY--;
+        }
+        
+        return height;
     }
-    
-    jump() {
+      jump() {
         if (this.onGround) {
-            this.velocityY = -this.jumpSpeed;
+            // Increase jump power to help clear obstacles
+            this.velocityY = -this.jumpSpeed * 1.2; // 20% more jump power for obstacle clearing
             this.onGround = false;
+            
+            // Add a small forward boost when jumping to help clear obstacles
+            if (Math.abs(this.velocityX) > 0) {
+                const jumpBoost = this.facing * 10; // Small forward momentum
+                this.velocityX += jumpBoost;
+            }
+            
+            // Visual feedback - spawn jump particles if particle system exists
+            if (window.game?.particles) {
+                window.game.particles.addJumpDust(this.x, this.y + this.height);
+            }
         }
     }
       attackPlayer(player) {
@@ -853,14 +970,30 @@ class Entity {
                             if (!isFinite(overlapX) || !isFinite(overlapY)) {
                                 continue;
                             }
-                            
-                            if (overlapX < overlapY) {
+                              if (overlapX < overlapY) {
                                 // Horizontal collision
                                 if (this.x < blockX) {
                                     this.x = blockX - this.width;
                                 } else {
                                     this.x = blockX + world.blockSize;
                                 }
+                                
+                                // Instead of completely stopping, try to find alternative path
+                                if (this.velocityX !== 0) {
+                                    // Check if we can move around the obstacle
+                                    const canMoveUp = !world.isSolid(Math.floor((this.x + this.width/2) / world.blockSize), 
+                                                                   Math.floor((this.y - 8) / world.blockSize));
+                                    const canMoveDown = !world.isSolid(Math.floor((this.x + this.width/2) / world.blockSize), 
+                                                                     Math.floor((this.y + this.height + 8) / world.blockSize));
+                                    
+                                    // Small upward/downward nudge to help navigate around obstacles
+                                    if (canMoveUp && Math.random() < 0.3) {
+                                        this.velocityY -= 20;
+                                    } else if (canMoveDown && Math.random() < 0.3 && !this.onGround) {
+                                        this.velocityY += 20;
+                                    }
+                                }
+                                
                                 this.velocityX = 0;
                             } else {
                                 // Vertical collision
