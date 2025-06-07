@@ -304,17 +304,14 @@ class FluidPhysics {
     // ⚡ Applicazione dinamica avanzata dei fluidi
     applyAdvancedFluidDynamics(x, y, fluidType, pressure, pressureGradients, deltaTime) {
         const fluidProps = this.fluidProperties[fluidType];
-        let actionTaken = false;
-        
-        // Verifica che il blocco sia ancora del tipo corretto
+        let actionTaken = false;        // Verifica che il blocco sia ancora del tipo corretto
         if (this.world.getBlock(x, y) !== fluidType) {
             return false;
         }
-        
-        // 1. Interazioni chimiche avanzate
-        if (this.processChemicalReactions(x, y, fluidType)) {
-            return true;
-        }
+          // 1. Interazioni chimiche avanzate - TEMPORANEAMENTE DISABILITATE
+        // if (this.processChemicalReactions(x, y, fluidType)) {
+        //     return true;
+        // }
         
         // 2. Flusso governato dalla pressione (Equazione di Navier-Stokes semplificata)
         const flowVelocity = this.calculateFlowVelocity(pressureGradients, fluidProps, deltaTime);
@@ -393,16 +390,46 @@ class FluidPhysics {
         }
         
         return false;
-    }
-
-    // ⚗️ Esecuzione reazione chimica
+    }    // ⚗️ Esecuzione reazione chimica MIGLIORATA
     executeChemicalReaction(x1, y1, x2, y2, reaction) {
-        // Trasforma i blocchi
-        const productBlock = reaction.products[0];
-        this.world.setBlock(x1, y1, productBlock);
-        this.world.setBlock(x2, y2, productBlock);
+        // Reazioni più realistiche che non eliminano liquidi inutilmente
         
-        // Effetti speciali
+        if (reaction.reactants.includes(BlockTypes.WATER) && reaction.reactants.includes(BlockTypes.LAVA)) {
+            // Acqua + Lava = Pietra (sostituisce SOLO la lava, acqua rimane)
+            const waterPos = this.world.getBlock(x1, y1) === BlockTypes.WATER ? {x: x1, y: y1} : {x: x2, y: y2};
+            const lavaPos = this.world.getBlock(x1, y1) === BlockTypes.LAVA ? {x: x1, y: y1} : {x: x2, y: y2};
+            
+            this.world.setBlock(lavaPos.x, lavaPos.y, BlockTypes.STONE);
+            // L'acqua rimane acqua (realismo: si raffredda ma non scompare)
+            
+        } else if (reaction.reactants.includes(BlockTypes.ACID) && reaction.reactants.includes(BlockTypes.WATER)) {
+            // Acido + Acqua = Diluizione (casualità se genera oro)
+            if (Math.random() < 0.3) { // Solo 30% possibilità di generare oro
+                const acidPos = this.world.getBlock(x1, y1) === BlockTypes.ACID ? {x: x1, y: y1} : {x: x2, y: y2};
+                this.world.setBlock(acidPos.x, acidPos.y, BlockTypes.GOLD_ORE);
+                // L'acqua rimane acqua
+            }
+            // Altrimenti nessuna trasformazione (diluizione)
+            
+        } else if (reaction.reactants.includes(BlockTypes.ACID) && reaction.reactants.includes(BlockTypes.LAVA)) {
+            // Acido + Lava = Reazione violenta
+            const acidPos = this.world.getBlock(x1, y1) === BlockTypes.ACID ? {x: x1, y: y1} : {x: x2, y: y2};
+            const lavaPos = this.world.getBlock(x1, y1) === BlockTypes.LAVA ? {x: x1, y: y1} : {x: x2, y: y2};
+            
+            this.world.setBlock(acidPos.x, acidPos.y, BlockTypes.STONE);
+            // La lava rimane lava (è più resistente)
+            
+        } else {
+            // Reazione generica (fallback) - trasforma solo un blocco casuale
+            const productBlock = reaction.products[0];
+            if (Math.random() < 0.5) {
+                this.world.setBlock(x1, y1, productBlock);
+            } else {
+                this.world.setBlock(x2, y2, productBlock);
+            }
+        }
+        
+        // Effetti speciali (unchanged)
         if (reaction.steamGeneration) {
             this.generateSteamEffect(x1, y1);
         }

@@ -530,13 +530,13 @@ class World {
     
     // 🔧 NEW: Liquid physics system
     updateLiquidPhysics(deltaTime) {
-        // 🌊 Sistema avanzato DISABILITATO per prevenire evaporazione
+        // 🌊 Sistema base ATTIVATO per gravità e flusso orizzontale
         // if (this.useAdvancedFluidPhysics && this.advancedFluidPhysics) {
         //     this.advancedFluidPhysics.updateFluidPhysics(deltaTime);
         //     return;
         // }
         
-        // Sistema base di fallback (senza evaporazione)
+        // Sistema base con interazioni bilanciate
         this.updateBasicLiquidPhysics();
     }
     
@@ -608,31 +608,29 @@ class World {
             return false; // Source block changed (e.g., by interaction or previous flow), stop flow
         }
 
-        // Helper function for liquid interactions - DISABILITATO
+        // Helper function for liquid interactions - BALANCED VERSION
         const checkAndTransform = (sourceX, sourceY, neighborX, neighborY, interactingBlockType, resultBlockType) => {
-            // Interazioni liquidi disabilitate per prevenire evaporazione
-            return false;
-            /*
             const actualNeighborBlockType = this.getBlock(neighborX, neighborY);
             if (actualNeighborBlockType === interactingBlockType) {
-                this.setBlock(sourceX, sourceY, BlockTypes.AIR); // Current liquid block turns to air
+                // BALANCED: 40% di probabilità di reazione per interazioni più visibili
+                if (Math.random() > 0.4) {
+                    return false;
+                }
+                
+                // Trasforma solo il blocco vicino nel risultato (mai il sorgente)
+                this.setBlock(neighborX, neighborY, resultBlockType);
+                
                 if (typeof this.addBlockToUpdate === 'function') {
-                    this.addBlockToUpdate(sourceX, sourceY); // Update after source block changes
+                    this.addBlockToUpdate(neighborX, neighborY);
                 }
 
-                this.setBlock(neighborX, neighborY, resultBlockType);  // Interacting block transforms
-                if (typeof this.addBlockToUpdate === 'function') {
-                    this.addBlockToUpdate(neighborX, neighborY); // Update after neighbor block changes
-                }
-
-                if (resultBlockType === BlockTypes.STONE || resultBlockType === BlockTypes.GOLD_ORE) { // Check against direct BlockType
-                    if (window.game && window.game.sound) { // MODIFIED: soundSystem to sound
-                        window.game.sound.playTone(100, 0.2, 'sawtooth'); // Generic interaction sound
+                if (resultBlockType === BlockTypes.STONE || resultBlockType === BlockTypes.GOLD_ORE) {
+                    if (window.game && window.game.sound) {
+                        window.game.sound.playTone(100, 0.2, 'sawtooth');
                     }
                 }
-                return true; // Interaction occurred
+                return true;
             }
-            */
             return false;
         };
 
@@ -644,6 +642,7 @@ class World {
             { dx: -1, dy: 0 }  // Left
         ];
 
+        // INTERAZIONI CONSERVATIVE - Solo occasionali e controllate
         for (const dir of interactionDirections) {
             const nx = x + dir.dx;
             const ny = y + dir.dy;
@@ -653,12 +652,12 @@ class World {
             // Check specific interactions based on the current liquid type
             if (type === BlockTypes.WATER) {
                 if (checkAndTransform(x, y, nx, ny, BlockTypes.LAVA, BlockTypes.STONE)) return true;
-                if (checkAndTransform(x, y, nx, ny, BlockTypes.ACID, BlockTypes.GOLD_ORE)) return true; // MODIFIED: Water + Acid = Gold Ore
+                if (checkAndTransform(x, y, nx, ny, BlockTypes.ACID, BlockTypes.GOLD_ORE)) return true;
             } else if (type === BlockTypes.LAVA) {
                 if (checkAndTransform(x, y, nx, ny, BlockTypes.WATER, BlockTypes.STONE)) return true;
                 if (checkAndTransform(x, y, nx, ny, BlockTypes.ACID, BlockTypes.STONE)) return true;
             } else if (type === BlockTypes.ACID) {
-                if (checkAndTransform(x, y, nx, ny, BlockTypes.WATER, BlockTypes.GOLD_ORE)) return true; // MODIFIED: Acid + Water = Gold Ore
+                if (checkAndTransform(x, y, nx, ny, BlockTypes.WATER, BlockTypes.GOLD_ORE)) return true;
                 if (checkAndTransform(x, y, nx, ny, BlockTypes.LAVA, BlockTypes.STONE)) return true;
             }
         }

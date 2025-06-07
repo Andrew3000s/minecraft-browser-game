@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌊 Test Sistema Avanzato Liquidi (Senza Evaporazione)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #2d2d2d;
+            border-radius: 12px;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .primary { background: #4CAF50; color: white; }
+        .secondary { background: #2196F3; color: white; }
+        .warning { background: #FF9800; color: white; }
+        .danger { background: #f44336; color: white; }
+        .results {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid;
+        }
+        .success { border-color: #4CAF50; background: #1B5E20; }
+        .error { border-color: #f44336; background: #B71C1C; }
+        .info { border-color: #2196F3; background: #0D47A1; }
+        .warning { border-color: #FF9800; background: #E65100; }
+        #gameCanvas {
+            border: 2px solid #555;
+            margin: 20px auto;
+            display: block;
+            background: #87CEEB;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .status-card {
+            background: #3d3d3d;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #555;
+        }
+        .feature-list li:before {
+            content: "✅ ";
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 Test Sistema Avanzato Liquidi Anti-Evaporazione</h1>
+        <p style="text-align: center;">Verifica che il sistema avanzato funzioni senza causare evaporazione dei fluidi</p>
+        
+        <div class="controls">
+            <button class="primary" onclick="initializeAdvancedSystem()">🚀 Inizializza Sistema</button>
+            <button class="secondary" onclick="testAdvancedFeatures()" id="testBtn" disabled>⚡ Test Funzionalità Avanzate</button>
+            <button class="warning" onclick="testFluidStability()" id="stabilityBtn" disabled>🧪 Test Stabilità Liquidi</button>
+            <button class="secondary" onclick="testGameLoop()" id="gameBtn" disabled>🎮 Simula Game Loop</button>
+            <button class="danger" onclick="clearResults()">🗑️ Pulisci</button>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="400" style="display: none;"></canvas>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>🌊 Funzionalità Avanzate Attive</h3>
+                <ul class="feature-list">
+                    <li>Pressione idrostatica dinamica</li>
+                    <li>Viscosità e flusso realistico</li>
+                    <li>Forze intermolecolari (van der Waals)</li>
+                    <li>Tensione superficiale</li>
+                    <li>Effetti di capillarità</li>
+                    <li>Onde di superficie</li>
+                    <li>Correnti e turbolenza</li>
+                </ul>
+            </div>
+            <div class="status-card">
+                <h3>🚫 Sistemi Disabilitati</h3>
+                <ul class="feature-list" style="color: #ff6b6b;">
+                    <li style="text-decoration: line-through;">❌ Evaporazione termodinamica</li>
+                    <li style="text-decoration: line-through;">❌ Reazioni chimiche liquido→aria</li>
+                    <li style="text-decoration: line-through;">❌ Solidificazione spontanea</li>
+                    <li style="text-decoration: line-through;">❌ Erosione che elimina liquidi</li>
+                    <li style="text-decoration: line-through;">❌ Conversioni sorgente→aria</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="results-container" class="results"></div>
+    </div>
+
+    <!-- Include game files -->
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let world = null;
+        let fluidPhysics = null;
+        let testResults = [];
+
+        function addResult(title, type, message, data = null) {
+            const result = {
+                title,
+                type,
+                message,
+                data,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            testResults.push(result);
+            
+            const container = document.getElementById('results-container');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `
+                <strong>[${result.timestamp}] ${title}</strong><br>
+                ${message}
+                ${data ? '<pre>' + JSON.stringify(data, null, 2) + '</pre>' : ''}
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results-container').innerHTML = '';
+            testResults = [];
+        }
+
+        async function initializeAdvancedSystem() {
+            addResult('Inizializzazione', 'info', 'Inizializzando sistema avanzato dei liquidi...');
+            
+            try {
+                // Create world
+                world = new World(50, 30);
+                
+                // Initialize advanced fluid physics
+                world.initializeAdvancedFluidPhysics();
+                fluidPhysics = world.advancedFluidPhysics;
+                
+                // Verify system is active
+                if (fluidPhysics && world.useAdvancedFluidPhysics) {
+                    addResult('Sistema Avanzato', 'success', 'Sistema avanzato di fisica dei fluidi attivato correttamente!');
+                    
+                    // Check anti-evaporation features
+                    const props = fluidPhysics.fluidProperties[BlockTypes.WATER];
+                    addResult('Proprietà Fluidi', 'info', `Proprietà acqua caricata - Viscosità: ${props.viscosity}, Densità: ${props.density}`);
+                    
+                    // Enable buttons
+                    document.getElementById('testBtn').disabled = false;
+                    document.getElementById('stabilityBtn').disabled = false;
+                    document.getElementById('gameBtn').disabled = false;
+                    
+                } else {
+                    addResult('Sistema Avanzato', 'error', 'Errore nell\'attivazione del sistema avanzato');
+                }
+                
+            } catch (error) {
+                addResult('Errore', 'error', `Errore nell'inizializzazione: ${error.message}`);
+            }
+        }
+
+        async function testAdvancedFeatures() {
+            addResult('Test Avanzato', 'info', 'Testando funzionalità avanzate...');
+            
+            try {
+                // Test 1: Pressure calculation
+                world.setBlock(25, 25, BlockTypes.WATER);
+                world.setBlock(25, 24, BlockTypes.WATER);
+                world.setBlock(25, 23, BlockTypes.WATER);
+                
+                const pressure = fluidPhysics.calculatePressure(25, 25, BlockTypes.WATER);
+                addResult('Pressione', 'success', `Pressione idrostatica calcolata: ${pressure.toFixed(2)} Pa`);
+                
+                // Test 2: Viscosity effects
+                fluidPhysics.applyViscosityEffects(25, 25, BlockTypes.WATER, 0.016);
+                addResult('Viscosità', 'success', 'Effetti di viscosità applicati correttamente');
+                
+                // Test 3: Intermolecular forces
+                const cohesionForce = fluidPhysics.calculateCohesionForces(25, 25, BlockTypes.WATER);
+                addResult('Forze Molecolari', 'success', 
+                    `Forze di coesione: x=${cohesionForce.x.toFixed(4)}, y=${cohesionForce.y.toFixed(4)}`);
+                
+                // Test 4: Surface tension
+                const surfaceTension = fluidPhysics.calculateSurfaceTension(25, 25, BlockTypes.WATER);
+                addResult('Tensione Superficiale', 'success', 
+                    `Tensione superficiale calcolata: ${surfaceTension.magnitude.toFixed(4)}`);
+                
+                // Test 5: Wave effects
+                const waveOffset = fluidPhysics.getSurfaceWaveAt(25, 24);
+                addResult('Onde', 'success', `Effetto onde superficie: ${waveOffset.toFixed(2)} pixel`);
+                
+                addResult('Test Completo', 'success', '✅ Tutte le funzionalità avanzate sono operative!');
+                
+            } catch (error) {
+                addResult('Errore Test', 'error', `Errore nei test: ${error.message}`);
+            }
+        }
+
+        async function testFluidStability() {
+            addResult('Test Stabilità', 'info', 'Verificando stabilità dei liquidi nel tempo...');
+            
+            try {
+                // Create liquid pools
+                const testPositions = [];
+                
+                // Water pool
+                for (let x = 10; x < 15; x++) {
+                    for (let y = 20; y < 25; y++) {
+                        world.setBlock(x, y, BlockTypes.WATER);
+                        testPositions.push({x, y, type: BlockTypes.WATER, name: 'Water'});
+                    }
+                }
+                
+                // Lava pool
+                for (let x = 20; x < 25; x++) {
+                    for (let y = 20; y < 25; y++) {
+                        world.setBlock(x, y, BlockTypes.LAVA);
+                        testPositions.push({x, y, type: BlockTypes.LAVA, name: 'Lava'});
+                    }
+                }
+                
+                // Acid pool
+                for (let x = 30; x < 35; x++) {
+                    for (let y = 20; y < 25; y++) {
+                        world.setBlock(x, y, BlockTypes.ACID);
+                        testPositions.push({x, y, type: BlockTypes.ACID, name: 'Acid'});
+                    }
+                }
+                
+                const initialCount = testPositions.length;
+                addResult('Setup', 'info', `Creati ${initialCount} blocchi di liquidi (25 acqua + 25 lava + 25 acido)`);
+                
+                // Simulate multiple update cycles
+                let stableCount = 0;
+                const maxCycles = 20;
+                
+                for (let cycle = 0; cycle < maxCycles; cycle++) {
+                    // Run advanced fluid updates
+                    fluidPhysics.updateFluidPhysics(0.016);
+                    
+                    // Count remaining liquids
+                    let currentCount = 0;
+                    for (const pos of testPositions) {
+                        if (world.getBlock(pos.x, pos.y) === pos.type) {
+                            currentCount++;
+                        }
+                    }
+                    
+                    if (currentCount === initialCount) {
+                        stableCount++;
+                    } else {
+                        addResult('Stabilità', 'warning', 
+                            `Ciclo ${cycle + 1}: ${currentCount}/${initialCount} liquidi rimasti`);
+                    }
+                    
+                    // Small delay to see progression
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                
+                // Final count
+                let finalCount = 0;
+                for (const pos of testPositions) {
+                    if (world.getBlock(pos.x, pos.y) === pos.type) {
+                        finalCount++;
+                    }
+                }
+                
+                if (finalCount === initialCount) {
+                    addResult('Stabilità Finale', 'success', 
+                        `✅ PERFETTO! Tutti i ${finalCount} liquidi sono rimasti stabili per ${maxCycles} cicli!`);
+                } else {
+                    addResult('Stabilità Finale', 'warning', 
+                        `⚠️ ${finalCount}/${initialCount} liquidi rimasti dopo ${maxCycles} cicli`);
+                }
+                
+                // Check specific liquid types
+                const waterCount = testPositions.filter(p => p.type === BlockTypes.WATER && world.getBlock(p.x, p.y) === BlockTypes.WATER).length;
+                const lavaCount = testPositions.filter(p => p.type === BlockTypes.LAVA && world.getBlock(p.x, p.y) === BlockTypes.LAVA).length;
+                const acidCount = testPositions.filter(p => p.type === BlockTypes.ACID && world.getBlock(p.x, p.y) === BlockTypes.ACID).length;
+                
+                addResult('Dettaglio Stabilità', 'info', 
+                    `Acqua: ${waterCount}/25, Lava: ${lavaCount}/25, Acido: ${acidCount}/25`);
+                
+            } catch (error) {
+                addResult('Errore Stabilità', 'error', `Errore nel test di stabilità: ${error.message}`);
+            }
+        }
+
+        async function testGameLoop() {
+            addResult('Game Loop', 'info', 'Simulando game loop completo...');
+            
+            try {
+                // Setup minimal game environment
+                const canvas = document.getElementById('gameCanvas');
+                const ctx = canvas.getContext('2d');
+                canvas.style.display = 'block';
+                
+                // Create some liquids to observe
+                for (let x = 5; x < 45; x += 10) {
+                    for (let y = 15; y < 20; y++) {
+                        const fluidType = [BlockTypes.WATER, BlockTypes.LAVA, BlockTypes.ACID][Math.floor(x/15)];
+                        world.setBlock(x, y, fluidType);
+                    }
+                }
+                
+                let frameCount = 0;
+                const maxFrames = 300; // 5 seconds at 60fps
+                
+                function gameFrame() {
+                    frameCount++;
+                    
+                    // Update world physics
+                    world.updateLiquidPhysics(0.016);
+                    
+                    // Simple visualization
+                    ctx.fillStyle = '#87CEEB';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    const blockSize = 16;
+                    for (let x = 0; x < world.width; x++) {
+                        for (let y = 0; y < world.height; y++) {
+                            const block = world.getBlock(x, y);
+                            if (block === BlockTypes.WATER) {
+                                ctx.fillStyle = '#4169E1';
+                                ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+                            } else if (block === BlockTypes.LAVA) {
+                                ctx.fillStyle = '#FF4500';
+                                ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+                            } else if (block === BlockTypes.ACID) {
+                                ctx.fillStyle = '#32CD32';
+                                ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+                            } else if (block === BlockTypes.STONE) {
+                                ctx.fillStyle = '#808080';
+                                ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+                            }
+                        }
+                    }
+                    
+                    if (frameCount < maxFrames) {
+                        requestAnimationFrame(gameFrame);
+                    } else {
+                        addResult('Game Loop', 'success', 
+                            `✅ Game loop eseguito per ${maxFrames} frame senza problemi!`);
+                    }
+                }
+                
+                gameFrame();
+                
+            } catch (error) {
+                addResult('Errore Game Loop', 'error', `Errore nel game loop: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

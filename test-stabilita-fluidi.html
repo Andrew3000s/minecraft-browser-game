@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Stabilità Fluidi - Nessuna Trasformazione</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #fff;
+            background: #87CEEB;
+        }
+        
+        .info-panel {
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            width: 800px;
+        }
+        
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .test-button:hover {
+            background: #45a049;
+        }
+        
+        .stop-button {
+            background: #f44336;
+        }
+        
+        .stop-button:hover {
+            background: #da190b;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .log {
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 10px;
+        }
+        
+        .warning {
+            border-left-color: #ff9800;
+            color: #ff9800;
+        }
+        
+        .error {
+            border-left-color: #f44336;
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>🧪 Test Stabilità Fluidi - Nessuna Trasformazione</h1>
+        
+        <div class="info-panel">
+            <h2>Test di Stabilità dei Fluidi</h2>
+            <p>Questo test verifica che i fluidi NON si trasformino spontaneamente in altri blocchi.</p>
+            
+            <div style="text-align: center;">
+                <button class="test-button" onclick="startStabilityTest()">🚀 Avvia Test Stabilità</button>
+                <button class="test-button stop-button" onclick="stopTest()">⏹️ Ferma Test</button>
+                <button class="test-button" onclick="clearWorld()">🧹 Pulisci Mondo</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div>Acqua</div>
+                    <div class="stat-value" id="waterCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Lava</div>
+                    <div class="stat-value" id="lavaCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Acido</div>
+                    <div class="stat-value" id="acidCount">0</div>
+                </div>
+            </div>
+            
+            <div id="testLog" class="log"></div>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- Includi tutti i file JS del gioco -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let testRunning = false;
+        let testInterval = null;
+        let initialCounts = {};
+        let testStartTime = 0;
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function countFluids() {
+            const world = window.game.world;
+            let waterCount = 0;
+            let lavaCount = 0;
+            let acidCount = 0;
+
+            for (let x = 0; x < world.width; x++) {
+                for (let y = 0; y < world.height; y++) {
+                    const block = world.getBlock(x, y);
+                    if (block === BlockTypes.WATER) waterCount++;
+                    if (block === BlockTypes.LAVA) lavaCount++;
+                    if (block === BlockTypes.ACID) acidCount++;
+                }
+            }
+
+            return { water: waterCount, lava: lavaCount, acid: acidCount };
+        }
+
+        function updateCountDisplay(counts) {
+            document.getElementById('waterCount').textContent = counts.water;
+            document.getElementById('lavaCount').textContent = counts.lava;
+            document.getElementById('acidCount').textContent = counts.acid;
+        }
+
+        function placeFluidsInGrid() {
+            const world = window.game.world;
+            const centerX = Math.floor(world.width / 2);
+            const centerY = Math.floor(world.height / 2);
+
+            // Piazza liquidi in una griglia 9x9 separati
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const x = centerX - 10 + i * 8;
+                    const y = centerY - 10 + j * 8;
+                    
+                    // Crea pozze separate di ogni tipo
+                    if (i === 0) {
+                        // Colonna 1: Acqua
+                        for (let dx = 0; dx < 3; dx++) {
+                            for (let dy = 0; dy < 3; dy++) {
+                                if (world.isValidPosition(x + dx, y + dy)) {
+                                    world.setBlock(x + dx, y + dy, BlockTypes.WATER);
+                                }
+                            }
+                        }
+                    } else if (i === 1) {
+                        // Colonna 2: Lava
+                        for (let dx = 0; dx < 3; dx++) {
+                            for (let dy = 0; dy < 3; dy++) {
+                                if (world.isValidPosition(x + dx, y + dy)) {
+                                    world.setBlock(x + dx, y + dy, BlockTypes.LAVA);
+                                }
+                            }
+                        }
+                    } else {
+                        // Colonna 3: Acido
+                        for (let dx = 0; dx < 3; dx++) {
+                            for (let dy = 0; dy < 3; dy++) {
+                                if (world.isValidPosition(x + dx, y + dy)) {
+                                    world.setBlock(x + dx, y + dy, BlockTypes.ACID);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function startStabilityTest() {
+            if (testRunning) return;
+
+            log("🚀 Iniziando test di stabilità fluidi...");
+            
+            // Pulisci il mondo
+            clearWorld();
+            
+            // Piazza i fluidi
+            placeFluidsInGrid();
+            
+            // Conta i fluidi iniziali
+            initialCounts = countFluids();
+            updateCountDisplay(initialCounts);
+            
+            log(`✅ Fluidi piazzati - Acqua: ${initialCounts.water}, Lava: ${initialCounts.lava}, Acido: ${initialCounts.acid}`);
+            
+            testRunning = true;
+            testStartTime = Date.now();
+            
+            // Controlla ogni 2 secondi
+            testInterval = setInterval(() => {
+                const currentCounts = countFluids();
+                updateCountDisplay(currentCounts);
+                
+                const elapsed = Math.floor((Date.now() - testStartTime) / 1000);
+                
+                // Verifica se ci sono state trasformazioni
+                let transformations = false;
+                let message = `[${elapsed}s] `;
+                
+                if (currentCounts.water !== initialCounts.water) {
+                    message += `Acqua: ${initialCounts.water} → ${currentCounts.water} `;
+                    transformations = true;
+                }
+                if (currentCounts.lava !== initialCounts.lava) {
+                    message += `Lava: ${initialCounts.lava} → ${currentCounts.lava} `;
+                    transformations = true;
+                }
+                if (currentCounts.acid !== initialCounts.acid) {
+                    message += `Acido: ${initialCounts.acid} → ${currentCounts.acid} `;
+                    transformations = true;
+                }
+                
+                if (transformations) {
+                    log(message, 'error');
+                    log("❌ TRASFORMAZIONI RILEVATE! Fluidi si stanno trasformando spontaneamente!", 'error');
+                } else {
+                    log(`✅ [${elapsed}s] Tutti i fluidi stabili`, 'info');
+                }
+                
+                // Test per 60 secondi
+                if (elapsed >= 60) {
+                    stopTest();
+                    const totalLost = (initialCounts.water + initialCounts.lava + initialCounts.acid) - 
+                                    (currentCounts.water + currentCounts.lava + currentCounts.acid);
+                    const percentKept = Math.round(((currentCounts.water + currentCounts.lava + currentCounts.acid) / 
+                                                  (initialCounts.water + initialCounts.lava + initialCounts.acid)) * 100);
+                    
+                    if (totalLost === 0) {
+                        log("🎉 TEST COMPLETATO: Tutti i fluidi sono rimasti stabili!", 'info');
+                    } else {
+                        log(`❌ TEST FALLITO: ${totalLost} fluidi trasformati. Solo ${percentKept}% mantenuti.`, 'error');
+                    }
+                }
+            }, 2000);
+        }
+
+        function stopTest() {
+            if (testInterval) {
+                clearInterval(testInterval);
+                testInterval = null;
+            }
+            testRunning = false;
+            log("⏹️ Test fermato");
+        }
+
+        function clearWorld() {
+            const world = window.game.world;
+            for (let x = 0; x < world.width; x++) {
+                for (let y = 0; y < world.height; y++) {
+                    world.setBlock(x, y, BlockTypes.AIR);
+                }
+            }
+            log("🧹 Mondo pulito");
+        }
+
+        // Inizializza il gioco quando la pagina è caricata
+        window.onload = function() {
+            const canvas = document.getElementById('gameCanvas');
+            window.game = new Game(canvas);
+            
+            log("🎮 Gioco inizializzato per test stabilità fluidi");
+            log("ℹ️ I fluidi NON dovrebbero trasformarsi spontaneamente");
+        };
+    </script>
+</body>
+</html>

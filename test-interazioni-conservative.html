@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Interazioni Conservative</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #fff;
+            background: #87CEEB;
+        }
+        
+        .info-panel {
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            width: 800px;
+        }
+        
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .test-button:hover {
+            background: #45a049;
+        }
+        
+        .stop-button {
+            background: #f44336;
+        }
+        
+        .stop-button:hover {
+            background: #da190b;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .log {
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 10px;
+        }
+        
+        .warning {
+            border-left-color: #ff9800;
+            color: #ff9800;
+        }
+        
+        .error {
+            border-left-color: #f44336;
+            color: #f44336;
+        }
+        
+        .success {
+            border-left-color: #4CAF50;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>⚗️ Test Interazioni Conservative</h1>
+        
+        <div class="info-panel">
+            <h2>Test Interazioni Fluidi Conservative</h2>
+            <p>Verifica che le interazioni avvengano ma senza evaporazione massiva (obiettivo: >85% liquidi mantenuti)</p>
+            
+            <div style="text-align: center;">
+                <button class="test-button" onclick="startInteractionTest()">🧪 Test Interazioni</button>
+                <button class="test-button stop-button" onclick="stopTest()">⏹️ Ferma Test</button>
+                <button class="test-button" onclick="clearWorld()">🧹 Pulisci Mondo</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div>Acqua</div>
+                    <div class="stat-value" id="waterCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Lava</div>
+                    <div class="stat-value" id="lavaCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Acido</div>
+                    <div class="stat-value" id="acidCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Pietra</div>
+                    <div class="stat-value" id="stoneCount">0</div>
+                </div>
+            </div>
+            
+            <div id="testLog" class="log"></div>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- Includi tutti i file JS del gioco -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let testRunning = false;
+        let testInterval = null;
+        let initialCounts = {};
+        let testStartTime = 0;
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function countBlocks() {
+            const world = window.game.world;
+            let waterCount = 0;
+            let lavaCount = 0;
+            let acidCount = 0;
+            let stoneCount = 0;
+
+            for (let x = 0; x < world.width; x++) {
+                for (let y = 0; y < world.height; y++) {
+                    const block = world.getBlock(x, y);
+                    if (block === BlockTypes.WATER) waterCount++;
+                    if (block === BlockTypes.LAVA) lavaCount++;
+                    if (block === BlockTypes.ACID) acidCount++;
+                    if (block === BlockTypes.STONE) stoneCount++;
+                }
+            }
+
+            return { water: waterCount, lava: lavaCount, acid: acidCount, stone: stoneCount };
+        }
+
+        function updateCountDisplay(counts) {
+            document.getElementById('waterCount').textContent = counts.water;
+            document.getElementById('lavaCount').textContent = counts.lava;
+            document.getElementById('acidCount').textContent = counts.acid;
+            document.getElementById('stoneCount').textContent = counts.stone;
+        }
+
+        function placeInteractingFluids() {
+            const world = window.game.world;
+            const centerX = Math.floor(world.width / 2);
+            const centerY = Math.floor(world.height / 2);
+
+            // Crea zone di interazione controllata
+            log("🧪 Piazzando fluidi per interazioni...");
+
+            // Zona 1: Acqua + Lava (dovrebbe creare pietra)
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 3; j++) {
+                    world.setBlock(centerX - 15 + i, centerY - 5 + j, BlockTypes.WATER);
+                }
+            }
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 3; j++) {
+                    world.setBlock(centerX - 15 + i + 5, centerY - 5 + j, BlockTypes.LAVA);
+                }
+            }
+
+            // Zona 2: Acqua + Acido (dovrebbe creare oro)
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 3; j++) {
+                    world.setBlock(centerX - 5 + i, centerY - 5 + j, BlockTypes.WATER);
+                }
+            }
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 3; j++) {
+                    world.setBlock(centerX - 5 + i + 5, centerY - 5 + j, BlockTypes.ACID);
+                }
+            }
+
+            // Zone di controllo separate (non dovrebbero trasformarsi)
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    world.setBlock(centerX - 15 + i, centerY + 5 + j, BlockTypes.WATER);
+                    world.setBlock(centerX - 5 + i, centerY + 5 + j, BlockTypes.LAVA);
+                    world.setBlock(centerX + 5 + i, centerY + 5 + j, BlockTypes.ACID);
+                }
+            }
+        }
+
+        function startInteractionTest() {
+            if (testRunning) return;
+
+            log("🚀 Iniziando test interazioni conservative...");
+            
+            // Pulisci il mondo
+            clearWorld();
+            
+            // Piazza i fluidi per interazioni
+            placeInteractingFluids();
+            
+            // Conta i blocchi iniziali
+            initialCounts = countBlocks();
+            updateCountDisplay(initialCounts);
+            
+            const totalLiquids = initialCounts.water + initialCounts.lava + initialCounts.acid;
+            log(`✅ Setup completato - Liquidi totali: ${totalLiquids}, Pietra: ${initialCounts.stone}`);
+            
+            testRunning = true;
+            testStartTime = Date.now();
+            
+            // Controlla ogni 3 secondi
+            testInterval = setInterval(() => {
+                const currentCounts = countBlocks();
+                updateCountDisplay(currentCounts);
+                
+                const elapsed = Math.floor((Date.now() - testStartTime) / 1000);
+                const totalCurrentLiquids = currentCounts.water + currentCounts.lava + currentCounts.acid;
+                const totalInitialLiquids = initialCounts.water + initialCounts.lava + initialCounts.acid;
+                const percentKept = Math.round((totalCurrentLiquids / totalInitialLiquids) * 100);
+                const stoneCreated = currentCounts.stone - initialCounts.stone;
+                
+                log(`[${elapsed}s] Liquidi: ${percentKept}% mantenuti, Pietra creata: ${stoneCreated}`, 
+                    percentKept >= 85 ? 'success' : 'warning');
+                
+                // Test per 60 secondi
+                if (elapsed >= 60) {
+                    stopTest();
+                    
+                    if (percentKept >= 85 && stoneCreated > 0) {
+                        log(`🎉 TEST SUPERATO! ${percentKept}% liquidi mantenuti, ${stoneCreated} pietra creata`, 'success');
+                        log("✅ Le interazioni funzionano senza evaporazione eccessiva!", 'success');
+                    } else if (percentKept >= 85) {
+                        log(`⚠️ PARZIALE: ${percentKept}% liquidi mantenuti ma nessuna interazione rilevata`, 'warning');
+                    } else {
+                        log(`❌ TEST FALLITO: Solo ${percentKept}% liquidi mantenuti (obiettivo: >85%)`, 'error');
+                    }
+                }
+            }, 3000);
+        }
+
+        function stopTest() {
+            if (testInterval) {
+                clearInterval(testInterval);
+                testInterval = null;
+            }
+            testRunning = false;
+            log("⏹️ Test fermato");
+        }
+
+        function clearWorld() {
+            const world = window.game.world;
+            for (let x = 0; x < world.width; x++) {
+                for (let y = 0; y < world.height; y++) {
+                    world.setBlock(x, y, BlockTypes.AIR);
+                }
+            }
+            log("🧹 Mondo pulito");
+        }
+
+        // Inizializza il gioco quando la pagina è caricata
+        window.onload = function() {
+            const canvas = document.getElementById('gameCanvas');
+            window.game = new Game(canvas);
+            
+            log("🎮 Gioco inizializzato per test interazioni conservative");
+            log("ℹ️ Obiettivo: >85% liquidi mantenuti con alcune interazioni visibili");
+        };
+    </script>
+</body>
+</html>

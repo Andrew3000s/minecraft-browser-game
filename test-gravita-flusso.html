@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gravità e Flusso</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #fff;
+            background: #87CEEB;
+        }
+        
+        .info-panel {
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            width: 800px;
+        }
+        
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .test-button:hover {
+            background: #45a049;
+        }
+        
+        .stop-button {
+            background: #f44336;
+        }
+        
+        .stop-button:hover {
+            background: #da190b;
+        }
+        
+        .log {
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 10px;
+        }
+        
+        .warning {
+            border-left-color: #ff9800;
+            color: #ff9800;
+        }
+        
+        .error {
+            border-left-color: #f44336;
+            color: #f44336;
+        }
+        
+        .success {
+            border-left-color: #4CAF50;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>🌊 Test Gravità e Flusso Orizzontale</h1>
+        
+        <div class="info-panel">
+            <h2>Test Fisica Base dei Liquidi</h2>
+            <p>Verifica che i liquidi cadano per gravità e si espandano orizzontalmente</p>
+            
+            <div style="text-align: center;">
+                <button class="test-button" onclick="testGravity()">⬇️ Test Gravità</button>
+                <button class="test-button" onclick="testHorizontalFlow()">↔️ Test Flusso Orizzontale</button>
+                <button class="test-button" onclick="testInteractions()">⚗️ Test Interazioni</button>
+                <button class="test-button" onclick="clearWorld()">🧹 Pulisci Mondo</button>
+            </div>
+            
+            <div id="testLog" class="log"></div>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- Includi tutti i file JS del gioco -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearWorld() {
+            const world = window.game.world;
+            for (let x = 0; x < world.width; x++) {
+                for (let y = 0; y < world.height; y++) {
+                    world.setBlock(x, y, BlockTypes.AIR);
+                }
+            }
+            
+            // Crea una base solida
+            for (let x = 0; x < world.width; x++) {
+                world.setBlock(x, world.height - 5, BlockTypes.STONE);
+            }
+            
+            log("🧹 Mondo pulito con base di pietra");
+        }
+
+        function testGravity() {
+            clearWorld();
+            const world = window.game.world;
+            const centerX = Math.floor(world.width / 2);
+            
+            // Piazza liquidi in alto per testare la gravità
+            log("⬇️ Testando gravità...");
+            
+            // Acqua
+            for (let i = 0; i < 3; i++) {
+                world.setBlock(centerX - 10 + i, 5, BlockTypes.WATER);
+            }
+            
+            // Lava
+            for (let i = 0; i < 3; i++) {
+                world.setBlock(centerX - 5 + i, 5, BlockTypes.LAVA);
+            }
+            
+            // Acido
+            for (let i = 0; i < 3; i++) {
+                world.setBlock(centerX + 5 + i, 5, BlockTypes.ACID);
+            }
+            
+            log("✅ Liquidi piazzati in alto - dovrebbero cadere verso il basso");
+            
+            // Controlla dopo alcuni secondi
+            setTimeout(() => {
+                let waterFell = false, lavaFell = false, acidFell = false;
+                
+                for (let y = 6; y < world.height - 5; y++) {
+                    if (world.getBlock(centerX - 9, y) === BlockTypes.WATER) waterFell = true;
+                    if (world.getBlock(centerX - 4, y) === BlockTypes.LAVA) lavaFell = true;
+                    if (world.getBlock(centerX + 6, y) === BlockTypes.ACID) acidFell = true;
+                }
+                
+                log(`🔍 Risultati gravità: Acqua=${waterFell ? '✅' : '❌'}, Lava=${lavaFell ? '✅' : '❌'}, Acido=${acidFell ? '✅' : '❌'}`, 
+                    (waterFell && lavaFell && acidFell) ? 'success' : 'error');
+            }, 5000);
+        }
+
+        function testHorizontalFlow() {
+            clearWorld();
+            const world = window.game.world;
+            const centerX = Math.floor(world.width / 2);
+            const baseY = world.height - 6;
+            
+            log("↔️ Testando flusso orizzontale...");
+            
+            // Crea una barriera per contenere il liquido inizialmente
+            for (let y = baseY - 3; y <= baseY; y++) {
+                world.setBlock(centerX - 5, y, BlockTypes.STONE);
+                world.setBlock(centerX + 5, y, BlockTypes.STONE);
+            }
+            
+            // Piazza acqua al centro
+            world.setBlock(centerX, baseY, BlockTypes.WATER);
+            world.setBlock(centerX, baseY - 1, BlockTypes.WATER);
+            world.setBlock(centerX, baseY - 2, BlockTypes.WATER);
+            
+            log("✅ Acqua piazzata al centro - dovrebbe espandersi orizzontalmente");
+            
+            // Rimuovi una barriera dopo 3 secondi
+            setTimeout(() => {
+                for (let y = baseY - 3; y <= baseY; y++) {
+                    world.setBlock(centerX + 5, y, BlockTypes.AIR);
+                }
+                log("🔓 Barriera destra rimossa - l'acqua dovrebbe espandersi");
+                
+                // Controlla espansione dopo altri 5 secondi
+                setTimeout(() => {
+                    let expandedRight = false;
+                    for (let x = centerX + 1; x < centerX + 10; x++) {
+                        if (world.getBlock(x, baseY) === BlockTypes.WATER) {
+                            expandedRight = true;
+                            break;
+                        }
+                    }
+                    
+                    log(`🔍 Espansione orizzontale: ${expandedRight ? '✅ SUCCESS' : '❌ FAILED'}`, 
+                        expandedRight ? 'success' : 'error');
+                }, 5000);
+            }, 3000);
+        }
+
+        function testInteractions() {
+            clearWorld();
+            const world = window.game.world;
+            const centerX = Math.floor(world.width / 2);
+            const baseY = world.height - 6;
+            
+            log("⚗️ Testando interazioni (40% probabilità)...");
+            
+            // Acqua e Lava adiacenti
+            for (let i = 0; i < 5; i++) {
+                world.setBlock(centerX - 5 + i, baseY, BlockTypes.WATER);
+                world.setBlock(centerX + i, baseY, BlockTypes.LAVA);
+            }
+            
+            log("✅ Acqua e lava adiacenti - dovrebbero creare pietra occasionalmente");
+            
+            // Conta la pietra creata
+            let initialStone = 0;
+            for (let x = 0; x < world.width; x++) {
+                for (let y = 0; y < world.height; y++) {
+                    if (world.getBlock(x, y) === BlockTypes.STONE) initialStone++;
+                }
+            }
+            
+            setTimeout(() => {
+                let finalStone = 0;
+                for (let x = 0; x < world.width; x++) {
+                    for (let y = 0; y < world.height; y++) {
+                        if (world.getBlock(x, y) === BlockTypes.STONE) finalStone++;
+                    }
+                }
+                
+                const stoneCreated = finalStone - initialStone;
+                log(`🔍 Pietra creata: ${stoneCreated} blocchi`, 
+                    stoneCreated > 0 ? 'success' : 'warning');
+                
+                if (stoneCreated > 0) {
+                    log("✅ Interazioni funzionanti al 40%!", 'success');
+                } else {
+                    log("⚠️ Nessuna interazione ancora - prova ad aspettare di più", 'warning');
+                }
+            }, 10000);
+        }
+
+        // Inizializza il gioco quando la pagina è caricata
+        window.onload = function() {
+            const canvas = document.getElementById('gameCanvas');
+            window.game = new Game(canvas);
+            
+            log("🎮 Gioco inizializzato per test fisica base");
+            log("ℹ️ Sistema base attivato per gravità e flusso orizzontale");
+            log("ℹ️ Interazioni al 40% di probabilità");
+        };
+    </script>
+</body>
+</html>
