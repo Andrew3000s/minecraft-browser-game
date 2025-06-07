@@ -530,13 +530,13 @@ class World {
     
     // 🔧 NEW: Liquid physics system
     updateLiquidPhysics(deltaTime) {
-        // 🌊 Usa il sistema avanzato se disponibile
-        if (this.useAdvancedFluidPhysics && this.advancedFluidPhysics) {
-            this.advancedFluidPhysics.updateFluidPhysics(deltaTime);
-            return;
-        }
+        // 🌊 Sistema avanzato DISABILITATO per prevenire evaporazione
+        // if (this.useAdvancedFluidPhysics && this.advancedFluidPhysics) {
+        //     this.advancedFluidPhysics.updateFluidPhysics(deltaTime);
+        //     return;
+        // }
         
-        // Sistema base di fallback
+        // Sistema base di fallback (senza evaporazione)
         this.updateBasicLiquidPhysics();
     }
     
@@ -608,8 +608,11 @@ class World {
             return false; // Source block changed (e.g., by interaction or previous flow), stop flow
         }
 
-        // Helper function for liquid interactions
+        // Helper function for liquid interactions - DISABILITATO
         const checkAndTransform = (sourceX, sourceY, neighborX, neighborY, interactingBlockType, resultBlockType) => {
+            // Interazioni liquidi disabilitate per prevenire evaporazione
+            return false;
+            /*
             const actualNeighborBlockType = this.getBlock(neighborX, neighborY);
             if (actualNeighborBlockType === interactingBlockType) {
                 this.setBlock(sourceX, sourceY, BlockTypes.AIR); // Current liquid block turns to air
@@ -629,6 +632,7 @@ class World {
                 }
                 return true; // Interaction occurred
             }
+            */
             return false;
         };
 

@@ -189,11 +189,10 @@ class FluidPhysics {
         if (this.turbulenceSystem && this.enableTurbulence) {
             this.turbulenceSystem.update(deltaTime);
         }
-        
-        // 🪨 Aggiorna sistema di erosione
-        if (this.erosionSystem && this.enableErosion) {
-            this.erosionSystem.update(deltaTime);
-        }
+          // 🪨 Aggiorna sistema di erosione - DISABILITATO
+        // if (this.erosionSystem && this.enableErosion) {
+        //     this.erosionSystem.update(deltaTime);
+        // }
     }
 
     // 🔍 Trova fluidi da aggiornare con priorità intelligente
@@ -631,17 +630,16 @@ class FluidPhysics {
                     //         this.generateSteamEffect(x, y);
                     //     }
                     // }
-                    
-                    // Solidificazione lava
-                    if (blockType === BlockTypes.LAVA && ambientTemp < 800) {
-                        // Controlla se c'è acqua nelle vicinanze
-                        if (this.hasWaterNearby(x, y)) {
-                            if (Math.random() < 0.1 * deltaTime) {
-                                this.world.setBlock(x, y, BlockTypes.STONE);
-                                this.generateSteamEffect(x, y);
-                            }
-                        }
-                    }
+                      // Solidificazione lava - DISABILITATA
+                    // if (blockType === BlockTypes.LAVA && ambientTemp < 800) {
+                    //     // Controlla se c'è acqua nelle vicinanze
+                    //     if (this.hasWaterNearby(x, y)) {
+                    //         if (Math.random() < 0.1 * deltaTime) {
+                    //             this.world.setBlock(x, y, BlockTypes.STONE);
+                    //             this.generateSteamEffect(x, y);
+                    //         }
+                    //     }
+                    // }
                 }
             }
         }
