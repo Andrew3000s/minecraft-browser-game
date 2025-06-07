@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Browser Game - Edizione Migliorata</title>
+    <meta name="description" content="Play Minecraft directly in the browser! Build, explore and survive in this complete Minecraft clone with diamond pickaxe, visual indicators and much more.">
+    <!-- Enhanced Edition Features: Centered Layout, Diamond Pickaxe, Mouse Indicator, Fixed Water Generation -->
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="stylesheet" href="src/css/game.css">
+</head>
+<body>
+    <div id="gameContainer" style="position: relative; display: inline-block; width: 100vw; height: 100vh;">
+        <canvas id="gameCanvas"></canvas>
+        <div id="musicControl" class="music-control enabled">🎵 Music: ON</div>
+        <div id="loadingScreen" class="loading-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #2C5234 0%, #1A3D23 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; font-family: 'Courier New', monospace;">
+            <h1 style="font-size: 3em; margin-bottom: 20px; text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8); color: #90EE90;">🏗️ Minecraft Browser Game</h1>
+            <p style="font-size: 1.2em; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">Generating world...</p>
+            <div class="loading-bar" style="width: 400px; height: 25px; background: rgba(0, 0, 0, 0.5); border: 3px solid #666; border-radius: 15px; overflow: hidden; position: relative; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);">
+                <div class="loading-progress" style="height: 100%; background: linear-gradient(90deg, #90EE90, #32CD32, #90EE90); width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
+            </div>
+            <div class="loading-percentage" style="margin-top: 15px; font-size: 1.3em; font-weight: bold; color: #90EE90; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);">0%</div>
+        </div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/game.js"></script>
+    
+    <!-- Debug script to monitor loading -->
+    <script>
+        console.log('All scripts loaded, checking for errors...');
+        
+        // Check if all required classes are available
+        const requiredClasses = ['Utils', 'InputManager', 'BlockTypes', 'ParticleSystem', 'SoundSystem', 'CraftingSystem', 'World', 'Player', 'MinecraftGame'];
+        requiredClasses.forEach(className => {
+            if (typeof window[className] !== 'undefined' || typeof eval(className) !== 'undefined') {
+                console.log(`✓ ${className} loaded successfully`);
+            } else {
+                console.error(`✗ ${className} not found`);
+            }
+        });
+    </script>
+</body>
+</html>

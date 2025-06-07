@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Browser Game - Versione Semplice</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="stylesheet" href="src/css/game.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="loadingScreen" class="loading-screen">
+            <h1>🏗️ Minecraft Browser Game</h1>
+            <p>Caricamento in corso...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    
+    <!-- Simplified game initialization -->
+    <script>
+        console.log('Starting simplified game initialization...');
+        
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM ready, initializing game...');
+            
+            try {
+                // Initialize game with simplified approach
+                const canvas = document.getElementById('gameCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Simple loading screen hide after delay
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen) {
+                        loadingScreen.style.display = 'none';
+                    }
+                    
+                    // Initialize basic game components
+                    const world = new World(100, 50); // Smaller world for testing
+                    const input = new InputManager(canvas);
+                    const particles = new ParticleSystem();
+                    const sound = new SoundSystem();
+                    
+                    // Create a simple player
+                    const player = new Player(400, 200, world);
+                    
+                    console.log('✓ Game initialized successfully!');
+                    
+                    // Simple game loop
+                    let lastTime = 0;
+                    const camera = { x: 0, y: 0 };
+                    
+                    function gameLoop(currentTime) {
+                        const deltaTime = (currentTime - lastTime) / 1000;
+                        lastTime = currentTime;
+                        
+                        // Clear canvas
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Update camera to follow player
+                        camera.x = player.x - canvas.width / 2;
+                        camera.y = player.y - canvas.height / 2;
+                        
+                        // Update and render
+                        player.update(deltaTime, input);
+                        particles.update(deltaTime);
+                        
+                        world.render(ctx, camera);
+                        player.render(ctx, camera);
+                        particles.render(ctx, camera);
+                        
+                        requestAnimationFrame(gameLoop);
+                    }
+                    
+                    requestAnimationFrame(gameLoop);
+                    
+                }, 2000); // 2 second loading delay
+                
+            } catch (error) {
+                console.error('Error initializing game:', error);
+            }
+        });
+    </script>
+</body>
+</html>

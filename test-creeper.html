@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creeper Test - Minecraft Browser Game</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #2C5234;
+            color: white;
+            padding: 20px;
+        }
+        .info {
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .highlight {
+            color: #90EE90;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 Creeper Improvements Test</h1>
+    <div class="info">
+        <h2>✅ Modifiche completate:</h2>
+        <ul>
+            <li><span class="highlight">Suono del countdown:</span> Il creeper ora emette un suono "sss" caratteristico durante il conto alla rovescia (ogni 400ms)</li>
+            <li><span class="highlight">Danni garantiti:</span> Il creeper ora distrugge almeno 2 blocchi (i più vicini), poi usa probabilità per il resto</li>
+            <li><span class="highlight">Audio migliorato:</span> Nuovo metodo playCreeperCountdown() con filtri per suono più realistico</li>
+        </ul>
+    </div>
+    
+    <div class="info">
+        <h2>🎮 Come testare:</h2>
+        <ol>
+            <li>Avvia il gioco principale</li>
+            <li>Aspetta che spawni un creeper di notte</li>
+            <li>Avvicinati al creeper</li>
+            <li>Dovresti sentire il suono "sss" durante il countdown</li>
+            <li>L'esplosione dovrebbe distruggere almeno 2 blocchi</li>
+        </ol>
+    </div>
+    
+    <div class="info">
+        <h2>⚙️ Dettagli tecnici:</h2>
+        <ul>
+            <li><strong>Suono countdown:</strong> Oscillatore sawtooth + filtro highpass per effetto "hiss"</li>
+            <li><strong>Frequenza suono:</strong> Ogni 400ms durante il countdown di 2 secondi</li>
+            <li><strong>Logica blocchi:</strong> I 2 blocchi più vicini vengono sempre distrutti, poi probabilità 70% per il resto</li>
+            <li><strong>Raggio esplosione:</strong> 40 pixels (invariato)</li>
+        </ul>
+    </div>
+    
+    <a href="index.html" style="display:inline-block; background:#90EE90; color:#000; padding:10px 20px; text-decoration:none; border-radius:5px; margin-top:20px;">🎮 Avvia il gioco per testare</a>
+</body>
+</html>

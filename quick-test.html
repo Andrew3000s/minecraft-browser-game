@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Test Rapido - Minecraft Browser Game</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="stylesheet" href="src/css/game.css">
+</head>
+<body>
+    <h1>🔧 Test Rapido - Verifica Correzioni</h1>
+    <p>Test delle correzioni recenti:</p>
+    <ul>
+        <li>✅ Dichiarazione duplicata di SoundSystem rimossa</li>
+        <li>✅ Funzionalità di mining ripristinata</li>
+        <li>✅ Aggiunto toggle inventario con tasto 'I'</li>
+        <li>✅ Metodo playDamage() disponibile</li>
+    </ul>
+    
+    <div style="text-align: center; margin: 20px;">
+        <button onclick="startGame()" style="padding: 15px 30px; font-size: 18px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            🎮 Inizia Test Gioco
+        </button>
+        <div id="status" style="margin: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px; display: none;"></div>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="600" style="display: none;"></canvas>
+    
+    <!-- Game scripts -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let game = null;
+        
+        function startGame() {
+            const status = document.getElementById('status');
+            const canvas = document.getElementById('gameCanvas');
+            
+            status.style.display = 'block';
+            status.innerHTML = '<h3>🔄 Test Inizializzazione Gioco...</h3>';
+            
+            try {
+                // Test 1: Check SoundSystem
+                const sound = new SoundSystem();
+                status.innerHTML += '<p>✅ SoundSystem creato con successo</p>';
+                
+                // Test 2: Check playDamage method
+                if (typeof sound.playDamage === 'function') {
+                    status.innerHTML += '<p>✅ Metodo playDamage() esistente</p>';
+                    sound.playDamage(); // Test the sound
+                    status.innerHTML += '<p>✅ playDamage() eseguito senza errori</p>';
+                } else {
+                    throw new Error('playDamage method not found');
+                }
+                
+                // Test 3: Initialize game
+                canvas.style.display = 'block';
+                game = new MinecraftGame();
+                status.innerHTML += '<p>✅ MinecraftGame creato con successo</p>';
+                
+                // Test 4: Check mining and input
+                if (typeof game.player.handleMining === 'function') {
+                    status.innerHTML += '<p>✅ Sistema di mining disponibile</p>';
+                } else {
+                    throw new Error('Mining system not available');
+                }
+                
+                status.innerHTML += '<h3>🎉 Tutti i test superati! Il gioco dovrebbe funzionare correttamente.</h3>';
+                status.innerHTML += '<p><strong>Prova questi comandi:</strong></p>';
+                status.innerHTML += '<ul><li>Click Sinistro - Scava blocchi</li><li>Click Destro - Piazza blocchi</li><li>Tasto I - Apri/Chiudi inventario</li><li>WASD - Movimento</li></ul>';
+                
+            } catch (error) {
+                status.innerHTML += `<p>❌ Errore: ${error.message}</p>`;
+                console.error('Test failed:', error);
+            }
+        }
+        
+        // Test key I for inventory
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyI' && game) {
+                const inventory = document.getElementById('inventory');
+                if (inventory) {
+                    inventory.style.display = inventory.style.display === 'none' ? 'flex' : 'none';
+                    console.log('I key pressed - inventory toggled');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

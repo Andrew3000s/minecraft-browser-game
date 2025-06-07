@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Damage Visual System Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #2C5234;
+            color: white;
+            padding: 20px;
+        }
+        .info {
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .highlight {
+            color: #90EE90;
+            font-weight: bold;
+        }
+        .damage-level {
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+        .controls {
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .button {
+            display: inline-block;
+            background: #90EE90;
+            color: #000;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+        }
+        .button:hover {
+            background: #7DD87D;
+        }
+        .damage-button {
+            background: #FF6B6B;
+            color: white;
+        }
+        .damage-button:hover {
+            background: #FF5252;
+        }
+        .heal-button {
+            background: #4CAF50;
+            color: white;
+        }
+        .heal-button:hover {
+            background: #45A049;
+        }
+    </style>
+</head>
+<body>
+    <h1>🩹 Sistema di Danno Visivo del Player - Test</h1>
+    
+    <div class="info">
+        <h2>✅ Funzionalità Implementate:</h2>
+        <ul>
+            <li><span class="highlight">Animazione di danno flash:</span> Flash rosso + shake quando danneggiato</li>
+            <li><span class="highlight">Effetti progressivi basati su HP:</span></li>
+            <ul>
+                <li><span class="damage-level">100-80% HP:</span> Nessun danno visibile</li>
+                <li><span class="damage-level">79-60% HP:</span> Sporcizia e graffi leggeri</li>
+                <li><span class="damage-level">59-40% HP:</span> Vestiti leggermente strappati</li>
+                <li><span class="damage-level">39-20% HP:</span> Vestiti molto danneggiati, ferite visibili</li>
+                <li><span class="damage-level">19-1% HP:</span> Molto danneggiato, sangue, vestiti a brandelli</li>
+            </ul>
+            <li><span class="highlight">Recupero visivo automatico:</span> I danni scompaiono quando gli HP vengono ripristinati</li>
+        </ul>
+    </div>
+    
+    <div class="info">
+        <h2>🎮 Come Testare nel Gioco:</h2>
+        <ol>
+            <li>Avvia il gioco principale</li>
+            <li>Aspetta che spawni un mob ostile (zombie, scheletro, spider, creeper)</li>
+            <li>Lasciati danneggiare dal mob per vedere l'animazione flash</li>
+            <li>Osserva come l'aspetto del personaggio cambia man mano che perdi HP</li>
+            <li>Usa oggetti curativi o aspetta la rigenerazione naturale per vedere il recupero</li>
+        </ol>
+    </div>
+    
+    <div class="info">
+        <h2>⚙️ Dettagli Tecnici:</h2>
+        <ul>
+            <li><strong>Animazione Flash:</strong> 600ms di durata, flash rosso ogni 100ms</li>
+            <li><strong>Screen Shake:</strong> Intensità 3 pixel, diminuisce nel tempo</li>
+            <li><strong>Livelli di Danno:</strong> 5 livelli (0-4) calcolati automaticamente da % HP</li>
+            <li><strong>Effetti Progressivi:</strong> Sporcizia → Graffi → Vestiti strappati → Ferite → Sangue</li>
+            <li><strong>Aggiornamento Automatico:</strong> Gli effetti si aggiornano ogni volta che cambia la salute</li>
+        </ul>
+    </div>
+    
+    <div class="controls">
+        <h2>🕹️ Controlli di Test:</h2>
+        <p>Una volta nel gioco, apri la console del browser (F12) e usa questi comandi:</p>
+        <div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; font-family: monospace;">
+            <p><strong>Danneggia player:</strong> <code>game.player.takeDamage(5)</code></p>
+            <p><strong>Danneggia tanto:</strong> <code>game.player.takeDamage(10)</code></p>
+            <p><strong>Cura player:</strong> <code>game.player.heal(5)</code></p>
+            <p><strong>Cura completamente:</strong> <code>game.player.health = game.player.maxHealth; game.player.updateDamageLevel()</code></p>
+            <p><strong>Imposta HP specifico:</strong> <code>game.player.health = 8; game.player.updateDamageLevel()</code></p>
+        </div>
+    </div>
+    
+    <div class="info">
+        <h2>🎨 Descrizione Visiva degli Effetti:</h2>
+        <ul>
+            <li><strong>Livello 1 (Danno Leggero):</strong> Macchie di sporco marroni sui vestiti, piccoli graffi sul viso</li>
+            <li><strong>Livello 2 (Danno Moderato):</strong> + Strappi nei vestiti che mostrano la pelle, più sporcizia</li>
+            <li><strong>Livello 3 (Danno Pesante):</strong> + Strappi grandi, ferite rosse visibili, molto sporco</li>
+            <li><strong>Livello 4 (Danno Critico):</strong> + Vestiti quasi distrutti, sangue, sporco pesante, bordi strappati</li>
+        </ul>
+    </div>
+    
+    <a href="index.html" class="button">🎮 Avvia il Gioco per Testare</a>
+    <a href="test-suite.html" class="button">🧪 Vai ai Test Suite</a>
+</body>
+</html>

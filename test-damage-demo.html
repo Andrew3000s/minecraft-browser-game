@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🩹 Damage System Demo - Minecraft Browser Game</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #2C5234;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .title {
+            font-size: 2.5em;
+            color: #90EE90;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+        }
+        
+        .subtitle {
+            font-size: 1.2em;
+            color: #FFDD44;
+            margin-bottom: 30px;
+        }
+        
+        .demo-container {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+        }
+        
+        .status-display {
+            background: rgba(40, 40, 40, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #555;
+        }
+        
+        .health-bar {
+            background: #333;
+            border: 2px solid #666;
+            border-radius: 10px;
+            height: 30px;
+            margin: 10px 0;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ff6666);
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+        
+        .health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .damage-level {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        
+        .level-0 { color: #90EE90; }
+        .level-1 { color: #FFDD44; }
+        .level-2 { color: #FF8C00; }
+        .level-3 { color: #FF4444; }
+        .level-4 { color: #8B0000; }
+        
+        .button-group {
+            margin: 25px 0;
+        }
+        
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .damage-btn {
+            background: #FF6B6B;
+        }
+        
+        .damage-btn:hover {
+            background: #FF5252;
+        }
+        
+        .heal-btn {
+            background: #4CAF50;
+        }
+        
+        .heal-btn:hover {
+            background: #45A049;
+        }
+        
+        .reset-btn {
+            background: #2196F3;
+        }
+        
+        .reset-btn:hover {
+            background: #1976D2;
+        }
+        
+        .demo-btn {
+            background: #FF9800;
+        }
+        
+        .demo-btn:hover {
+            background: #F57C00;
+        }
+        
+        .info-panel {
+            background: rgba(20, 20, 20, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+        
+        .damage-effects {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .effect-card {
+            background: rgba(60, 60, 60, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid;
+        }
+        
+        .effect-card.level-0 { border-color: #90EE90; }
+        .effect-card.level-1 { border-color: #FFDD44; }
+        .effect-card.level-2 { border-color: #FF8C00; }
+        .effect-card.level-3 { border-color: #FF4444; }
+        .effect-card.level-4 { border-color: #8B0000; }
+        
+        .play-link {
+            background: linear-gradient(45deg, #4CAF50, #45A049);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.3em;
+            font-weight: bold;
+            display: inline-block;
+            margin: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .play-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+        
+        .animation-demo {
+            background: rgba(255, 100, 100, 0.1);
+            border: 2px dashed #FF6464;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .flashing {
+            animation: damageFlash 0.6s ease-out;
+        }
+        
+        @keyframes damageFlash {
+            0%, 20%, 40%, 60%, 80% { background: rgba(255, 0, 0, 0.3); }
+            10%, 30%, 50%, 70% { background: rgba(255, 100, 100, 0.1); }
+            100% { background: rgba(255, 100, 100, 0.1); }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">🩹 Damage Visual System</h1>
+    <p class="subtitle">Sistema di Danno Visivo Completo per Minecraft Browser Game</p>
+    
+    <div class="demo-container">
+        <div class="status-display">
+            <h3>📊 Status del Player</h3>
+            <div class="health-bar">
+                <div class="health-fill" id="healthFill" style="width: 100%"></div>
+                <div class="health-text" id="healthText">20/20 HP</div>
+            </div>
+            <div class="damage-level level-0" id="damageLevel">💚 Damage Level: 0 - Nessun danno</div>
+        </div>
+        
+        <div class="button-group">
+            <button class="button damage-btn" onclick="takeDamage(2)">🗡️ Danno Leggero (-2 HP)</button>
+            <button class="button damage-btn" onclick="takeDamage(5)">⚔️ Danno Medio (-5 HP)</button>
+            <button class="button damage-btn" onclick="takeDamage(8)">💥 Danno Pesante (-8 HP)</button>
+        </div>
+        
+        <div class="button-group">
+            <button class="button heal-btn" onclick="heal(3)">💚 Cura Leggera (+3 HP)</button>
+            <button class="button heal-btn" onclick="heal(7)">💖 Cura Media (+7 HP)</button>
+            <button class="button reset-btn" onclick="resetHealth()">🔄 Reset Completo</button>
+        </div>
+        
+        <div class="button-group">
+            <button class="button demo-btn" onclick="runDamageDemo()">🎬 Demo Automatica</button>
+        </div>
+        
+        <div class="animation-demo" id="animationDemo">
+            <h4>🎭 Anteprima Animazione Flash</h4>
+            <p>Quando il player subisce danno, viene riprodotta un'animazione flash rossa con shake dello schermo per 600ms.</p>
+        </div>
+        
+        <div class="info-panel">
+            <h3>🎨 Effetti Visivi per Livello di Danno:</h3>
+            <div class="damage-effects">
+                <div class="effect-card level-0">
+                    <h4>Level 0 (100-80% HP)</h4>
+                    <p>💚 Nessun danno visibile</p>
+                    <small>Player in perfetta salute</small>
+                </div>
+                <div class="effect-card level-1">
+                    <h4>Level 1 (79-60% HP)</h4>
+                    <p>🟤 Sporcizia e graffi leggeri</p>
+                    <small>Macchie sui vestiti, piccoli graffi</small>
+                </div>
+                <div class="effect-card level-2">
+                    <h4>Level 2 (59-40% HP)</h4>
+                    <p>🟠 Vestiti strappati</p>
+                    <small>Strappi che mostrano la pelle</small>
+                </div>
+                <div class="effect-card level-3">
+                    <h4>Level 3 (39-20% HP)</h4>
+                    <p>🔴 Ferite visibili</p>
+                    <small>Grandi strappi, ferite rosse</small>
+                </div>
+                <div class="effect-card level-4">
+                    <h4>Level 4 (19-1% HP)</h4>
+                    <p>🩸 Danno critico</p>
+                    <small>Sangue, vestiti a brandelli</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <a href="index.html" class="play-link">🎮 Prova nel Gioco Principale</a>
+    
+    <script>
+        // Simula i parametri del player
+        let playerHealth = 20;
+        const maxHealth = 20;
+        let damageLevel = 0;
+        let isAnimating = false;
+        
+        function calculateDamageLevel(health) {
+            const healthPercentage = (health / maxHealth) * 100;
+            
+            if (healthPercentage >= 80) return 0;
+            else if (healthPercentage >= 60) return 1;
+            else if (healthPercentage >= 40) return 2;
+            else if (healthPercentage >= 20) return 3;
+            else return 4;
+        }
+        
+        function updateDisplay() {
+            const healthPercentage = (playerHealth / maxHealth) * 100;
+            const healthFill = document.getElementById('healthFill');
+            const healthText = document.getElementById('healthText');
+            const damageLevelEl = document.getElementById('damageLevel');
+            
+            // Aggiorna barra della vita
+            healthFill.style.width = healthPercentage + '%';
+            healthText.textContent = `${playerHealth}/${maxHealth} HP`;
+            
+            // Cambia colore della barra in base alla salute
+            if (healthPercentage > 60) {
+                healthFill.style.background = 'linear-gradient(90deg, #4CAF50, #66BB6A)';
+            } else if (healthPercentage > 30) {
+                healthFill.style.background = 'linear-gradient(90deg, #FF9800, #FFB74D)';
+            } else {
+                healthFill.style.background = 'linear-gradient(90deg, #f44336, #EF5350)';
+            }
+            
+            // Aggiorna livello di danno
+            damageLevel = calculateDamageLevel(playerHealth);
+            const damageTexts = [
+                '💚 Damage Level: 0 - Nessun danno',
+                '🟡 Damage Level: 1 - Danno leggero',
+                '🟠 Damage Level: 2 - Danno moderato',
+                '🔴 Damage Level: 3 - Danno pesante',
+                '🩸 Damage Level: 4 - Danno critico'
+            ];
+            
+            damageLevelEl.textContent = damageTexts[damageLevel];
+            damageLevelEl.className = `damage-level level-${damageLevel}`;
+        }
+        
+        function playDamageAnimation() {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            const animationDemo = document.getElementById('animationDemo');
+            animationDemo.classList.add('flashing');
+            
+            setTimeout(() => {
+                animationDemo.classList.remove('flashing');
+                isAnimating = false;
+            }, 600);
+        }
+        
+        function takeDamage(amount) {
+            playerHealth = Math.max(0, playerHealth - amount);
+            updateDisplay();
+            playDamageAnimation();
+            
+            // Suono di notifica (simulato)
+            console.log(`🗡️ Player subisce ${amount} danni! HP: ${playerHealth}/${maxHealth}`);
+        }
+        
+        function heal(amount) {
+            const oldHealth = playerHealth;
+            playerHealth = Math.min(maxHealth, playerHealth + amount);
+            const actualHealing = playerHealth - oldHealth;
+            
+            updateDisplay();
+            
+            if (actualHealing > 0) {
+                console.log(`💚 Player curato di ${actualHealing} HP! HP: ${playerHealth}/${maxHealth}`);
+            }
+        }
+        
+        function resetHealth() {
+            playerHealth = maxHealth;
+            updateDisplay();
+            console.log('🔄 Salute completamente ripristinata!');
+        }
+        
+        function runDamageDemo() {
+            console.log('🎬 Iniziando demo automatica del sistema di danno...');
+            
+            // Reset
+            resetHealth();
+            
+            let step = 0;
+            const demoSteps = [
+                () => { takeDamage(3); console.log('📍 Passo 1: Danno leggero'); },
+                () => { takeDamage(4); console.log('📍 Passo 2: Danno moderato'); },
+                () => { takeDamage(5); console.log('📍 Passo 3: Danno pesante'); },
+                () => { takeDamage(6); console.log('📍 Passo 4: Danno critico'); },
+                () => { heal(8); console.log('📍 Passo 5: Cura parziale'); },
+                () => { takeDamage(4); console.log('📍 Passo 6: Danno aggiuntivo'); },
+                () => { heal(20); console.log('📍 Passo 7: Cura completa'); }
+            ];
+            
+            function runNextStep() {
+                if (step < demoSteps.length) {
+                    demoSteps[step]();
+                    step++;
+                    setTimeout(runNextStep, 1500);
+                } else {
+                    console.log('✅ Demo completata!');
+                }
+            }
+            
+            setTimeout(runNextStep, 500);
+        }
+        
+        // Inizializza il display
+        updateDisplay();
+        
+        // Aggiungi informazioni sulla console
+        console.log('🩹 Sistema di Danno Visivo Demo caricato!');
+        console.log('📝 Comandi disponibili:');
+        console.log('  • takeDamage(amount) - Infliggi danno');
+        console.log('  • heal(amount) - Cura il player');
+        console.log('  • resetHealth() - Reset completo');
+        console.log('  • runDamageDemo() - Demo automatica');
+    </script>
+</body>
+</html>

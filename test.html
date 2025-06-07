@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gioco Minecraft</title>
+</head>
+<body>
+    <div id="test-results">
+        <h1>Test di Caricamento Classi</h1>
+        <div id="results"></div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/game.js"></script>
+    
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function testClass(className, constructor) {
+            try {
+                if (typeof constructor !== 'undefined') {
+                    resultsDiv.innerHTML += `<p style="color: green;">✓ ${className} - OK</p>`;
+                    return true;
+                } else {
+                    resultsDiv.innerHTML += `<p style="color: red;">✗ ${className} - NON TROVATO</p>`;
+                    return false;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<p style="color: red;">✗ ${className} - ERRORE: ${error.message}</p>`;
+                return false;
+            }
+        }
+        
+        // Test all classes
+        console.log('Testing all classes...');
+        testClass('Utils', Utils);
+        testClass('InputManager', InputManager);
+        testClass('BlockTypes', BlockTypes);
+        testClass('ParticleSystem', ParticleSystem);
+        testClass('SoundSystem', SoundSystem);
+        testClass('CraftingSystem', CraftingSystem);
+        testClass('World', World);
+        testClass('Player', Player);
+        testClass('MinecraftGame', MinecraftGame);
+        
+        // Test BlockTypes specifically
+        if (typeof BlockTypes !== 'undefined') {
+            resultsDiv.innerHTML += `<p style="color: blue;">BlockTypes.AIR = ${BlockTypes.AIR}</p>`;
+            resultsDiv.innerHTML += `<p style="color: blue;">BlockTypes.DIRT = ${BlockTypes.DIRT}</p>`;
+        }
+        
+        // Test functions
+        if (typeof initializeCraftingRecipes === 'function') {
+            resultsDiv.innerHTML += `<p style="color: green;">✓ initializeCraftingRecipes - OK</p>`;
+        } else {
+            resultsDiv.innerHTML += `<p style="color: red;">✗ initializeCraftingRecipes - NON TROVATO</p>`;
+        }
+    </script>
+</body>
+</html>

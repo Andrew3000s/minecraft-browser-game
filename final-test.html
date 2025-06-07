@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Funzionalità Finali - Minecraft Browser Game</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="stylesheet" href="src/css/game.css">
+    <style>
+        .test-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            z-index: 2000;
+            max-width: 300px;
+        }
+        .test-panel h3 {
+            margin: 0 0 10px 0;
+            color: #FFD700;
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .test-result {
+            margin: 5px 0;
+            padding: 3px;
+            border-radius: 3px;
+        }
+        .test-result.pass {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4CAF50;
+        }
+        .test-result.fail {
+            background: rgba(244, 67, 54, 0.3);
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer" style="position: relative; display: inline-block;">
+        <canvas id="gameCanvas"></canvas>
+        <div id="loadingScreen" class="loading-screen">
+            <h1>🏗️ Minecraft Browser Game</h1>
+            <p>Generating world...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Panel -->
+    <div class="test-panel">
+        <h3>🧪 Test Funzionalità Finali</h3>
+        <button class="test-button" onclick="testUndergroundLiquids()">Test Liquidi Sotterranei</button><br>
+        <button class="test-button" onclick="testHealthBarPosition()">Test Posizione Barra Salute</button><br>
+        <button class="test-button" onclick="testEnglishTranslation()">Test Traduzione Inglese</button><br>
+        <button class="test-button" onclick="testLiquidDamage()">Test Danno Liquidi</button><br>
+        <button class="test-button" onclick="runAllTests()">🚀 Esegui Tutti i Test</button><br>
+        <div id="testResults"></div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/inventory.js"></script>
+    <script src="src/js/ui.js"></script>
+    <script src="src/js/notifications.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let game;
+        let testResults = [];
+
+        function addTestResult(test, result, details = '') {
+            const resultDiv = document.getElementById('testResults');
+            const resultElement = document.createElement('div');
+            resultElement.className = `test-result ${result ? 'pass' : 'fail'}`;
+            resultElement.innerHTML = `${result ? '✅' : '❌'} ${test}${details ? '<br><small>' + details + '</small>' : ''}`;
+            resultDiv.appendChild(resultElement);
+            testResults.push({test, result, details});
+        }
+
+        function testUndergroundLiquids() {
+            if (!game || !game.world) {
+                addTestResult('Underground Liquids', false, 'Game not loaded');
+                return;
+            }
+
+            let lavaFound = false;
+            let acidFound = false;
+            let undergroundWaterFound = false;
+            
+            // Check underground areas (y > 70)
+            for (let x = 0; x < game.world.width; x += 5) {
+                for (let y = 70; y < game.world.height; y += 5) {
+                    const block = game.world.getBlock(x, y);
+                    if (block === BlockTypes.LAVA) lavaFound = true;
+                    if (block === BlockTypes.ACID) acidFound = true;
+                    if (block === BlockTypes.WATER && y > 50) undergroundWaterFound = true;
+                }
+            }
+
+            const foundLiquids = [lavaFound && 'LAVA', acidFound && 'ACID', undergroundWaterFound && 'WATER'].filter(Boolean);
+            addTestResult('Underground Liquids', foundLiquids.length > 0, 
+                `Found: ${foundLiquids.join(', ') || 'None'}`);
+        }
+
+        function testHealthBarPosition() {
+            const healthBar = document.getElementById('healthBar');
+            if (!healthBar) {
+                addTestResult('Health Bar Position', false, 'Health bar element not found');
+                return;
+            }
+
+            const style = getComputedStyle(healthBar);
+            const isTopRight = style.position === 'absolute' && 
+                              (style.right === '20px' || parseInt(style.right) > 0) &&
+                              (style.top === '15px' || parseInt(style.top) < 50);
+            
+            addTestResult('Health Bar Position', isTopRight, 
+                `Position: ${style.position}, Right: ${style.right}, Top: ${style.top}`);
+        }
+
+        function testEnglishTranslation() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (!loadingScreen) {
+                addTestResult('English Translation', false, 'Loading screen not found');
+                return;
+            }
+
+            const loadingText = loadingScreen.querySelector('p');
+            const isEnglish = loadingText && loadingText.textContent.includes('Generating world');
+            
+            addTestResult('English Translation', isEnglish, 
+                `Loading text: "${loadingText ? loadingText.textContent : 'Not found'}"`);
+        }
+
+        function testLiquidDamage() {
+            if (!game || !game.player) {
+                addTestResult('Liquid Damage System', false, 'Game/Player not loaded');
+                return;
+            }
+
+            // Check if checkLiquidStatus method exists
+            const hasMethod = typeof game.player.checkLiquidStatus === 'function';
+            
+            // Check if lastLiquidDamageTime property exists
+            const hasProperty = game.player.hasOwnProperty('lastLiquidDamageTime');
+            
+            addTestResult('Liquid Damage System', hasMethod && hasProperty, 
+                `Method: ${hasMethod ? 'Found' : 'Missing'}, Property: ${hasProperty ? 'Found' : 'Missing'}`);
+        }
+
+        function runAllTests() {
+            document.getElementById('testResults').innerHTML = '<h4>Esecuzione test...</h4>';
+            testResults = [];
+            
+            setTimeout(() => {
+                testUndergroundLiquids();
+                testHealthBarPosition();
+                testEnglishTranslation();
+                testLiquidDamage();
+                
+                const passed = testResults.filter(r => r.result).length;
+                const total = testResults.length;
+                
+                const summary = document.createElement('div');
+                summary.className = `test-result ${passed === total ? 'pass' : 'fail'}`;
+                summary.innerHTML = `<strong>Riepilogo Test: ${passed}/${total} superati</strong>`;
+                document.getElementById('testResults').appendChild(summary);
+                
+                console.log('🧪 Final Test Results:', testResults);
+            }, 100);
+        }
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🎮 Starting Final Features Test...');
+            
+            try {
+                game = new MinecraftGame();
+                window.game = game;
+                
+                console.log('✅ Game initialized successfully');
+                
+                // Auto-run tests after world generation
+                setTimeout(() => {
+                    console.log('🧪 Running automated tests...');
+                    runAllTests();
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ Error initializing game:', error);
+                addTestResult('Game Initialize', false, error.message);
+            }
+        });
+
+        // Quick keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                runAllTests();
+            } else if (e.key === 'F6') {
+                e.preventDefault();
+                testUndergroundLiquids();
+            }
+        });
+    </script>
+</body>
+</html>

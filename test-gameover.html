@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Browser Game - Test Game Over</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="stylesheet" href="src/css/game.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="game-overlay">
+            <div class="health-bar" id="healthBar"></div>
+            <div class="debug-info" id="debugInfo"></div>
+            <div class="time-info" id="timeInfo"></div>
+            <div class="inventory" id="inventory"></div>
+        </div>
+    </div>
+
+    <!-- Test Controls -->
+    <div style="position: fixed; top: 10px; right: 10px; z-index: 1000; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px;">
+        <h3>Controlli di Test</h3>
+        <button onclick="testGameOver()" style="background: #ff4444; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; cursor: pointer;">Test Game Over</button>
+        <button onclick="testPlayerDamage()" style="background: #ff6666; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; cursor: pointer;">Subisci Danno</button>
+        <button onclick="healPlayer()" style="background: #44ff44; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; cursor: pointer;">Heal Player</button>
+        <button onclick="showPlayerHealth()" style="background: #4444ff; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; cursor: pointer;">Mostra Salute</button>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; font-family: 'Courier New', monospace;">
+        <h1 style="font-size: 2.5em; margin-bottom: 30px;">🎮 Minecraft Browser Game</h1>
+        <div style="width: 300px; height: 20px; background: #333; border-radius: 10px; overflow: hidden; margin-bottom: 20px;">
+            <div id="loadingBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s ease; border-radius: 10px;"></div>
+        </div>
+        <p id="loadingText" style="font-size: 1.2em;">Initializing game...</p>
+    </div>
+
+    <!-- Game Scripts -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        // Global game instance
+        let game;
+
+        // Test functions
+        function testGameOver() {
+            console.log('Testing Game Over...');
+            if (window.game) {
+                window.game.triggerGameOver();
+            } else {
+                alert('Game not loaded yet!');
+            }
+        }
+
+        function testPlayerDamage() {
+            console.log('Testing Player Damage...');
+            if (window.game && window.game.player) {
+                window.game.player.takeDamage(2);
+                console.log(`Player health: ${window.game.player.health}/${window.game.player.maxHealth}`);
+            } else {
+                alert('Game not loaded yet!');
+            }
+        }
+
+        function healPlayer() {
+            console.log('Healing Player...');
+            if (window.game && window.game.player) {
+                window.game.player.health = window.game.player.maxHealth;
+                console.log(`Player health restored: ${window.game.player.health}/${window.game.player.maxHealth}`);
+            } else {
+                alert('Game not loaded yet!');
+            }
+        }
+
+        function showPlayerHealth() {
+            if (window.game && window.game.player) {
+                alert(`Player Health: ${window.game.player.health}/${window.game.player.maxHealth}`);
+            } else {
+                alert('Game not loaded yet!');
+            }
+        }        // Initialize game
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('DOM loaded, initializing game...');
+            
+            try {
+                game = new MinecraftGame();
+                window.game = game;
+                
+                // The game will start automatically after initialization
+                console.log('Game initialization started...');
+                console.log('Use the test controls to test Game Over functionality.');
+            } catch (error) {
+                console.error('Error initializing game:', error);
+            }
+        });
+
+        // Keyboard shortcut for quick testing
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F1') {
+                e.preventDefault();
+                testGameOver();
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                testPlayerDamage();
+            } else if (e.key === 'F3') {
+                e.preventDefault();
+                healPlayer();
+            }
+        });
+    </script>
+</body>
+</html>
