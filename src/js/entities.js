@@ -1251,15 +1251,24 @@ class Entity {
         this.fallStartHeight = this.y;
         this.lastGroundY = this.y;
         this.isVoluntaryJump = false; // Reset voluntary jump flag
-    }
-
-    updateSunlightBurn(deltaTime) {
+    }    updateSunlightBurn(deltaTime) {
         if (!this.alive || !this.canBurnInSunlight) return;
         
         // Check if it's daytime and mob is exposed to sunlight
         const isDay = window.game?.timeSystem?.isDay() || false;
         
-        if (isDay && !this.inWater) {
+        // Check for weather-based protection during precipitation
+        let weatherProtection = false;
+        if (window.game?.weather) {
+            const currentWeather = window.game.weather.getCurrentWeather();
+            if (currentWeather && currentWeather.type) {
+                // Precipitation weather types provide protection from sunlight burning
+                const precipitationWeatherTypes = ['rain', 'storm', 'snow', 'blizzard', 'hail'];
+                weatherProtection = precipitationWeatherTypes.includes(currentWeather.type);
+            }
+        }
+        
+        if (isDay && !this.inWater && !weatherProtection) {
             // Start burning if not already burning
             if (!this.isBurning) {
                 this.isBurning = true;
@@ -1285,7 +1294,7 @@ class Entity {
             // Update burn effect animation
             this.burnEffectTime += deltaTime;
         } else {
-            // Stop burning if it's night or mob is in water
+            // Stop burning if it's night, mob is in water, or weather provides protection
             if (this.isBurning) {
                 this.isBurning = false;
                 this.burnEffectTime = 0;
