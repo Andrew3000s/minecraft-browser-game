@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Weather Initialization Fix</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #222;
+            color: #00ff00;
+            margin: 20px;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #444;
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 50%, #90EE90 50%, #90EE90 100%);
+        }
+        
+        .info-panel {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #555;
+        }
+        
+        .weather-info {
+            background: #1a3a4a;
+            color: #fff;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .controls {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        button {
+            background: #555;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #777;
+        }
+        
+        .log {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌤️ Test Weather Initialization Fix</h1>
+    
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    
+    <div class="info-panel">
+        <h3>Weather Status Monitor</h3>
+        <div class="weather-info" id="weatherInfo">
+            Initializing weather system...
+        </div>
+    </div>
+    
+    <div class="controls">
+        <h3>Controls</h3>
+        <button onclick="resetWeatherSystem()">🔄 Reset Weather System</button>
+        <button onclick="forceWeatherChange('clear')">☀️ Force Clear</button>
+        <button onclick="forceWeatherChange('rain')">🌧️ Force Rain</button>
+        <button onclick="startMonitoring()">📊 Start Monitoring (60s)</button>
+        <button onclick="stopMonitoring()">⏹️ Stop Monitoring</button>
+    </div>
+    
+    <div class="info-panel">
+        <h3>Weather Change Log</h3>
+        <div class="log" id="weatherLog">System starting...\n</div>
+    </div>
+
+    <script src="src/js/weather.js"></script>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Mock time system
+        const mockTimeSystem = {
+            getTimeOfDay: () => 12, // Noon
+            isNight: () => false,
+            getLightLevel: () => 1.0
+        };
+        
+        // Mock sound system
+        const mockSoundSystem = {
+            playRainSound: () => log('🔊 Rain sound'),
+            playThunderSound: () => log('🔊 Thunder sound'),
+            playSnowSound: () => log('🔊 Snow sound'),
+            playWindSound: () => log('🔊 Wind sound')
+        };
+        
+        let weatherSystem;
+        let monitoringInterval;
+        let startTime;
+        
+        function log(message) {
+            const logElement = document.getElementById('weatherLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const timeSinceStart = startTime ? ((Date.now() - startTime) / 1000).toFixed(1) + 's' : '0s';
+            logElement.textContent += `[${timestamp} +${timeSinceStart}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function updateWeatherInfo() {
+            if (!weatherSystem) return;
+            
+            const info = weatherSystem.getCurrentWeatherInfo();
+            const weatherInfoElement = document.getElementById('weatherInfo');
+            
+            weatherInfoElement.innerHTML = `
+                <strong>Current Weather:</strong> ${info.weather}<br>
+                <strong>Intensity:</strong> ${(info.intensity * 100).toFixed(1)}%<br>
+                <strong>Transition:</strong> ${(weatherSystem.weatherTransition * 100).toFixed(1)}%<br>
+                <strong>Timer:</strong> ${weatherSystem.weatherTimer.toFixed(1)}s<br>
+                <strong>Grace Period:</strong> ${Math.max(0, weatherSystem.initialGracePeriod).toFixed(1)}s<br>
+                <strong>Wind:</strong> ${(info.windStrength * 100).toFixed(1)}% @ ${(info.windDirection * 180 / Math.PI).toFixed(0)}°<br>
+                <strong>Cloud Cover:</strong> ${(info.cloudCover * 100).toFixed(1)}%<br>
+                <strong>Description:</strong> ${weatherSystem.getWeatherDescription()}
+            `;
+        }
+        
+        function initializeWeatherSystem() {
+            startTime = Date.now();
+            log('🌤️ Initializing WeatherSystem...');
+            
+            weatherSystem = new WeatherSystem(canvas, null, mockTimeSystem, mockSoundSystem);
+            
+            log(`✅ Weather system initialized with: ${weatherSystem.currentWeather}`);
+            log(`📊 Initial state - Intensity: ${(weatherSystem.weatherIntensity * 100).toFixed(1)}%, Transition: ${(weatherSystem.weatherTransition * 100).toFixed(1)}%`);
+            log(`⏰ Grace period: ${weatherSystem.initialGracePeriod}s`);
+            
+            // Override considerWeatherChange to log attempts
+            const originalConsiderWeatherChange = weatherSystem.considerWeatherChange.bind(weatherSystem);
+            weatherSystem.considerWeatherChange = function() {
+                log('🎲 Considering weather change...');
+                const oldWeather = this.currentWeather;
+                originalConsiderWeatherChange();
+                if (this.currentWeather !== oldWeather) {
+                    log(`🌈 Weather changed from ${oldWeather} to ${this.currentWeather}!`);
+                } else {
+                    log(`✋ No weather change (stayed ${oldWeather})`);
+                }
+            };
+            
+            // Start render loop
+            gameLoop();
+        }
+        
+        function gameLoop() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Simple sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#90EE90');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (weatherSystem) {
+                // Update weather system (60 FPS = ~0.016 deltaTime)
+                weatherSystem.update(1/60);
+                
+                // Render weather
+                const camera = { x: 0, y: 0, zoom: 1.0 };
+                weatherSystem.render(camera);
+                
+                // Update UI
+                updateWeatherInfo();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function resetWeatherSystem() {
+            log('🔄 Resetting weather system...');
+            initializeWeatherSystem();
+        }
+        
+        function forceWeatherChange(weatherType) {
+            if (weatherSystem) {
+                log(`🎯 Forcing weather to: ${weatherType}`);
+                weatherSystem.forceWeatherChange(weatherType);
+            }
+        }
+        
+        function startMonitoring() {
+            log('📊 Starting 60-second monitoring period...');
+            let seconds = 0;
+            
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+            
+            monitoringInterval = setInterval(() => {
+                seconds++;
+                log(`⏱️ Monitoring... ${seconds}s elapsed`);
+                
+                if (seconds >= 60) {
+                    log('✅ 60-second monitoring complete');
+                    clearInterval(monitoringInterval);
+                }
+            }, 1000);
+        }
+        
+        function stopMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                log('⏹️ Monitoring stopped');
+            }
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            log('🚀 Page loaded, initializing weather system...');
+            initializeWeatherSystem();
+        });
+    </script>
+</body>
+</html>

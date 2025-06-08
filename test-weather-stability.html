@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Stability Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        #gameCanvas {
+            border: 1px solid #333;
+            background: #87CEEB;
+        }
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            min-width: 300px;
+        }
+        .log-container {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            height: 200px;
+            background: rgba(0,0,0,0.9);
+            border: 1px solid #333;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 11px;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .log-success { color: #00ff00; }
+        .log-warning { color: #ffaa00; }
+        .log-error { color: #ff4444; }
+        .log-info { color: #4488ff; }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            margin: 5px;
+            padding: 5px 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌤️ Weather Stability Test</h1>
+    <p>Testing if weather stays clear and doesn't automatically change to rain.</p>
+    
+    <div class="controls">
+        <button onclick="startTest()">🚀 Start Test</button>
+        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        <button onclick="testForceWeatherDuringGrace()">🧪 Test Force Weather (should fail)</button>
+        <button onclick="checkWeatherStatus()">📊 Check Status</button>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    
+    <div class="debug-info" id="debugInfo">
+        <strong>Weather Status:</strong><br>
+        <span id="weatherStatus">Not started</span>
+    </div>
+    
+    <div class="log-container" id="logContainer">
+        <div class="log-entry log-info">🔧 Test initialized. Click "Start Test" to begin.</div>
+    </div>
+
+    <!-- Include necessary scripts -->
+    <script src="src/js/time-system.js"></script>
+    <script src="src/js/weather.js"></script>
+    
+    <script>
+        let weatherSystem;
+        let timeSystem;
+        let testStartTime;
+        let statusCheckInterval;
+        let logContainer = document.getElementById('logContainer');
+        let debugInfo = document.getElementById('debugInfo');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLogs() {
+            logContainer.innerHTML = '<div class="log-entry log-info">🗑️ Logs cleared.</div>';
+        }
+        
+        function updateDebugInfo() {
+            if (!weatherSystem) {
+                document.getElementById('weatherStatus').innerHTML = 'Not initialized';
+                return;
+            }
+            
+            const status = `
+                Current Weather: <strong>${weatherSystem.currentWeather}</strong><br>
+                Intensity: ${weatherSystem.weatherIntensity.toFixed(2)}<br>
+                Transition: ${weatherSystem.weatherTransition.toFixed(2)}<br>
+                Grace Period: ${Math.max(0, weatherSystem.initialGracePeriod).toFixed(1)}s<br>
+                Startup Lockout: ${weatherSystem.startupLockout ? 'ACTIVE' : 'RELEASED'}<br>
+                Weather Timer: ${weatherSystem.weatherTimer.toFixed(1)}s<br>
+                Clouds: ${weatherSystem.clouds.length}<br>
+                Precipitation: ${weatherSystem.precipitation.length}
+            `;
+            document.getElementById('weatherStatus').innerHTML = status;
+        }
+        
+        function startTest() {
+            log('🚀 Starting weather stability test...', 'success');
+            
+            try {
+                const canvas = document.getElementById('gameCanvas');
+                
+                // Create minimal time system
+                timeSystem = {
+                    getTimeOfDay: () => 12, // Noon
+                    isNight: () => false,
+                    getDayPhase: () => 'day'
+                };
+                
+                // Create weather system
+                weatherSystem = new WeatherSystem(canvas, null, timeSystem, null);
+                
+                testStartTime = Date.now();
+                
+                log(`✅ Weather system initialized with clear weather`, 'success');
+                log(`🔒 Grace period: ${weatherSystem.initialGracePeriod}s`, 'info');
+                log(`⏰ Test will monitor for ${weatherSystem.initialGracePeriod + 30}s`, 'info');
+                
+                // Start monitoring
+                statusCheckInterval = setInterval(() => {
+                    updateDebugInfo();
+                    
+                    // Check if weather changed unexpectedly
+                    if (weatherSystem.currentWeather !== 'clear') {
+                        log(`❌ FAILURE: Weather changed from clear to ${weatherSystem.currentWeather}!`, 'error');
+                        log(`🕐 Time elapsed: ${((Date.now() - testStartTime) / 1000).toFixed(1)}s`, 'error');
+                    }
+                    
+                    // Update weather system
+                    weatherSystem.update(0.1); // 100ms delta
+                    
+                }, 100);
+                
+                // Stop test after grace period + buffer
+                setTimeout(() => {
+                    clearInterval(statusCheckInterval);
+                    const elapsed = (Date.now() - testStartTime) / 1000;
+                    
+                    if (weatherSystem.currentWeather === 'clear') {
+                        log(`✅ SUCCESS: Weather remained clear for ${elapsed.toFixed(1)}s`, 'success');
+                        log(`🎯 Grace period respected, no unauthorized weather changes`, 'success');
+                    } else {
+                        log(`❌ FAILURE: Weather changed to ${weatherSystem.currentWeather}`, 'error');
+                    }
+                    
+                    log('🏁 Test completed', 'info');
+                }, (weatherSystem.initialGracePeriod + 30) * 1000);
+                
+            } catch (error) {
+                log(`❌ Error starting test: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function testForceWeatherDuringGrace() {
+            if (!weatherSystem) {
+                log('❌ Weather system not initialized', 'error');
+                return;
+            }
+            
+            log('🧪 Testing forceWeatherChange during grace period...', 'info');
+            
+            const result1 = weatherSystem.forceWeatherChange('rain');
+            const result2 = weatherSystem.forceWeather('snow');
+            
+            if (!result1 && !result2) {
+                log('✅ SUCCESS: Force weather methods properly blocked during grace period', 'success');
+            } else {
+                log('❌ FAILURE: Force weather methods bypassed grace period', 'error');
+            }
+        }
+        
+        function checkWeatherStatus() {
+            if (!weatherSystem) {
+                log('❌ Weather system not initialized', 'error');
+                return;
+            }
+            
+            const elapsed = testStartTime ? ((Date.now() - testStartTime) / 1000).toFixed(1) : 'N/A';
+            
+            log(`📊 Weather Status Check:`, 'info');
+            log(`   Current Weather: ${weatherSystem.currentWeather}`, 'info');
+            log(`   Grace Period: ${Math.max(0, weatherSystem.initialGracePeriod).toFixed(1)}s`, 'info');
+            log(`   Startup Lockout: ${weatherSystem.startupLockout}`, 'info');
+            log(`   Test Elapsed: ${elapsed}s`, 'info');
+        }
+        
+        // Override console.log to capture weather system logs
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            
+            const message = args.join(' ');
+            if (message.includes('🌤️') || message.includes('🔒') || message.includes('🚫') || message.includes('🕐')) {
+                log(message, 'info');
+            } else if (message.includes('❌') || message.includes('ERROR')) {
+                log(message, 'error');
+            } else if (message.includes('⚠️') || message.includes('WARNING')) {
+                log(message, 'warning');
+            }
+        };
+        
+        // Initialize
+        updateDebugInfo();
+        log('🔧 Weather stability test ready', 'success');
+    </script>
+</body>
+</html>

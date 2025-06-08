@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather System Diagnostic</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            color: #fff;
+        }
+        .status {
+            background: #111;
+            border: 2px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .log {
+            background: #001;
+            border: 1px solid #006;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .error { color: #f00; }
+        .warning { color: #fa0; }
+        .info { color: #0af; }
+        .success { color: #0f0; }
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #555;
+        }
+        canvas {
+            border: 1px solid #333;
+            background: #001122;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">🌤️ Weather System Diagnostic Tool</div>
+        
+        <div class="status">
+            <h3>Current Status</h3>
+            <p><strong>Weather:</strong> <span id="currentWeather">Initializing...</span></p>
+            <p><strong>Transition:</strong> <span id="weatherTransition">0%</span></p>
+            <p><strong>Intensity:</strong> <span id="weatherIntensity">0%</span></p>
+            <p><strong>Grace Period:</strong> <span id="gracePeriod">30s</span></p>
+            <p><strong>Weather Timer:</strong> <span id="weatherTimer">0s</span></p>
+            <p><strong>Next Check In:</strong> <span id="nextCheck">120s</span></p>
+        </div>
+        
+        <div class="status">
+            <h3>Weather Probabilities</h3>
+            <div id="weatherProbabilities">Loading...</div>
+        </div>
+        
+        <div class="status">
+            <h3>Controls</h3>
+            <button onclick="forceWeather('clear')">☀️ Clear</button>
+            <button onclick="forceWeather('rain')">🌧️ Rain</button>
+            <button onclick="resetSystem()">🔄 Reset System</button>
+            <button onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+        
+        <div class="log" id="logOutput">
+            <div class="info">🔧 Diagnostic tool starting...</div>
+        </div>
+        
+        <canvas id="testCanvas" width="400" height="200"></canvas>
+    </div>
+
+    <script src="src/js/weather.js"></script>
+    <script>
+        let weatherSystem = null;
+        let startTime = Date.now();
+        
+        // Mock time system
+        const mockTimeSystem = {
+            getTimeOfDay: () => 12, // Noon
+            isNight: () => false,
+            getLightLevel: () => 1.0
+        };
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('logOutput');
+            const timestamp = ((Date.now() - startTime) / 1000).toFixed(1);
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${timestamp}s] ${message}`;
+            logElement.appendChild(div);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}s] ${message}`);
+        }
+        
+        function initializeWeatherSystem() {
+            try {
+                const canvas = document.getElementById('testCanvas');
+                log('🌤️ Creating weather system...', 'info');
+                
+                weatherSystem = new WeatherSystem(canvas, null, mockTimeSystem, null);
+                log('✅ Weather system created successfully', 'success');
+                
+                // Display initial probabilities
+                updateProbabilityDisplay();
+                
+                // Start monitoring
+                setInterval(updateStatus, 100);
+                
+            } catch (error) {
+                log(`❌ Error initializing weather system: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function updateStatus() {
+            if (!weatherSystem) return;
+            
+            try {
+                const weather = weatherSystem.currentWeather;
+                const transition = (weatherSystem.weatherTransition * 100).toFixed(1);
+                const intensity = (weatherSystem.weatherIntensity * 100).toFixed(1);
+                const gracePeriod = Math.max(0, weatherSystem.initialGracePeriod).toFixed(1);
+                const weatherTimer = weatherSystem.weatherTimer.toFixed(1);
+                const changeInterval = weatherSystem.getWeatherChangeInterval();
+                const nextCheck = Math.max(0, changeInterval - weatherSystem.weatherTimer).toFixed(1);
+                
+                document.getElementById('currentWeather').textContent = weather;
+                document.getElementById('weatherTransition').textContent = transition + '%';
+                document.getElementById('weatherIntensity').textContent = intensity + '%';
+                document.getElementById('gracePeriod').textContent = gracePeriod + 's';
+                document.getElementById('weatherTimer').textContent = weatherTimer + 's';
+                document.getElementById('nextCheck').textContent = nextCheck + 's';
+                
+                // Update weather system
+                weatherSystem.update(0.1); // 100ms delta
+                
+            } catch (error) {
+                log(`❌ Error in update: ${error.message}`, 'error');
+            }
+        }
+        
+        function updateProbabilityDisplay() {
+            if (!weatherSystem) return;
+            
+            const transitions = weatherSystem.weatherTransitions[weatherSystem.currentWeather];
+            const timeModifier = weatherSystem.getTimeBasedModifier();
+            
+            let html = `<strong>From ${weatherSystem.currentWeather}:</strong><br>`;
+            html += `<small>Time modifier: ${timeModifier.toFixed(2)}</small><br>`;
+            
+            for (const [weather, prob] of Object.entries(transitions)) {
+                const finalProb = (prob * timeModifier * 100).toFixed(2);
+                html += `• ${weather}: ${(prob * 100).toFixed(2)}% → ${finalProb}%<br>`;
+            }
+            
+            document.getElementById('weatherProbabilities').innerHTML = html;
+        }
+        
+        function forceWeather(weatherType) {
+            if (!weatherSystem) {
+                log('❌ Weather system not initialized', 'error');
+                return;
+            }
+            
+            try {
+                log(`🌤️ Forcing weather to ${weatherType}`, 'info');
+                weatherSystem.forceWeather(weatherType);
+                updateProbabilityDisplay();
+            } catch (error) {
+                log(`❌ Error forcing weather: ${error.message}`, 'error');
+            }
+        }
+        
+        function resetSystem() {
+            log('🔄 Resetting weather system...', 'info');
+            startTime = Date.now();
+            initializeWeatherSystem();
+        }
+        
+        function clearLog() {
+            document.getElementById('logOutput').innerHTML = '';
+            log('🗑️ Log cleared', 'info');
+        }
+        
+        // Capture console logs
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.join(' ');
+            if (message.includes('🌤️') || message.includes('🕐')) {
+                log(message, 'info');
+            }
+        };
+        
+        // Initialize on load
+        window.addEventListener('load', initializeWeatherSystem);
+    </script>
+</body>
+</html>

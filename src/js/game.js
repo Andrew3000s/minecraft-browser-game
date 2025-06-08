@@ -1979,17 +1979,16 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('- setWeather("rain") - Change weather');
             console.log('- getWeather() - Get current weather info');
             console.log('- listWeatherTypes() - List available weather types');
-            
-            // Test weather immediately after 3 seconds
-            setTimeout(() => {
-                console.log('🧪 Testing weather system...');
-                if (game.weather) {
-                    console.log('Weather system available, forcing rain for testing');
-                    game.weather.forceWeatherChange('rain');
-                } else {
-                    console.error('Weather system not available!');
-                }
-            }, 3000);
+              // DISABLED: Automatic weather test that was causing unwanted rain
+            // setTimeout(() => {
+            //     console.log('🧪 Testing weather system...');
+            //     if (game.weather) {
+            //         console.log('Weather system available, forcing rain for testing');
+            //         game.weather.forceWeatherChange('rain');
+            //     } else {
+            //         console.error('Weather system not available!');
+            //     }
+            // }, 3000);
             
             // game.start() is now called automatically after initialization
         } catch (error) {

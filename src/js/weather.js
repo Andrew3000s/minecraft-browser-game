@@ -1,22 +1,23 @@
 // Weather system for Minecraft browser game
 // Includes clouds, rain, snow, hail, wind and dynamic weather changes
 
-class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = null) {
+class WeatherSystem {
+    constructor(canvas, world, timeSystem, soundSystem = null) {
         console.log('🌤️ Initializing WeatherSystem...');
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.world = world;
         this.timeSystem = timeSystem;
         this.soundSystem = soundSystem;
-        
-        console.log(`🌤️ Canvas: ${canvas.width}x${canvas.height}, Context: ${this.ctx ? 'OK' : 'FAILED'}`);
-        
-        // Current weather state
+          console.log(`🌤️ Canvas: ${canvas.width}x${canvas.height}, Context: ${this.ctx ? 'OK' : 'FAILED'}`);
+          // Current weather state - INITIALIZE WITH STABLE CLEAR WEATHER
         this.currentWeather = 'clear';
-        this.weatherIntensity = 0;
-        this.weatherTransition = 0;
+        this.weatherIntensity = 1.0;  // Start with full intensity for clear weather
+        this.weatherTransition = 1.0; // Start fully transitioned
         this.weatherDuration = 0;
-        this.weatherTimer = 0;
+        this.weatherTimer = 0;        // Grace period to prevent immediate weather changes on startup
+        this.initialGracePeriod = 120; // 2 minutes before first weather change can occur
+        this.startupLockout = true;   // Hard lock for startup phase
         
         // Wind system
         this.wind = {
@@ -93,22 +94,22 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
                 visibility: 0.5,
                 temperature: 0.4
             }
-        };
-        
-        // Weather change probabilities (per minute of game time)
+        };        // Weather change probabilities (per minute of game time)
         this.weatherTransitions = {
-            clear: { cloudy: 0.3, rain: 0.1, snow: 0.05 },
+            clear: { cloudy: 0.001, rain: 0.0005, snow: 0.0001 }, // EXTREMELY reduced probabilities for clear weather
             cloudy: { clear: 0.2, overcast: 0.3, rain: 0.2, snow: 0.1 },
             overcast: { cloudy: 0.3, rain: 0.4, storm: 0.1, snow: 0.15 },
             rain: { cloudy: 0.3, overcast: 0.2, storm: 0.15, clear: 0.1 },
             storm: { rain: 0.6, overcast: 0.3, hail: 0.1 },
             snow: { cloudy: 0.4, blizzard: 0.1, clear: 0.2, overcast: 0.3 },
             blizzard: { snow: 0.7, overcast: 0.3 },
-            hail: { storm: 0.5, rain: 0.3, overcast: 0.2 }
-        };
+            hail: { storm: 0.5, rain: 0.3, overcast: 0.2 }        };
+          console.log(`🌤️ Weather system initialized with clear weather`);
+        console.log(`🌤️ Initial state: weather=${this.currentWeather}, transition=${this.weatherTransition}, intensity=${this.weatherIntensity}`);
+        console.log(`🌤️ Grace period: ${this.initialGracePeriod}s before weather changes allowed`);
         
-        // Initialize with clear weather
-        this.changeWeather('clear');
+        // Adjust clouds for clear weather without triggering sounds
+        this.adjustCloudsForWeather('clear');
     }
       initializeClouds() {
         this.clouds = [];
@@ -129,16 +130,32 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         }
         console.log(`🌥️ Initialized ${numClouds} clouds`);
     }
-    
-    update(deltaTime) {
+      update(deltaTime) {
         // Update weather timer
-        this.weatherTimer += deltaTime;
-        
-        // Check for weather changes (every 10-60 seconds based on current weather)
+        this.weatherTimer += deltaTime;        // Decrease initial grace period
+        if (this.initialGracePeriod > 0) {
+            this.initialGracePeriod -= deltaTime;
+            // Debug logging
+            if (Math.floor(this.initialGracePeriod) !== Math.floor(this.initialGracePeriod + deltaTime)) {
+                console.log(`🕐 Grace period: ${Math.max(0, this.initialGracePeriod).toFixed(1)}s remaining`);
+            }
+            // Release startup lockout when grace period expires
+            if (this.initialGracePeriod <= 0 && this.startupLockout) {
+                this.startupLockout = false;
+                console.log(`🔓 Startup lockout released - weather changes now possible`);
+            }
+        }        // Check for weather changes (every 10-60 seconds based on current weather)
+        // But only after grace period has expired AND startup lockout is released
         const changeInterval = this.getWeatherChangeInterval();
-        if (this.weatherTimer >= changeInterval) {
+        if (this.weatherTimer >= changeInterval && this.initialGracePeriod <= 0 && !this.startupLockout) {
+            console.log(`🎲 Weather change check triggered after ${changeInterval}s interval`);
             this.considerWeatherChange();
             this.weatherTimer = 0;
+        } else {
+            // Debug logging per capire perché non viene chiamato considerWeatherChange
+            if (this.weatherTimer % 5 < 0.1) { // Log ogni ~5 secondi
+                console.log(`⏰ Weather check: timer=${this.weatherTimer.toFixed(1)}s, interval=${changeInterval}s, grace=${this.initialGracePeriod.toFixed(1)}s, lockout=${this.startupLockout}`);
+            }
         }
         
         // Update weather transition
@@ -367,11 +384,16 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         if (this.currentWeather === 'storm' || this.currentWeather === 'blizzard') {
             baseIntensity = this.timeSystem.isNight() ? 1.2 : 0.8;
         }
-        
-        this.weatherIntensity = baseIntensity * this.weatherTransition;
+          this.weatherIntensity = baseIntensity * this.weatherTransition;
     }
-    
+
     considerWeatherChange() {
+        // SAFETY CHECK: Prevent any weather changes during startup lockout
+        if (this.startupLockout || this.initialGracePeriod > 0) {
+            console.log(`🔒 Weather change blocked - startup lockout active (${this.initialGracePeriod.toFixed(1)}s remaining)`);
+            return;
+        }
+        
         const transitions = this.weatherTransitions[this.currentWeather];
         if (!transitions) return;
         
@@ -380,10 +402,16 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         
         // Add seasonal and time-based modifiers
         const timeModifier = this.getTimeBasedModifier();
+        const finalProb = totalProb * timeModifier;
+        
+        // Debug logging for clear weather
+        if (this.currentWeather === 'clear') {
+            console.log(`🌤️ Clear weather check: baseProb=${totalProb.toFixed(4)}, timeModifier=${timeModifier}, finalProb=${finalProb.toFixed(4)}`);
+        }
         
         // Random roll for weather change
         const roll = Math.random();
-        if (roll < totalProb * timeModifier) {
+        if (roll < finalProb) {
             // Choose new weather based on probabilities
             let cumulative = 0;
             const targetRoll = Math.random() * totalProb;
@@ -391,13 +419,13 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
             for (let [newWeather, probability] of Object.entries(transitions)) {
                 cumulative += probability;
                 if (targetRoll <= cumulative) {
+                    console.log(`🌤️ Weather changing from ${this.currentWeather} to ${newWeather} (roll: ${roll.toFixed(4)} < ${finalProb.toFixed(4)})`);
                     this.changeWeather(newWeather);
                     break;
                 }
             }
         }
-    }
-      getTimeBasedModifier() {
+    }getTimeBasedModifier() {
         // Weather changes are more likely during dawn/dusk
         // Add safety check for timeSystem
         if (!this.timeSystem || typeof this.timeSystem.getTimeOfDay !== 'function') {
@@ -405,6 +433,11 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         }
         
         const timeOfDay = this.timeSystem.getTimeOfDay();
+          // Special case: Clear weather should be very stable regardless of time
+        if (this.currentWeather === 'clear') {
+            return 0.01; // Make clear weather 100x less likely to change
+        }
+        
         if (timeOfDay >= 5 && timeOfDay <= 7) return 1.5; // Dawn
         if (timeOfDay >= 18 && timeOfDay <= 20) return 1.5; // Dusk
         if (this.timeSystem.isNight()) return 1.2; // Night
@@ -425,9 +458,19 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         };
         
         return baseInterval[this.currentWeather] || 60;
-    }
-      changeWeather(newWeather) {
+    }    changeWeather(newWeather) {
+        console.log(`🔄 changeWeather called: ${this.currentWeather} -> ${newWeather}`);
+        console.log(`🔒 Lockout status: startupLockout=${this.startupLockout}, gracePeriod=${this.initialGracePeriod.toFixed(1)}s`);
+        
+        // CRITICAL SAFETY CHECK: Block any weather changes during startup lockout
+        if (this.startupLockout || this.initialGracePeriod > 0) {
+            console.log(`🚫 BLOCKED changeWeather(${newWeather}) - Grace period active: ${this.initialGracePeriod.toFixed(1)}s remaining`);
+            console.trace('Chiamata bloccata da:'); // Mostra stack trace
+            return;
+        }
+        
         if (this.weatherTypes[newWeather]) {
+            console.log(`✅ Weather changing from ${this.currentWeather} to ${newWeather}`);
             this.currentWeather = newWeather;
             this.weatherTransition = 0;
             this.weatherDuration = 0;
@@ -698,9 +741,15 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
             },
             properties: this.weatherTypes[this.currentWeather]
         };
-    }
-      // Force weather change (for testing or special events)
+    }    // Force weather change (for testing or special events)
     forceWeatherChange(weatherType) {
+        // RESPECT GRACE PERIOD: Only allow force weather if grace period has expired
+        if (this.startupLockout || this.initialGracePeriod > 0) {
+            console.log(`🚫 BLOCKED forceWeatherChange(${weatherType}) - Grace period active: ${this.initialGracePeriod.toFixed(1)}s remaining`);
+            console.trace('Force weather change blocked during grace period');
+            return false;
+        }
+        
         if (this.weatherTypes[weatherType]) {
             console.log(`🌤️ Forcing weather change from ${this.currentWeather} to ${weatherType}`);
             this.changeWeather(weatherType);
@@ -718,7 +767,9 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
                 }
                 console.log(`🌧️ Created ${this.precipitation.length} precipitation particles`);
             }
+            return true;
         }
+        return false;
     }
     
     // Get weather description for UI
@@ -796,9 +847,15 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
             cloudCover: this.cloudDensity,
             visibility: this.weatherTypes[this.currentWeather]?.visibility || 1.0
         };
-    }
-      // Debug methods for testing weather
+    }    // Debug methods for testing weather
     forceWeather(weatherType) {
+        // RESPECT GRACE PERIOD: Only allow force weather if grace period has expired
+        if (this.startupLockout || this.initialGracePeriod > 0) {
+            console.log(`🚫 BLOCKED forceWeather(${weatherType}) - Grace period active: ${this.initialGracePeriod.toFixed(1)}s remaining`);
+            console.trace('Force weather blocked during grace period');
+            return false;
+        }
+        
         if (this.weatherTypes[weatherType]) {
             console.log(`🌤️ Forcing weather to: ${weatherType}`);
             this.changeWeather(weatherType);
