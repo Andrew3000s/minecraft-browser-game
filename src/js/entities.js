@@ -1369,25 +1369,25 @@ class Entity {
                 }
             }
         }
-    }render(ctx, camera) {
+    }    render(ctx, camera) {
         if (!this.alive) return;
         
-        const screenX = this.x - camera.x;
-        const screenY = this.y - camera.y;        // Debug: log entity position occasionally (less frequent)
-        if (!this.lastDebugLog || Date.now() - this.lastDebugLog > 10000) {
-            // 🔥 FIXED: Removed debug log for cleaner console output
-            this.lastDebugLog = Date.now();
-        }
-          // Get canvas dimensions for proper bounds checking
-        const canvasWidth = ctx.canvas ? ctx.canvas.width : 800;
-        const canvasHeight = ctx.canvas ? ctx.canvas.height : 600;
-        const buffer = 150; // 🔧 INCREASED: Larger buffer to prevent premature culling (was 50)
+        // Since we're now rendering in world coordinates due to EntityManager zoom transform,
+        // we render directly at entity's world position
+        const worldX = this.x;
+        const worldY = this.y;
         
-        // Don't render if outside screen with proper canvas bounds
-        if (screenX < -this.width - buffer || 
-            screenX > canvasWidth + buffer || 
-            screenY < -this.height - buffer || 
-            screenY > canvasHeight + buffer) {
+        // Get canvas dimensions for bounds checking (need to account for zoom)
+        const zoom = camera.zoom || 1.0;
+        const canvasWidth = ctx.canvas ? ctx.canvas.width / zoom : 800 / zoom;
+        const canvasHeight = ctx.canvas ? ctx.canvas.height / zoom : 600 / zoom;
+        const buffer = 150 / zoom; // Adjust buffer for zoom level
+        
+        // Check bounds in world coordinates relative to camera
+        if (worldX < camera.x - this.width - buffer || 
+            worldX > camera.x + canvasWidth + buffer || 
+            worldY < camera.y - this.height - buffer || 
+            worldY > camera.y + canvasHeight + buffer) {
             return;
         }
         
@@ -1397,14 +1397,14 @@ class Entity {
         
         // Add fire visual effects for burning mobs
         if (this.isBurning && this.isHostile) {
-            this.renderBurningEffects(ctx, screenX, screenY);
+            this.renderBurningEffects(ctx, worldX, worldY);
         }
         
-        this.renderEntity(ctx, screenX, screenY);
+        this.renderEntity(ctx, worldX, worldY);
         
         // Health bar for hostile mobs or when damaged
         if ((this.isHostile || this.health < this.maxHealth) && this.health > 0) {
-            this.renderHealthBar(ctx, screenX, screenY);
+            this.renderHealthBar(ctx, worldX, worldY);
         }
         
         // Add fire particles for burning mobs
@@ -1962,6 +1962,13 @@ class EntityManager {
         }        
         return groundY;
     }      render(ctx, camera) {
+        const zoom = camera.zoom || 1.0;
+        
+        // Apply zoom transforms for entities like world rendering
+        ctx.save();
+        ctx.scale(zoom, zoom);
+        ctx.translate(-camera.x, -camera.y);
+        
         let visibleEntities = 0;
         for (const entity of this.entities) {
             if (entity.alive) {
@@ -1975,7 +1982,10 @@ class EntityManager {
             if (arrow.alive) {
                 arrow.render(ctx, camera);
             }
-        }        }
+        }
+        
+        ctx.restore();
+    }
     
     getEntityCount() {
         return this.entities.length;

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Zoom Test</title>
+    <link rel="stylesheet" href="src/css/game.css">
+    <style>
+        body { margin: 0; background: #1a1a1a; color: white; font-family: Arial; }
+        .test-info { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; z-index: 1000; }
+        .test-info button { margin: 5px; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <div>Status: <span id="status">Caricamento...</span></div>
+        <div>Player Zoom: <span id="playerZoom">N/A</span></div>
+        <button onclick="testM()">Test M Key</button>
+        <button onclick="testZoomIn()">Zoom +</button>
+        <button onclick="testZoomOut()">Zoom -</button>
+        <button onclick="checkPanel()">Check Panel</button>
+    </div>
+
+    <!-- Game container -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <!-- Loading screen -->
+    <div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; display: flex; align-items: center; justify-content: center;">
+        <div style="text-align: center; color: white;">
+            <div id="loadingText">Loading...</div>
+            <div id="loadingProgress" style="margin-top: 20px;">0%</div>
+        </div>
+    </div>
+
+    <!-- Include all necessary scripts -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/audio/soundSystem.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let game = null;
+
+        function updateStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        function updatePlayerZoom() {
+            if (game && game.player && game.player.userZoom) {
+                document.getElementById('playerZoom').textContent = game.player.userZoom.toFixed(1) + 'x';
+            }
+        }
+
+        function testM() {
+            console.log('Testing M key press...');
+            if (game && game.audioSettingsPanel) {
+                console.log('Audio panel exists, calling toggle...');
+                game.audioSettingsPanel.toggle();
+            } else {
+                console.log('Audio panel not available:', !!game, game ? !!game.audioSettingsPanel : 'no game');
+            }
+        }
+
+        function testZoomIn() {
+            if (game && game.player) {
+                game.player.increaseZoom();
+                updatePlayerZoom();
+                console.log('Zoom increased to:', game.player.userZoom);
+            }
+        }
+
+        function testZoomOut() {
+            if (game && game.player) {
+                game.player.decreaseZoom();
+                updatePlayerZoom();
+                console.log('Zoom decreased to:', game.player.userZoom);
+            }
+        }
+
+        function checkPanel() {
+            if (game && game.audioSettingsPanel) {
+                const panel = game.audioSettingsPanel;
+                console.log('Panel check:');
+                console.log('- Panel exists:', !!panel);
+                console.log('- Panel.player exists:', !!panel.player);
+                console.log('- Panel.overlay exists:', !!panel.overlay);
+                console.log('- Panel.panel exists:', !!panel.panel);
+                console.log('- Panel.isVisible:', panel.isVisible);
+                
+                if (panel.panel) {
+                    const zoomControls = panel.panel.querySelector('.zoom-controls');
+                    const zoomSlider = panel.panel.querySelector('#zoomSlider');
+                    console.log('- Zoom controls in HTML:', !!zoomControls);
+                    console.log('- Zoom slider in HTML:', !!zoomSlider);
+                    
+                    if (zoomSlider) {
+                        console.log('- Slider value:', zoomSlider.value);
+                    }
+                }
+            } else {
+                console.log('Panel not available');
+            }
+        }
+
+        // Initialize game
+        async function initGame() {
+            try {
+                updateStatus('Inizializzazione...');
+                
+                // Create game instance
+                game = new MinecraftGame();
+                
+                // Initialize
+                await game.initializeAsync();
+                
+                updateStatus('✅ Pronto!');
+                updatePlayerZoom();
+                
+                // Add global reference for debugging
+                window.game = game;
+                
+                console.log('Game initialized successfully');
+                console.log('Player:', !!game.player);
+                console.log('AudioSettingsPanel:', !!game.audioSettingsPanel);
+                
+            } catch (error) {
+                updateStatus('❌ Errore: ' + error.message);
+                console.error('Game initialization failed:', error);
+            }
+        }
+
+        // Add keyboard listener for M key
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'KeyM') {
+                testM();
+            }
+        });
+
+        // Start when page loads
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>

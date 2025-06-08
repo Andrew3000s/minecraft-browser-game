@@ -271,18 +271,18 @@ class Particle {
         if (this.life <= 0) {
             this.alive = false;
         }
-    }
-
-    render(ctx, camera) {
+    }    render(ctx, camera) {
         if (!this.alive) return;
         
-        const screenX = this.x - camera.x;
-        const screenY = this.y - camera.y;
+        // Use zoom-aware coordinate transformation
+        const screenPos = Utils.worldToScreen(this.x, this.y, camera);
+        const zoom = camera.zoom || 1.0;
+        const scaledSize = this.size * zoom;
         
         ctx.save();
         ctx.globalAlpha = this.life / this.maxLife;
         ctx.fillStyle = this.color;
-        ctx.fillRect(screenX, screenY, this.size, this.size);
+        ctx.fillRect(screenPos.x, screenPos.y, scaledSize, scaledSize);
         ctx.restore();
     }
 }

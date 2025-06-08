@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoom Controls Test</title>
+    <link rel="stylesheet" href="src/css/game.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .zoom-info {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        .test-button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 Test Controlli Zoom</h1>
+        
+        <div class="zoom-info">
+            <h3>Informazioni Zoom Attuali:</h3>
+            <p>Zoom corrente: <span id="currentZoom">1.5</span>x</p>
+            <p>Zoom percentuale: <span id="currentZoomPercent">150</span>%</p>
+        </div>
+        
+        <button class="test-button" onclick="openAudioPanel()">Apri Pannello Audio (M)</button>
+        <button class="test-button" onclick="testZoomIncrease()">Test Zoom + </button>
+        <button class="test-button" onclick="testZoomDecrease()">Test Zoom -</button>
+        <button class="test-button" onclick="testZoomReset()">Reset Zoom</button>
+        
+        <div id="gameContainer" style="margin-top: 20px;">
+            <canvas id="gameCanvas" width="800" height="600" style="border: 1px solid #555;"></canvas>
+        </div>
+        
+        <div id="status" style="margin-top: 20px; background: #222; padding: 10px; border-radius: 5px;">
+            <p>Status: Inizializzazione...</p>
+        </div>
+    </div>
+
+    <!-- Include necessary game files -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/audio/soundSystem.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let game = null;
+        let player = null;
+        let audioPanel = null;
+
+        async function initializeTest() {
+            try {
+                updateStatus("Inizializzazione gioco...");
+                
+                // Initialize basic game components needed for zoom test
+                game = new MinecraftGame();
+                
+                // Wait for game to initialize
+                await game.initializeAsync();
+                
+                player = game.player;
+                audioPanel = game.audioSettingsPanel;
+                
+                updateStatus("✅ Gioco inizializzato. Player: " + !!player + ", AudioPanel: " + !!audioPanel);
+                
+                // Update zoom display
+                updateZoomDisplay();
+                
+                // Listen for zoom changes
+                if (player) {
+                    const originalSetZoom = player.setZoom;
+                    player.setZoom = function(zoom) {
+                        originalSetZoom.call(this, zoom);
+                        updateZoomDisplay();
+                    };
+                }
+                
+            } catch (error) {
+                updateStatus("❌ Errore inizializzazione: " + error.message);
+                console.error("Test initialization error:", error);
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = `<p>${message}</p>`;
+        }
+
+        function updateZoomDisplay() {
+            if (player && player.userZoom) {
+                const zoom = player.userZoom;
+                const percent = Math.round(zoom * 100);
+                
+                document.getElementById('currentZoom').textContent = zoom.toFixed(1);
+                document.getElementById('currentZoomPercent').textContent = percent;
+            }
+        }
+
+        function openAudioPanel() {
+            if (audioPanel) {
+                audioPanel.show();
+                updateStatus("✅ Pannello audio aperto");
+            } else {
+                updateStatus("❌ Pannello audio non disponibile");
+            }
+        }
+
+        function testZoomIncrease() {
+            if (player) {
+                player.increaseZoom();
+                updateZoomDisplay();
+                updateStatus("✅ Zoom aumentato: " + player.userZoom.toFixed(1) + "x");
+            } else {
+                updateStatus("❌ Player non disponibile");
+            }
+        }
+
+        function testZoomDecrease() {
+            if (player) {
+                player.decreaseZoom();
+                updateZoomDisplay();
+                updateStatus("✅ Zoom diminuito: " + player.userZoom.toFixed(1) + "x");
+            } else {
+                updateStatus("❌ Player non disponibile");
+            }
+        }
+
+        function testZoomReset() {
+            if (player) {
+                player.setZoom(1.5);
+                updateZoomDisplay();
+                updateStatus("✅ Zoom resettato a 1.5x");
+            } else {
+                updateStatus("❌ Player non disponibile");
+            }
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'm' || e.key === 'M') {
+                openAudioPanel();
+            }
+        });
+
+        // Initialize when page loads
+        window.addEventListener('load', initializeTest);
+    </script>
+</body>
+</html>

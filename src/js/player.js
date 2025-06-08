@@ -99,6 +99,9 @@ class Player {
         
         // 🏔️ FALL DAMAGE SYSTEM: Track falling height for damage calculation
         this.fallStartHeight = this.y; // Height when falling started
+        
+        // 🔍 ZOOM SYSTEM: User-configurable camera zoom
+        this.userZoom = this.loadZoomSetting(); // Load saved zoom or default
         this.maxFallHeight = this.y;   // Maximum height reached during fall
         this.isFalling = false;        // Whether player is currently falling
         this.minDamageHeight = 3 * 32; // 3 blocks minimum height (32 = block size)
@@ -1068,13 +1071,15 @@ class Player {
     }
 
     render(ctx, camera) {
-        const baseScreenX = this.x - camera.x;
-        const baseScreenY = this.y - camera.y;
+        // Since we're now rendering in world coordinates due to game loop zoom transform,
+        // we render directly at player's world position (like entities)
+        const baseWorldX = this.x;
+        const baseWorldY = this.y;
         
-        // Apply damage shake to screen position
+        // Apply damage shake to world position
         const shake = this.getDamageShake();
-        const screenX = baseScreenX + shake.x;
-        const screenY = baseScreenY + shake.y;
+        const screenX = baseWorldX + shake.x;
+        const screenY = baseWorldY + shake.y;
         
         // Player body with damage effects applied underneath
         ctx.fillStyle = '#8B4513';
@@ -1189,10 +1194,14 @@ class Player {
     }
 
     getCameraPosition(canvasWidth, canvasHeight) {
+        // Use user-configurable zoom: higher value = more zoomed in, less world visible
+        // User can adjust from 0.5x (wide view) to 3.0x (very close view)
+        const zoom = this.userZoom;
+        
         return {
-            x: this.x - canvasWidth / 2 + this.width / 2,
-            y: this.y - canvasHeight / 2 + this.height / 2,
-            zoom: 1.0
+            x: this.x - canvasWidth / (2 * zoom) + this.width / 2,
+            y: this.y - canvasHeight / (2 * zoom) + this.height / 2,
+            zoom: zoom
         };
     }
 
@@ -1871,5 +1880,42 @@ class Player {
         this.fallStartHeight = this.y;
         this.lastGroundY = this.y;
         this.isVoluntaryJump = false; // Reset voluntary jump flag only when landing
+    }
+    
+    // 🔍 ZOOM SYSTEM: User-configurable zoom controls
+    loadZoomSetting() {
+        try {
+            const savedZoom = localStorage.getItem('minecraftZoomLevel');
+            if (savedZoom !== null) {
+                const zoom = parseFloat(savedZoom);
+                // Clamp zoom between reasonable limits (0.5x to 3.0x)
+                return Math.max(0.5, Math.min(3.0, zoom));
+            }
+        } catch (error) {
+            console.warn('Failed to load zoom setting:', error);
+        }
+        return 1.5; // Default zoom level (closer view)
+    }
+    
+    saveZoomSetting() {
+        try {
+            localStorage.setItem('minecraftZoomLevel', this.userZoom.toString());
+        } catch (error) {
+            console.warn('Failed to save zoom setting:', error);
+        }
+    }
+    
+    setZoom(zoom) {
+        // Clamp zoom between reasonable limits
+        this.userZoom = Math.max(0.5, Math.min(3.0, zoom));
+        this.saveZoomSetting();
+    }
+    
+    increaseZoom() {
+        this.setZoom(this.userZoom + 0.1);
+    }
+    
+    decreaseZoom() {
+        this.setZoom(this.userZoom - 0.1);
     }
 }

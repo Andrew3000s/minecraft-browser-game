@@ -38,16 +38,18 @@ class Utils {
     }
 
     static worldToScreen(worldX, worldY, camera) {
+        const zoom = camera.zoom || 1.0;
         return {
-            x: worldX - camera.x,
-            y: worldY - camera.y
+            x: (worldX - camera.x) * zoom,
+            y: (worldY - camera.y) * zoom
         };
     }
 
     static screenToWorld(screenX, screenY, camera) {
+        const zoom = camera.zoom || 1.0;
         return {
-            x: screenX + camera.x,
-            y: screenY + camera.y
+            x: screenX / zoom + camera.x,
+            y: screenY / zoom + camera.y
         };
     }
 

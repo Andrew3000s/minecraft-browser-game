@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Audio Panel HTML</title>
+    <link rel="stylesheet" href="src/css/game.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .debug-output {
+            background: #222;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug Audio Panel HTML</h1>
+    
+    <button onclick="debugPanel()">Debug AudioSettingsPanel</button>
+    <button onclick="testZoomControls()">Test Zoom Controls HTML</button>
+    
+    <div id="output" class="debug-output">Click the buttons above to debug...</div>
+    
+    <div id="panelContainer"></div>
+
+    <!-- Include necessary game files -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/audio/soundSystem.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        function debugPanel() {
+            const output = document.getElementById('output');
+            
+            try {
+                // Create fake player for testing
+                const fakePlayer = {
+                    userZoom: 1.5,
+                    setZoom: function(zoom) { this.userZoom = zoom; },
+                    increaseZoom: function() { this.userZoom = Math.min(3.0, this.userZoom + 0.1); },
+                    decreaseZoom: function() { this.userZoom = Math.max(0.5, this.userZoom - 0.1); }
+                };
+                
+                // Create fake sound system
+                const fakeSound = {
+                    volume: 0.5,
+                    audioCategories: {
+                        music: { name: "🎵 Music", enabled: true, volume: 0.3 },
+                        ui: { name: "🔊 UI Sounds", enabled: true, volume: 0.5 }
+                    }
+                };
+                
+                // Create AudioSettingsPanel
+                const panel = new AudioSettingsPanel(fakeSound, fakePlayer);
+                
+                output.textContent = "✅ AudioSettingsPanel created successfully!\n";
+                output.textContent += "Panel object: " + !!panel + "\n";
+                output.textContent += "Panel.player: " + !!panel.player + "\n";
+                output.textContent += "Player.userZoom: " + (panel.player ? panel.player.userZoom : "N/A") + "\n";
+                
+                // Show the panel
+                panel.show();
+                
+                // Check if zoom controls are in the HTML
+                const panelElement = panel.panel;
+                if (panelElement) {
+                    const zoomControls = panelElement.querySelector('.zoom-controls');
+                    const zoomSlider = panelElement.querySelector('#zoomSlider');
+                    const zoomButtons = panelElement.querySelectorAll('.zoom-button');
+                    
+                    output.textContent += "\n=== ZOOM CONTROLS CHECK ===\n";
+                    output.textContent += "Zoom controls found: " + !!zoomControls + "\n";
+                    output.textContent += "Zoom slider found: " + !!zoomSlider + "\n";
+                    output.textContent += "Zoom buttons found: " + zoomButtons.length + "\n";
+                    
+                    if (zoomSlider) {
+                        output.textContent += "Slider value: " + zoomSlider.value + "\n";
+                        output.textContent += "Slider min: " + zoomSlider.min + "\n";
+                        output.textContent += "Slider max: " + zoomSlider.max + "\n";
+                    }
+                    
+                    // Show full HTML for debugging
+                    output.textContent += "\n=== PANEL HTML ===\n";
+                    output.textContent += panelElement.innerHTML;
+                }
+                
+            } catch (error) {
+                output.textContent = "❌ Error: " + error.message + "\n" + error.stack;
+            }
+        }
+        
+        function testZoomControls() {
+            const output = document.getElementById('output');
+            
+            try {
+                // Create fake player
+                const fakePlayer = {
+                    userZoom: 2.0,
+                    setZoom: function(zoom) { this.userZoom = zoom; },
+                    increaseZoom: function() { this.userZoom = Math.min(3.0, this.userZoom + 0.1); },
+                    decreaseZoom: function() { this.userZoom = Math.max(0.5, this.userZoom - 0.1); }
+                };
+                
+                // Create fake AudioSettingsPanel instance to test generateZoomControlsHTML
+                const fakePanel = {
+                    player: fakePlayer,
+                    generateZoomControlsHTML: function() {
+                        if (!this.player) {
+                            return ''; // No zoom controls if no player reference
+                        }
+                        
+                        const currentZoom = this.player.userZoom || 1.5;
+                        const zoomPercent = Math.round(currentZoom * 100);
+                        
+                        return `
+                            <div class="audio-category">
+                                <div class="category-header">
+                                    <span class="category-title">🔍 Camera Zoom</span>
+                                </div>
+                                <div class="zoom-controls">
+                                    <button class="zoom-button zoom-out" type="button">-</button>
+                                    <input type="range" class="zoom-slider" id="zoomSlider"
+                                           min="0.5" max="3.0" step="0.1" value="${currentZoom}">
+                                    <button class="zoom-button zoom-in" type="button">+</button>
+                                    <span class="zoom-value">${zoomPercent}%</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                };
+                
+                const zoomHTML = fakePanel.generateZoomControlsHTML();
+                
+                output.textContent = "=== ZOOM CONTROLS HTML TEST ===\n";
+                output.textContent += "Player zoom: " + fakePlayer.userZoom + "\n";
+                output.textContent += "Generated HTML:\n\n" + zoomHTML;
+                
+                // Actually create the HTML element to test
+                const container = document.getElementById('panelContainer');
+                container.innerHTML = '<div class="audio-settings-panel">' + zoomHTML + '</div>';
+                
+            } catch (error) {
+                output.textContent = "❌ Error: " + error.message + "\n" + error.stack;
+            }
+        }
+    </script>
+</body>
+</html>

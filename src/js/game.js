@@ -147,7 +147,7 @@ class MinecraftGame {
             this.createUI();
             
             // Initialize audio settings panel after UI creation
-            this.audioSettingsPanel = new AudioSettingsPanel(this.sound);
+            this.audioSettingsPanel = new AudioSettingsPanel(this.sound, this.player);
             
             // Setup music control after UI creation
             this.setupMusicControl();
@@ -343,8 +343,7 @@ class MinecraftGame {
                         </div>
                     </div>
                 </div>
-                
-                <div class="controls-section">
+                  <div class="controls-section">
                     <h3>🎵 Audio & Interface</h3>
                     <div class="controls-grid">
                         <div class="control-item">
@@ -365,11 +364,32 @@ class MinecraftGame {
                         </div>
                     </div>
                 </div>
+                
+                <div class="controls-section">
+                    <h3>🔍 Camera & View</h3>
+                    <div class="controls-grid">
+                        <div class="control-item">
+                            <span class="key">M → Zoom</span>
+                            <span class="action">Open zoom controls in audio panel</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">+ Button</span>
+                            <span class="action">Zoom in (closer view)</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">- Button</span>
+                            <span class="action">Zoom out (wider view)</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">Zoom Slider</span>
+                            <span class="action">Precise zoom adjustment (50%-300%)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="guide-footer">
-                <p>💡 <strong>Tip:</strong> Use the audio panel (M key) to fully customize your sound experience!</p>
-            </div>        `;
+              <div class="guide-footer">
+                <p>💡 <strong>Tip:</strong> Use the audio panel (M key) to customize sound and camera zoom for the perfect experience!</p>
+            </div>`;
         document.body.appendChild(commandGuideElement);
     }
 
@@ -636,10 +656,13 @@ class MinecraftGame {
         this.entityManager.render(this.ctx, this.camera);
 
         // Render particles
-        this.particles.render(this.ctx, this.camera);
-
-        // Render player
-        this.player.render(this.ctx, this.camera);        // 🔧 FIX: Render weather effects AFTER world and entities so precipitation is visible
+        this.particles.render(this.ctx, this.camera);        // Render player with zoom transforms (same as world and entities)
+        const zoom = this.camera.zoom || 1.0;
+        this.ctx.save();
+        this.ctx.scale(zoom, zoom);
+        this.ctx.translate(-this.camera.x, -this.camera.y);
+        this.player.render(this.ctx, this.camera);
+        this.ctx.restore();// 🔧 FIX: Render weather effects AFTER world and entities so precipitation is visible
         if (this.weather) {
             this.weather.render(this.camera, this.ctx);
         }
@@ -955,40 +978,41 @@ class MinecraftGame {
         }
         
         this.ctx.restore();
-    }
-
-    renderMiningProgress() {
+    }    renderMiningProgress() {
         if (this.player.miningBlock && this.player.miningProgress > 0) {
             const [x, y] = this.player.miningBlock.split(',').map(Number);
-            const screenX = x * this.world.blockSize - this.camera.x;
-            const screenY = y * this.world.blockSize - this.camera.y;
-
+            
+            // Use zoom-aware coordinate transformation
+            const worldX = x * this.world.blockSize;
+            const worldY = y * this.world.blockSize;
+            const screenPos = Utils.worldToScreen(worldX, worldY, this.camera);
+            
             const block = this.world.getBlockInstance(x, y);
             if (block) {
                 const progress = this.player.miningProgress / block.hardness;
+                const zoom = this.camera.zoom || 1.0;
+                const blockScreenSize = this.world.blockSize * zoom;
                 
                 // Draw crack overlay
                 this.ctx.save();
                 this.ctx.globalAlpha = 0.7;
                 this.ctx.strokeStyle = '#FF0000';
-                this.ctx.lineWidth = 2;
+                this.ctx.lineWidth = 2 * zoom; // Scale line width with zoom
                 
                 const numCracks = Math.floor(progress * 5) + 1;
                 for (let i = 0; i < numCracks; i++) {
                     this.ctx.beginPath();
-                    this.ctx.moveTo(screenX + Math.random() * this.world.blockSize, 
-                                   screenY + Math.random() * this.world.blockSize);
-                    this.ctx.lineTo(screenX + Math.random() * this.world.blockSize, 
-                                   screenY + Math.random() * this.world.blockSize);
+                    this.ctx.moveTo(screenPos.x + Math.random() * blockScreenSize, 
+                                   screenPos.y + Math.random() * blockScreenSize);
+                    this.ctx.lineTo(screenPos.x + Math.random() * blockScreenSize, 
+                                   screenPos.y + Math.random() * blockScreenSize);
                     this.ctx.stroke();
                 }
                 
                 this.ctx.restore();
             }
         }
-    }
-
-    renderBlockPreview() {
+    }    renderBlockPreview() {
         const activeItem = this.player.inventory[this.player.activeSlot];
         if (!activeItem || !this.input.isMouseRightPressed()) return;
 
@@ -1004,18 +1028,22 @@ class MinecraftGame {
             blockY * this.world.blockSize + this.world.blockSize / 2
         );
 
-        if (distance <= 150 && this.world.getBlock(blockX, blockY) === BlockTypes.AIR) {            const screenX = blockX * this.world.blockSize - this.camera.x;
-            const screenY = blockY * this.world.blockSize - this.camera.y;
+        if (distance <= 150 && this.world.getBlock(blockX, blockY) === BlockTypes.AIR) {
+            // Use zoom-aware coordinate transformation
+            const worldX = blockX * this.world.blockSize;
+            const worldY = blockY * this.world.blockSize;
+            const screenPos = Utils.worldToScreen(worldX, worldY, this.camera);
+            
+            const zoom = this.camera.zoom || 1.0;
+            const blockScreenSize = this.world.blockSize * zoom;
 
             this.ctx.save();
             this.ctx.globalAlpha = 0.5;
             const previewBlock = new Block(activeItem.type, blockX, blockY);
-            previewBlock.render(this.ctx, screenX, screenY, this.world.blockSize);
+            previewBlock.render(this.ctx, screenPos.x, screenPos.y, blockScreenSize);
             this.ctx.restore();
         }
-    }
-
-    renderMouseIndicator() {
+    }    renderMouseIndicator() {
         const mousePos = this.input.getMousePosition();
         const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, this.camera);
         
@@ -1032,20 +1060,24 @@ class MinecraftGame {
         }
         
         if (entityUnderMouse) {
-            // Draw entity highlight
-            const screenX = entityUnderMouse.x - this.camera.x;
-            const screenY = entityUnderMouse.y - this.camera.y;
+            // Draw entity highlight using zoom-aware coordinates
+            const entityScreenPos = Utils.worldToScreen(entityUnderMouse.x, entityUnderMouse.y, this.camera);
+            const zoom = this.camera.zoom || 1.0;
+            const entityScreenWidth = entityUnderMouse.width * zoom;
+            const entityScreenHeight = entityUnderMouse.height * zoom;
             
             this.ctx.save();
             const highlightColor = entityUnderMouse.isHostile ? '#FF6666' : '#66FF66';
             this.ctx.strokeStyle = highlightColor;
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = 2 * zoom; // Scale line width with zoom
             this.ctx.setLineDash([3, 3]);
-            this.ctx.strokeRect(screenX - 2, screenY - 2, entityUnderMouse.width + 4, entityUnderMouse.height + 4);
+            this.ctx.strokeRect(entityScreenPos.x - 2 * zoom, entityScreenPos.y - 2 * zoom, 
+                               entityScreenWidth + 4 * zoom, entityScreenHeight + 4 * zoom);
             
             // Add glow effect
             this.ctx.fillStyle = `${highlightColor}22`;
-            this.ctx.fillRect(screenX - 2, screenY - 2, entityUnderMouse.width + 4, entityUnderMouse.height + 4);
+            this.ctx.fillRect(entityScreenPos.x - 2 * zoom, entityScreenPos.y - 2 * zoom, 
+                             entityScreenWidth + 4 * zoom, entityScreenHeight + 4 * zoom);
             
             this.ctx.restore();
         } else {
@@ -1061,19 +1093,24 @@ class MinecraftGame {
             );
             
             if (distance <= 150) { // Only show if in range
-                const screenX = blockX * this.world.blockSize - this.camera.x;
-                const screenY = blockY * this.world.blockSize - this.camera.y;
+                // Use zoom-aware coordinate transformation
+                const worldX = blockX * this.world.blockSize;
+                const worldY = blockY * this.world.blockSize;
+                const screenPos = Utils.worldToScreen(worldX, worldY, this.camera);
+                
+                const zoom = this.camera.zoom || 1.0;
+                const blockScreenSize = this.world.blockSize * zoom;
                 
                 // Draw block outline
                 this.ctx.save();
                 this.ctx.strokeStyle = '#FFFFFF';
-                this.ctx.lineWidth = 2;
+                this.ctx.lineWidth = 2 * zoom; // Scale line width with zoom
                 this.ctx.setLineDash([5, 5]);
-                this.ctx.strokeRect(screenX, screenY, this.world.blockSize, this.world.blockSize);
+                this.ctx.strokeRect(screenPos.x, screenPos.y, blockScreenSize, blockScreenSize);
                 
                 // Add subtle fill for better visibility
                 this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                this.ctx.fillRect(screenX, screenY, this.world.blockSize, this.world.blockSize);
+                this.ctx.fillRect(screenPos.x, screenPos.y, blockScreenSize, blockScreenSize);
                 
                 this.ctx.restore();
             }
@@ -1654,9 +1691,10 @@ class TimeSystem {
 }
 
 // 🎵 AUDIO SETTINGS PANEL CLASS - Advanced sound configuration UI
-class AudioSettingsPanel {    constructor(soundSystem) {
-        console.log('AudioSettingsPanel constructor called with:', soundSystem);
+class AudioSettingsPanel {    constructor(soundSystem, player = null) {
+        console.log('AudioSettingsPanel constructor called with:', soundSystem, player);
         this.soundSystem = soundSystem;
+        this.player = player;
         this.panel = null;
         this.overlay = null;
         this.isVisible = false;
@@ -1698,8 +1736,9 @@ class AudioSettingsPanel {    constructor(soundSystem) {
                         <span class="volume-value">${Math.round(this.soundSystem.volume * 100)}%</span>
                     </div>
                 </div>
+                  ${this.generateCategoryHTML()}
                 
-                ${this.generateCategoryHTML()}
+                ${this.generateZoomControlsHTML()}
             </div>
             
             <div class="audio-settings-footer">
@@ -1735,8 +1774,31 @@ class AudioSettingsPanel {    constructor(soundSystem) {
                         <span class="volume-value">${volumePercent}%</span>
                     </div>
                 </div>
-            `;
-        }).join('');
+            `;        }).join('');
+    }
+    
+    generateZoomControlsHTML() {
+        if (!this.player) {
+            return ''; // No zoom controls if no player reference
+        }
+        
+        const currentZoom = this.player.userZoom || 1.5;
+        const zoomPercent = Math.round(currentZoom * 100);
+        
+        return `
+            <div class="audio-category">
+                <div class="category-header">
+                    <span class="category-title">🔍 Camera Zoom</span>
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-button zoom-out" type="button">-</button>
+                    <input type="range" class="zoom-slider" id="zoomSlider"
+                           min="0.5" max="3.0" step="0.1" value="${currentZoom}">
+                    <button class="zoom-button zoom-in" type="button">+</button>
+                    <span class="zoom-value">${zoomPercent}%</span>
+                </div>
+            </div>
+        `;
     }
     
     bindEvents() {
@@ -1791,8 +1853,10 @@ class AudioSettingsPanel {    constructor(soundSystem) {
                 
                 this.soundSystem.setCategoryVolume(category, volume);
                 this.updateVolumeDisplay(e.target.nextElementSibling, volume);
-            }
-        });
+            }        });
+        
+        // Zoom controls
+        this.bindZoomEvents();
         
         // Reset button
         this.panel.querySelector('.reset-button').addEventListener('click', () => {
@@ -1805,10 +1869,60 @@ class AudioSettingsPanel {    constructor(soundSystem) {
             this.showSaveConfirmation();
         });
     }
-    
-    updateVolumeDisplay(element, volume) {
+      updateVolumeDisplay(element, volume) {
         if (element && element.classList.contains('volume-value')) {
             element.textContent = `${Math.round(volume * 100)}%`;
+        }
+    }
+    
+    bindZoomEvents() {
+        if (!this.player) {
+            return; // No zoom events if no player reference
+        }
+        
+        // Zoom slider
+        const zoomSlider = this.panel.querySelector('#zoomSlider');
+        if (zoomSlider) {
+            zoomSlider.addEventListener('input', (e) => {
+                const zoomValue = parseFloat(e.target.value);
+                this.player.setZoom(zoomValue);
+                this.updateZoomDisplay(zoomValue);
+            });
+        }
+        
+        // Zoom in button (+)
+        const zoomInButton = this.panel.querySelector('.zoom-in');
+        if (zoomInButton) {
+            zoomInButton.addEventListener('click', () => {
+                this.player.increaseZoom();
+                this.refreshZoomUI();
+            });
+        }
+        
+        // Zoom out button (-)
+        const zoomOutButton = this.panel.querySelector('.zoom-out');
+        if (zoomOutButton) {
+            zoomOutButton.addEventListener('click', () => {
+                this.player.decreaseZoom();
+                this.refreshZoomUI();
+            });
+        }
+    }
+    
+    updateZoomDisplay(zoomValue) {
+        const zoomDisplay = this.panel.querySelector('.zoom-value');
+        if (zoomDisplay) {
+            zoomDisplay.textContent = `${Math.round(zoomValue * 100)}%`;
+        }
+    }
+    
+    refreshZoomUI() {
+        if (!this.player) return;
+        
+        const zoomSlider = this.panel.querySelector('#zoomSlider');
+        if (zoomSlider) {
+            zoomSlider.value = this.player.userZoom;
+            this.updateZoomDisplay(this.player.userZoom);
         }
     }
       resetToDefaults() {
@@ -1823,11 +1937,15 @@ class AudioSettingsPanel {    constructor(soundSystem) {
             environmental: { enabled: true, volume: 0.15 },
             ui: { enabled: true, volume: 0.2 }
         };
-        
-        Object.keys(defaults).forEach(category => {
+          Object.keys(defaults).forEach(category => {
             this.soundSystem.setCategoryVolume(category, defaults[category].volume);
             this.soundSystem.toggleCategory(category, defaults[category].enabled);
         });
+        
+        // Reset zoom to default
+        if (this.player) {
+            this.player.setZoom(1.5); // Default zoom level
+        }
         
         // Update UI
         this.refreshUI();
@@ -1860,9 +1978,11 @@ class AudioSettingsPanel {    constructor(soundSystem) {
             if (slider) {
                 slider.value = category.volume;
                 slider.disabled = !category.enabled;
-                this.updateVolumeDisplay(valueDisplay, category.volume);
-            }
+                this.updateVolumeDisplay(valueDisplay, category.volume);            }
         });
+        
+        // Update zoom controls
+        this.refreshZoomUI();
     }
     
     showSaveConfirmation() {

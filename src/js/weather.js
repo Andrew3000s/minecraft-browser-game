@@ -576,8 +576,7 @@ class WeatherSystem {
         
         return `rgb(${r}, ${g}, ${b})`;
     }
-    
-    renderPrecipitation(camera) {
+      renderPrecipitation(camera) {
         if (!this.ctx) {
             return;
         }
@@ -586,29 +585,29 @@ class WeatherSystem {
         
         let renderedCount = 0;
         for (let particle of this.precipitation) {
-            const screenX = particle.x - camera.x;
-            const screenY = particle.y - camera.y;
+            // Use zoom-aware coordinate transformation
+            const screenPos = Utils.worldToScreen(particle.x, particle.y, camera);
+            const zoom = camera.zoom || 1.0;
               // More generous clipping bounds for testing
-            if (screenX < -100 || screenX > this.canvas.width + 100 ||
-                screenY < -100 || screenY > this.canvas.height + 100) {
+            if (screenPos.x < -100 || screenPos.x > this.canvas.width + 100 ||
+                screenPos.y < -100 || screenPos.y > this.canvas.height + 100) {
                 continue;
             }
             
             this.ctx.globalAlpha = particle.opacity;
-            this.renderPrecipitationParticle(screenX, screenY, particle);
+            this.renderPrecipitationParticle(screenPos.x, screenPos.y, particle, zoom);
             renderedCount++;
         }
         
         this.ctx.restore();
-    }
-      renderPrecipitationParticle(x, y, particle) {
+    }      renderPrecipitationParticle(x, y, particle, zoom = 1.0) {
         switch (particle.type) {
             case 'rain':
                 this.ctx.strokeStyle = '#4A90E2';  // More visible blue color
-                this.ctx.lineWidth = Math.max(2, particle.width);  // Minimum width of 2
+                this.ctx.lineWidth = Math.max(2, particle.width * zoom);  // Scale line width with zoom
                 this.ctx.beginPath();
                 this.ctx.moveTo(x, y);
-                this.ctx.lineTo(x + particle.vx * 0.02, y + particle.height);
+                this.ctx.lineTo(x + particle.vx * 0.02 * zoom, y + particle.height * zoom);
                 this.ctx.stroke();
                 break;
                 
@@ -618,17 +617,17 @@ class WeatherSystem {
                 this.ctx.rotate(particle.rotation);
                 this.ctx.fillStyle = '#FFFFFF';
                 this.ctx.shadowColor = '#CCCCCC';
-                this.ctx.shadowBlur = 2;
+                this.ctx.shadowBlur = 2 * zoom;
                 
-                // Draw larger snowflake
-                const snowSize = Math.max(3, particle.width);
+                // Draw larger snowflake scaled by zoom
+                const snowSize = Math.max(3, particle.width * zoom);
                 this.ctx.beginPath();
                 this.ctx.arc(0, 0, snowSize, 0, Math.PI * 2);
                 this.ctx.fill();
                 
                 // Add snowflake arms
                 this.ctx.strokeStyle = '#FFFFFF';
-                this.ctx.lineWidth = 2;
+                this.ctx.lineWidth = 2 * zoom;
                 for (let i = 0; i < 6; i++) {
                     this.ctx.save();
                     this.ctx.rotate((Math.PI * 2 * i) / 6);
@@ -641,8 +640,8 @@ class WeatherSystem {
                 
                 this.ctx.restore();
                 break;            case 'hail':
-                // Maximum visibility hail with enhanced effects
-                const hailSize = Math.max(8, particle.width * 1.8); // Even larger minimum size
+                // Maximum visibility hail with enhanced effects, scaled by zoom
+                const hailSize = Math.max(8, particle.width * zoom * 1.8); // Scale with zoom
                 
                 // Add rotation transform if available
                 this.ctx.save();
@@ -653,7 +652,7 @@ class WeatherSystem {
                 
                 // Add glowing shadow effect for maximum contrast
                 this.ctx.shadowColor = '#4A90E2';
-                this.ctx.shadowBlur = 15;
+                this.ctx.shadowBlur = 15 * zoom;
                 this.ctx.shadowOffsetX = 0;
                 this.ctx.shadowOffsetY = 0;
                 
@@ -669,7 +668,7 @@ class WeatherSystem {
                 
                 this.ctx.fillStyle = gradient;
                 this.ctx.strokeStyle = '#2040A0';  // Darker, more contrasting border
-                this.ctx.lineWidth = 3;  // Thicker border for visibility
+                this.ctx.lineWidth = 3 * zoom;  // Scale border with zoom
                 this.ctx.beginPath();
                 this.ctx.arc(0, 0, hailSize, 0, Math.PI * 2);
                 this.ctx.fill();

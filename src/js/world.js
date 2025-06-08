@@ -237,28 +237,39 @@ class World {
     }
 
     render(ctx, camera, canvasWidth, canvasHeight) {
+        const zoom = camera.zoom || 1.0;
+        const viewWidth = canvasWidth / zoom;
+        const viewHeight = canvasHeight / zoom;
+        
         const startX = Math.max(0, Math.floor(camera.x / this.blockSize) - 1);
-        const endX = Math.min(this.width, Math.ceil((camera.x + canvasWidth) / this.blockSize) + 1);
+        const endX = Math.min(this.width, Math.ceil((camera.x + viewWidth) / this.blockSize) + 1);
         const startY = Math.max(0, Math.floor(camera.y / this.blockSize) - 1);
-        const endY = Math.min(this.height, Math.ceil((camera.y + canvasHeight) / this.blockSize) + 1);
+        const endY = Math.min(this.height, Math.ceil((camera.y + viewHeight) / this.blockSize) + 1);
+
+        // Apply camera transform with zoom
+        ctx.save();
+        ctx.scale(zoom, zoom);
+        ctx.translate(-camera.x, -camera.y);
 
         for (let x = startX; x < endX; x++) {
             for (let y = startY; y < endY; y++) {
                 const block = this.getBlockInstance(x, y);
                 if (block) {
-                    const screenX = x * this.blockSize - camera.x;
-                    const screenY = y * this.blockSize - camera.y;
+                    const worldX = x * this.blockSize;
+                    const worldY = y * this.blockSize;
                     
                     // 🌊 Render avanzato per fluidi
                     if (this.useAdvancedFluidPhysics && this.advancedFluidPhysics && this.isLiquid(block.type)) {
-                        this.renderAdvancedFluid(ctx, x, y, block, screenX, screenY);
+                        this.renderAdvancedFluid(ctx, x, y, block, worldX, worldY);
                     } else {
                         // Render block normale
-                        block.render(ctx, screenX, screenY, this.blockSize);
+                        block.render(ctx, worldX, worldY, this.blockSize);
                     }
                 }
             }
         }
+        
+        ctx.restore();
     }
 
     // 🌊 Rendering avanzato per fluidi con effetti visivi realistici
