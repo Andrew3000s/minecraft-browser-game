@@ -101,12 +101,21 @@ button:hover {
     z-index: 100;
 }
 
-.ui-overlay #weatherDisplay {
+.ui-overlay > div {
     background: rgba(0, 0, 0, 0.4);
     padding: 4px 8px;
     border-radius: 4px;
     margin-top: 2px;
-    border-left: 3px solid #87CEEB;
+}
+
+/* Uniform HUD styling - all elements with consistent green border */
+.ui-overlay #position,
+.ui-overlay #blockInfo,
+.ui-overlay #entityCount,
+.ui-overlay #fps,
+.ui-overlay #timeDisplay,
+.ui-overlay #weatherDisplay {
+    border-left: 3px solid #4CAF50;
 }
 
 .inventory {

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Weather First Change Fix</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #2C5234;
+            color: white;
+        }
+        .status {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .log {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin: 3px 0;
+            padding: 2px 0;
+        }
+        .log-info { color: #90EE90; }
+        .log-warning { color: #FFD700; }
+        .log-error { color: #FF6B6B; }
+        .log-success { color: #32CD32; }
+        .log-debug { color: #87CEEB; }
+    </style>
+</head>
+<body>
+    <h1>⚡ Test Weather First Change Fix</h1>
+    <p>Testing if weather changes automatically right after grace period expires.</p>
+    
+    <div class="status">
+        <h3>Live Status</h3>
+        <div>⏰ <strong>Time Elapsed:</strong> <span id="elapsed">0.0s</span></div>
+        <div>🌤️ <strong>Current Weather:</strong> <span id="weather">clear</span></div>
+        <div>🔒 <strong>Grace Period:</strong> <span id="grace">30.0s</span></div>
+        <div>🚫 <strong>Startup Lockout:</strong> <span id="lockout">true</span></div>
+        <div>⏲️ <strong>Weather Timer:</strong> <span id="timer">0.0s</span></div>
+        <div>📈 <strong>Check Interval:</strong> <span id="interval">45s</span></div>
+        <div>🎯 <strong>Auto Changes:</strong> <span id="changes">0</span></div>
+    </div>
+    
+    <div>
+        <h3>Event Log</h3>
+        <div id="log" class="log"></div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/weather.js"></script>
+    
+    <script>
+        // Mock time system
+        const mockTimeSystem = {
+            getTimeOfDay: () => 12,
+            isNight: () => false
+        };
+        
+        // Create weather system
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        const weatherSystem = new WeatherSystem(canvas, null, mockTimeSystem);
+        
+        let startTime = performance.now();
+        let autoChanges = 0;
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${elapsed}s] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            while (logElement.children.length > 50) {
+                logElement.removeChild(logElement.firstChild);
+            }
+            
+            console.log(`[${elapsed}s] [${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Track weather changes
+        let lastWeather = weatherSystem.currentWeather;
+        let lastLockout = weatherSystem.startupLockout;
+        let lastGrace = weatherSystem.initialGracePeriod;
+        
+        // Override considerWeatherChange to track calls
+        const originalConsiderWeatherChange = weatherSystem.considerWeatherChange.bind(weatherSystem);
+        weatherSystem.considerWeatherChange = function() {
+            log(`🔄 considerWeatherChange() called`, 'debug');
+            originalConsiderWeatherChange();
+        };
+        
+        // Override changeWeather to track successful changes
+        const originalChangeWeather = weatherSystem.changeWeather.bind(weatherSystem);
+        weatherSystem.changeWeather = function(newWeather) {
+            const oldWeather = this.currentWeather;
+            originalChangeWeather(newWeather);
+            if (this.currentWeather !== oldWeather) {
+                autoChanges++;
+                log(`✅ Weather changed: ${oldWeather} → ${this.currentWeather}`, 'success');
+                document.getElementById('changes').textContent = autoChanges;
+            }
+        };
+        
+        // Update status display
+        function updateStatus() {
+            const elapsed = (performance.now() - startTime) / 1000;
+            document.getElementById('elapsed').textContent = `${elapsed.toFixed(1)}s`;
+            document.getElementById('weather').textContent = weatherSystem.currentWeather;
+            document.getElementById('grace').textContent = `${Math.max(0, weatherSystem.initialGracePeriod).toFixed(1)}s`;
+            document.getElementById('lockout').textContent = weatherSystem.startupLockout;
+            document.getElementById('timer').textContent = `${weatherSystem.weatherTimer.toFixed(1)}s`;
+            document.getElementById('interval').textContent = `${weatherSystem.getWeatherChangeInterval()}s`;
+            
+            // Check for state changes
+            if (weatherSystem.currentWeather !== lastWeather) {
+                log(`🌤️ Weather: ${lastWeather} → ${weatherSystem.currentWeather}`, 'info');
+                lastWeather = weatherSystem.currentWeather;
+            }
+            
+            if (weatherSystem.startupLockout !== lastLockout) {
+                if (!weatherSystem.startupLockout) {
+                    log(`🔓 Startup lockout RELEASED! Weather timer: ${weatherSystem.weatherTimer.toFixed(1)}s`, 'success');
+                }
+                lastLockout = weatherSystem.startupLockout;
+            }
+            
+            if (Math.abs(weatherSystem.initialGracePeriod - lastGrace) > 0.1 && weatherSystem.initialGracePeriod <= 0 && lastGrace > 0) {
+                log(`⏰ Grace period EXPIRED! System should be active now.`, 'success');
+            }
+            lastGrace = weatherSystem.initialGracePeriod;
+        }
+        
+        // Main update loop
+        let lastTime = performance.now();
+        function update() {
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            weatherSystem.update(deltaTime);
+            updateStatus();
+            
+            requestAnimationFrame(update);
+        }
+        
+        log(`🚀 Testing weather first change fix`, 'info');
+        log(`📊 Expected behavior:`, 'info');
+        log(`   0-30s: Grace period, no changes`, 'info');
+        log(`   30s: Grace expires, weatherTimer jumps to 45s`, 'info');
+        log(`   30s+: First considerWeatherChange() call immediately`, 'info');
+        log(`   30s+: Weather should change if probability succeeds`, 'info');
+        
+        update();
+        
+        // Auto-summary after 2 minutes
+        setTimeout(() => {
+            log(`📊 Summary after 2 minutes:`, 'info');
+            log(`   Total auto changes: ${autoChanges}`, autoChanges > 0 ? 'success' : 'error');
+            log(`   Current weather: ${weatherSystem.currentWeather}`, 'info');
+            log(`   System active: ${!weatherSystem.startupLockout && weatherSystem.initialGracePeriod <= 0}`, 'info');
+            
+            if (autoChanges === 0) {
+                log(`❌ FIX FAILED: Still no automatic weather changes`, 'error');
+            } else {
+                log(`✅ FIX SUCCESSFUL: Weather changes working!`, 'success');
+            }
+        }, 120000);
+    </script>
+</body>
+</html>

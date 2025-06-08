@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Auto-Change Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #2C5234;
+            color: white;
+        }
+        .status {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .weather-log {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 3px 0;
+        }
+        .log-info { color: #90EE90; }
+        .log-warning { color: #FFD700; }
+        .log-error { color: #FF6B6B; }
+        .log-success { color: #32CD32; }
+    </style>
+</head>
+<body>
+    <h1>🌤️ Automatic Weather Change Test</h1>
+    <p>This test verifies that the weather system now changes automatically after the reduced grace period.</p>
+    
+    <div class="status">
+        <h3>Weather System Status</h3>
+        <div id="currentWeather">Weather: Loading...</div>
+        <div id="gracePeriod">Grace Period: Loading...</div>
+        <div id="weatherTimer">Weather Timer: Loading...</div>
+        <div id="startupLockout">Startup Lockout: Loading...</div>
+        <div id="nextCheck">Next Check In: Loading...</div>
+        <div id="changeProbs">Change Probabilities: Loading...</div>
+    </div>
+    
+    <div>
+        <h3>Weather Change Log</h3>
+        <div id="weatherLog" class="weather-log"></div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/weather.js"></script>
+    
+    <script>
+        // Mock time system for testing
+        const mockTimeSystem = {
+            getTimeOfDay: () => 12, // Noon
+            isNight: () => false
+        };
+        
+        // Create canvas and weather system
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        const weatherSystem = new WeatherSystem(canvas, null, mockTimeSystem);
+        
+        // Log function
+        let logCount = 0;
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('weatherLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (logElement.children.length > 50) {
+                logElement.removeChild(logElement.firstChild);
+            }
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Track weather changes
+        let lastWeather = weatherSystem.currentWeather;
+        let changeCount = 0;
+        
+        // Override considerWeatherChange to log attempts
+        const originalConsiderWeatherChange = weatherSystem.considerWeatherChange.bind(weatherSystem);
+        weatherSystem.considerWeatherChange = function() {
+            log('🔄 considerWeatherChange() called', 'info');
+            originalConsiderWeatherChange();
+        };
+        
+        // Override changeWeather to track successful changes
+        const originalChangeWeather = weatherSystem.changeWeather.bind(weatherSystem);
+        weatherSystem.changeWeather = function(newWeather) {
+            const oldWeather = this.currentWeather;
+            originalChangeWeather(newWeather);
+            if (this.currentWeather !== oldWeather) {
+                changeCount++;
+                log(`✅ Weather changed: ${oldWeather} → ${newWeather} (Change #${changeCount})`, 'success');
+            }
+        };
+        
+        // Update status display
+        function updateStatus() {
+            const gracePeriod = Math.max(0, weatherSystem.initialGracePeriod);
+            const weatherTimer = weatherSystem.weatherTimer;
+            const interval = weatherSystem.getWeatherChangeInterval();
+            const nextCheck = Math.max(0, interval - weatherTimer);
+            
+            // Get current weather transition probabilities
+            const transitions = weatherSystem.weatherTransitions[weatherSystem.currentWeather];
+            const totalProb = Object.values(transitions || {}).reduce((sum, prob) => sum + prob, 0);
+            const timeModifier = weatherSystem.getTimeBasedModifier();
+            const finalProb = totalProb * timeModifier;
+            
+            document.getElementById('currentWeather').textContent = `Weather: ${weatherSystem.currentWeather}`;
+            document.getElementById('gracePeriod').textContent = `Grace Period: ${gracePeriod.toFixed(1)}s`;
+            document.getElementById('weatherTimer').textContent = `Weather Timer: ${weatherTimer.toFixed(1)}s`;
+            document.getElementById('startupLockout').textContent = `Startup Lockout: ${weatherSystem.startupLockout}`;
+            document.getElementById('nextCheck').textContent = `Next Check In: ${nextCheck.toFixed(1)}s (every ${interval}s)`;
+            document.getElementById('changeProbs').textContent = `Change Probability: ${(finalProb * 100).toFixed(2)}% (base: ${(totalProb * 100).toFixed(2)}%, modifier: ${timeModifier.toFixed(2)})`;
+            
+            // Check for weather changes
+            if (weatherSystem.currentWeather !== lastWeather) {
+                lastWeather = weatherSystem.currentWeather;
+                log(`🌤️ Weather detected: ${weatherSystem.currentWeather}`, 'info');
+            }
+        }
+        
+        // Main update loop
+        let lastTime = performance.now();
+        function update() {
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            // Update weather system
+            weatherSystem.update(deltaTime);
+            
+            // Update status display
+            updateStatus();
+            
+            requestAnimationFrame(update);
+        }
+        
+        // Initialize test
+        log('🚀 Weather auto-change test started', 'info');
+        log(`⚙️ Initial settings:`, 'info');
+        log(`   Grace period: ${weatherSystem.initialGracePeriod}s (reduced from 120s)`, 'info');
+        log(`   Weather interval: ${weatherSystem.getWeatherChangeInterval()}s (reduced from 120s)`, 'info');
+        log(`   Clear weather probabilities: cloudy=5%, rain=2%, snow=1% (increased from 0.1%, 0.05%, 0.01%)`, 'info');
+        log(`   Time modifier for clear weather: 0.3 (reduced from 0.01)`, 'info');
+        log('⏰ Waiting for grace period to expire and weather changes to begin...', 'info');
+        
+        update();
+        
+        // Summary after 3 minutes
+        setTimeout(() => {
+            log(`📊 Test Summary (3 minutes):`, 'info');
+            log(`   Total weather changes: ${changeCount}`, changeCount > 0 ? 'success' : 'warning');
+            log(`   Current weather: ${weatherSystem.currentWeather}`, 'info');
+            log(`   Grace period expired: ${weatherSystem.initialGracePeriod <= 0 ? 'Yes' : 'No'}`, weatherSystem.initialGracePeriod <= 0 ? 'success' : 'error');
+            log(`   Startup lockout released: ${!weatherSystem.startupLockout ? 'Yes' : 'No'}`, !weatherSystem.startupLockout ? 'success' : 'error');
+            
+            if (changeCount === 0) {
+                log('⚠️ No weather changes detected. This might indicate an issue with the weather system.', 'warning');
+            } else {
+                log('✅ Weather changes working correctly!', 'success');
+            }
+        }, 180000); // 3 minutes
+    </script>
+</body>
+</html>

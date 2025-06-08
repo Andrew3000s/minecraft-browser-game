@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Weather Initialization Lockout</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #2C5234;
+            color: white;
+        }
+        .section {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .log {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 3px 0;
+        }
+        .log-info { color: #90EE90; }
+        .log-warning { color: #FFD700; }
+        .log-error { color: #FF6B6B; }
+        .log-success { color: #32CD32; }
+        .log-debug { color: #87CEEB; }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .status {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .status-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐛 Debug: Weather Initialization Lockout Issue</h1>
+    <p>Investigating why weather doesn't change automatically until after a manual change.</p>
+    
+    <div class="section">
+        <h3>System Status</h3>
+        <div class="status">
+            <div class="status-item">
+                <strong>Current Weather:</strong> <span id="currentWeather">Loading...</span>
+            </div>
+            <div class="status-item">
+                <strong>Grace Period:</strong> <span id="gracePeriod">Loading...</span>
+            </div>
+            <div class="status-item">
+                <strong>Startup Lockout:</strong> <span id="startupLockout">Loading...</span>
+            </div>
+            <div class="status-item">
+                <strong>Weather Timer:</strong> <span id="weatherTimer">Loading...</span>
+            </div>
+            <div class="status-item">
+                <strong>Change Interval:</strong> <span id="changeInterval">Loading...</span>
+            </div>
+            <div class="status-item">
+                <strong>Auto Changes:</strong> <span id="autoChanges">0</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="manualChange()">🌧️ Manual Change (Rain)</button>
+            <button onclick="manualChangeCloudy()">☁️ Manual Change (Cloudy)</button>
+            <button onclick="testConsiderWeatherChange()">🔄 Test considerWeatherChange()</button>
+            <button onclick="resetWeatherSystem()">🔄 Reset System</button>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>Debug Log</h3>
+        <div id="log" class="log"></div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/weather.js"></script>
+    
+    <script>
+        // Mock time system
+        const mockTimeSystem = {
+            getTimeOfDay: () => 12,
+            isNight: () => false
+        };
+        
+        // Create weather system
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        let weatherSystem = new WeatherSystem(canvas, null, mockTimeSystem);
+        
+        let autoChangeCount = 0;
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            while (logElement.children.length > 100) {
+                logElement.removeChild(logElement.firstChild);
+            }
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Override considerWeatherChange to debug
+        const originalConsiderWeatherChange = weatherSystem.considerWeatherChange.bind(weatherSystem);
+        weatherSystem.considerWeatherChange = function() {
+            log(`🔍 considerWeatherChange() called`, 'debug');
+            log(`   Startup lockout: ${this.startupLockout}`, 'debug');
+            log(`   Grace period: ${this.initialGracePeriod.toFixed(2)}s`, 'debug');
+            
+            if (this.startupLockout || this.initialGracePeriod > 0) {
+                log(`   ❌ BLOCKED by safety checks`, 'warning');
+                return;
+            }
+            
+            const transitions = this.weatherTransitions[this.currentWeather];
+            if (!transitions) {
+                log(`   ❌ No transitions for ${this.currentWeather}`, 'error');
+                return;
+            }
+            
+            const totalProb = Object.values(transitions).reduce((sum, prob) => sum + prob, 0);
+            const timeModifier = this.getTimeBasedModifier();
+            const finalProb = totalProb * timeModifier;
+            const roll = Math.random();
+            
+            log(`   Total probability: ${(totalProb * 100).toFixed(2)}%`, 'debug');
+            log(`   Time modifier: ${timeModifier}`, 'debug');
+            log(`   Final probability: ${(finalProb * 100).toFixed(2)}%`, 'debug');
+            log(`   Random roll: ${(roll * 100).toFixed(2)}%`, 'debug');
+            
+            if (roll < finalProb) {
+                log(`   ✅ Weather change triggered!`, 'success');
+                originalConsiderWeatherChange();
+                autoChangeCount++;
+                document.getElementById('autoChanges').textContent = autoChangeCount;
+            } else {
+                log(`   ❌ Weather change failed (roll too high)`, 'info');
+            }
+        };
+        
+        // Override changeWeather to track changes
+        const originalChangeWeather = weatherSystem.changeWeather.bind(weatherSystem);
+        weatherSystem.changeWeather = function(newWeather) {
+            const oldWeather = this.currentWeather;
+            log(`🌤️ changeWeather(${newWeather}) called`, 'debug');
+            log(`   Current weather: ${oldWeather}`, 'debug');
+            log(`   Startup lockout: ${this.startupLockout}`, 'debug');
+            log(`   Grace period: ${this.initialGracePeriod.toFixed(2)}s`, 'debug');
+            
+            originalChangeWeather(newWeather);
+            
+            if (this.currentWeather !== oldWeather) {
+                log(`   ✅ Weather changed: ${oldWeather} → ${this.currentWeather}`, 'success');
+            } else {
+                log(`   ❌ Weather change blocked`, 'warning');
+            }
+        };
+        
+        // Manual change functions
+        function manualChange() {
+            log(`🔧 Manual weather change to RAIN (bypassing safety checks)`, 'info');
+            // Force change by temporarily disabling safety checks
+            const originalLockout = weatherSystem.startupLockout;
+            const originalGrace = weatherSystem.initialGracePeriod;
+            
+            weatherSystem.startupLockout = false;
+            weatherSystem.initialGracePeriod = 0;
+            
+            weatherSystem.changeWeather('rain');
+            
+            // Restore original values
+            weatherSystem.startupLockout = originalLockout;
+            weatherSystem.initialGracePeriod = originalGrace;
+        }
+        
+        function manualChangeCloudy() {
+            log(`🔧 Manual weather change to CLOUDY (bypassing safety checks)`, 'info');
+            const originalLockout = weatherSystem.startupLockout;
+            const originalGrace = weatherSystem.initialGracePeriod;
+            
+            weatherSystem.startupLockout = false;
+            weatherSystem.initialGracePeriod = 0;
+            
+            weatherSystem.changeWeather('cloudy');
+            
+            weatherSystem.startupLockout = originalLockout;
+            weatherSystem.initialGracePeriod = originalGrace;
+        }
+        
+        function testConsiderWeatherChange() {
+            log(`🧪 Testing considerWeatherChange() directly`, 'info');
+            weatherSystem.considerWeatherChange();
+        }
+        
+        function resetWeatherSystem() {
+            log(`🔄 Resetting weather system`, 'info');
+            weatherSystem = new WeatherSystem(canvas, null, mockTimeSystem);
+            autoChangeCount = 0;
+            document.getElementById('autoChanges').textContent = autoChangeCount;
+            
+            // Re-apply overrides
+            const originalConsiderWeatherChangeNew = weatherSystem.considerWeatherChange.bind(weatherSystem);
+            weatherSystem.considerWeatherChange = function() {
+                log(`🔍 considerWeatherChange() called`, 'debug');
+                log(`   Startup lockout: ${this.startupLockout}`, 'debug');
+                log(`   Grace period: ${this.initialGracePeriod.toFixed(2)}s`, 'debug');
+                
+                if (this.startupLockout || this.initialGracePeriod > 0) {
+                    log(`   ❌ BLOCKED by safety checks`, 'warning');
+                    return;
+                }
+                
+                const transitions = this.weatherTransitions[this.currentWeather];
+                if (!transitions) {
+                    log(`   ❌ No transitions for ${this.currentWeather}`, 'error');
+                    return;
+                }
+                
+                const totalProb = Object.values(transitions).reduce((sum, prob) => sum + prob, 0);
+                const timeModifier = this.getTimeBasedModifier();
+                const finalProb = totalProb * timeModifier;
+                const roll = Math.random();
+                
+                log(`   Total probability: ${(totalProb * 100).toFixed(2)}%`, 'debug');
+                log(`   Time modifier: ${timeModifier}`, 'debug');
+                log(`   Final probability: ${(finalProb * 100).toFixed(2)}%`, 'debug');
+                log(`   Random roll: ${(roll * 100).toFixed(2)}%`, 'debug');
+                
+                if (roll < finalProb) {
+                    log(`   ✅ Weather change triggered!`, 'success');
+                    originalConsiderWeatherChangeNew();
+                    autoChangeCount++;
+                    document.getElementById('autoChanges').textContent = autoChangeCount;
+                } else {
+                    log(`   ❌ Weather change failed (roll too high)`, 'info');
+                }
+            };
+            
+            const originalChangeWeatherNew = weatherSystem.changeWeather.bind(weatherSystem);
+            weatherSystem.changeWeather = function(newWeather) {
+                const oldWeather = this.currentWeather;
+                log(`🌤️ changeWeather(${newWeather}) called`, 'debug');
+                log(`   Current weather: ${oldWeather}`, 'debug');
+                log(`   Startup lockout: ${this.startupLockout}`, 'debug');
+                log(`   Grace period: ${this.initialGracePeriod.toFixed(2)}s`, 'debug');
+                
+                originalChangeWeatherNew(newWeather);
+                
+                if (this.currentWeather !== oldWeather) {
+                    log(`   ✅ Weather changed: ${oldWeather} → ${this.currentWeather}`, 'success');
+                } else {
+                    log(`   ❌ Weather change blocked`, 'warning');
+                }
+            };
+        }
+        
+        // Update status display
+        function updateStatus() {
+            document.getElementById('currentWeather').textContent = weatherSystem.currentWeather;
+            document.getElementById('gracePeriod').textContent = `${Math.max(0, weatherSystem.initialGracePeriod).toFixed(1)}s`;
+            document.getElementById('startupLockout').textContent = weatherSystem.startupLockout ? 'ACTIVE' : 'RELEASED';
+            document.getElementById('weatherTimer').textContent = `${weatherSystem.weatherTimer.toFixed(1)}s`;
+            document.getElementById('changeInterval').textContent = `${weatherSystem.getWeatherChangeInterval()}s`;
+        }
+        
+        // Main update loop
+        let lastTime = performance.now();
+        function update() {
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            weatherSystem.update(deltaTime);
+            updateStatus();
+            
+            requestAnimationFrame(update);
+        }
+        
+        log(`🚀 Weather lockout debug test started`, 'info');
+        log(`📊 Initial state:`, 'info');
+        log(`   Weather: ${weatherSystem.currentWeather}`, 'info');
+        log(`   Grace period: ${weatherSystem.initialGracePeriod}s`, 'info');
+        log(`   Startup lockout: ${weatherSystem.startupLockout}`, 'info');
+        log(`💡 Try manual changes to see if they unlock automatic changes`, 'info');
+        
+        update();
+    </script>
+</body>
+</html>
