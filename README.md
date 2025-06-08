@@ -1,202 +1,230 @@
 # 🏗️ Minecraft Browser Game - Enhanced Edition
 
-Un gioco Minecraft completo e realistico che puoi giocare direttamente nel browser! Costruito con HTML5 Canvas e JavaScript avanzato, ora con illuminazione realistica e funzionalità complete.
+A complete and realistic Minecraft game that you can play directly in your browser! Built with HTML5 Canvas and advanced JavaScript, now featuring realistic lighting and complete functionality.
 
-## ✨ Nuove Funzionalità (Enhanced Edition)
-
-### 💡 **Sistema di Illuminazione Realistico**
-- **Torce Funzionanti**: Le torce ora illuminano realmente l'ambiente durante la notte
-- **Lighting Autentico**: Sistema di illuminazione avanzato che rivela i blocchi circostanti
-- **Effetti Atmosferici**: Sfarfallio naturale delle torce con luce calda arancione
-- **Visibilità Notturna**: Esperienza Minecraft autentica dove le torce sono essenziali
-
-### 📦 **Inventario Espanso Completo**
-- **9 Slot Completi**: Inventario pre-caricato con strumenti e blocchi
-- **Diamond Pickaxe**: Strumento per mining istantaneo (slot 1)
-- **64 Torce**: Per illuminazione estesa (slot 2)
-- **Blocchi Vari**: Dirt, Stone, Wood, Sand, Grass, Leaves, Coal (slot 3-9)
-- **UI Professionale**: Contatori visivi e icone per ogni oggetto
-
-### 🎮 **Controlli Ottimizzati**
-- **Tasto B**: Sistema di drop preciso - lascia cadere 1 blocco per volta
-- **Tasto I**: Toggle inventario senza auto-drop
-- **Controlli Italiani**: Interfaccia completamente in italiano
-
-## 🎮 Caratteristiche Core
-
-### 🌍 Mondo Procedurale
-- Generazione automatica del terreno con colline e valli
-- Biomi diversificati con erba, pietra, sabbia e acqua
-- Alberi generati proceduralmente
-- Minerali sotterranei (carbone, ferro, diamante)
-- Mondo di 200x100 blocchi
-
-### 🌅 Ciclo Giorno/Notte Completo
-- **Durata Realistica**: 5 minuti per ciclo completo
-- **Transizioni Naturali**: Alba e tramonto con colori sfumati
-- **Stelle Notturne**: Cielo stellato durante la notte
-- **Atmosfera Dinamica**: Colori del cielo che cambiano in tempo reale
-
-### 👤 Sistema Giocatore Avanzato
-- Movimento fluido con WASD
-- Fisica realistica con gravità
-- Salto e movimento in acqua
-- Sistema di salute con cuori visuali
-- Animazioni di camminata fluide
-
-### 🔨 Sistema di Costruzione Professionale
-- **Diamond Pickaxe**: Rompe blocchi istantaneamente (eccetto bedrock)
-- **Mining Visivo**: Indicatori progressivi con crepe realistiche
-- **Preview Blocchi**: Anteprima semi-trasparente del posizionamento
-- **Indicatore Mouse**: Contorno tratteggiato sui blocchi target
-- **Range Limitato**: Sistema di reach realistico (150 unità)
-
-### 🎨 Grafica e UI Avanzata
-- Rendering pixelato in stile Minecraft autentico
-- **Lighting Engine**: Sistema di illuminazione avanzato con composite blending
-- **Particle System**: Effetti particellari per rottura blocchi, salti, danni
-- **UI Completa**: Salute, inventario, tempo, posizione, FPS
-- **Feedback Visivo**: Effetti audio-visivi per ogni azione
-
-## 🕹️ Controlli Completi
-
-| Tasto/Input | Azione |
-|-------------|--------|
-| **W, A, S, D** | Movimento |
-| **Spazio** | Salto |
-| **Click Sinistro** | Distruggi blocco |
-| **Click Destro** | Piazza blocco |
-| **Rotella Mouse** | Cambia blocco attivo |
-| **1-9** | Selezione inventario |
-| **I** | Mostra/Nascondi inventario |
-| **B** | Lascia cadere 1 blocco |
-| **C** | Apri crafting |
-
-## 🚀 Come Giocare
-
-1. Apri `index.html` nel tuo browser
-2. Attendi il caricamento del mondo
-3. Usa WASD per muoverti
-4. Click sinistro per distruggere blocchi
-5. Click destro per piazzare blocchi
-6. Esplora e costruisci!
-
-## 🏗️ Struttura del Progetto
+## 📁 Project Structure
 
 ```
 minecraft-browser-game/
-├── index.html              # File HTML principale
-├── README.md              # Questo file
-└── src/
-    ├── css/
-    │   ├── style.css      # Stili base dell'UI
-    │   └── game.css       # Stili specifici del gioco
-    └── js/
-        ├── game.js        # Motore principale del gioco
-        ├── player.js      # Sistema del giocatore
-        ├── world.js       # Generazione e gestione del mondo
-        ├── blocks.js      # Sistema dei blocchi
-        ├── input.js       # Gestione input
-        └── utils.js       # Funzioni utility
+├── 📁 src/                    # Main source code
+│   ├── js/                    # Game JavaScript files
+│   ├── css/                   # CSS styles
+│   └── assets/               # Resources (sounds, images)
+├── 📁 tests/                  # Test files
+│   ├── html/                  # HTML interface tests
+│   ├── js/                    # Pure JavaScript tests
+│   └── system/               # Complete system tests
+├── 📁 debug/                  # Debug tools
+│   ├── html/                  # Debug tools with UI
+│   └── js/                    # Debug scripts
+├── 📁 docs/                   # Complete documentation
+├── 📁 archive/               # Backup and archive files
+├── index.html               # Main game file
+└── README.md               # This file
 ```
 
-## 🧱 Tipi di Blocchi
+## 🚀 Quick Start
 
-- **🟫 Terra (Dirt)** - Blocco base per costruzioni
-- **🟩 Erba (Grass)** - Superficie naturale
-- **⬜ Pietra (Stone)** - Materiale resistente
-- **🟤 Legno (Wood)** - Da alberi abbattuti
-- **🟢 Foglie (Leaves)** - Decorazione naturale
-- **🟨 Sabbia (Sand)** - Blocco granulare
-- **⚫ Minerale di Carbone** - Combustibile
-- **🟠 Minerale di Ferro** - Metallo prezioso
-- **💎 Minerale di Diamante** - Gemma rara
+1. **Start the game**: Open `index.html` in browser
+2. **For testing**: Go to `tests/html/` for specific tests
+3. **For debugging**: Use files in `debug/html/` during development
+4. **For docs**: Check `docs/` for complete documentation
 
-### 🔧 Strumenti Speciali
-- **⛏️ Piccone di Diamante** - Strumento avanzato per mining istantaneo
-  - Colore ciano distintivo
-  - Rompe qualsiasi blocco istantaneamente (eccetto bedrock)
-  - Disponibile all'inizio del gioco nel primo slot dell'inventario
+## ✨ New Features (Enhanced Edition)
 
-## ⚡ Caratteristiche Tecniche
+### 💡 **Realistic Lighting System**
+- **Working Torches**: Torches now actually illuminate the environment during night
+- **Authentic Lighting**: Advanced lighting system that reveals surrounding blocks
+- **Atmospheric Effects**: Natural torch flickering with warm orange light
+- **Night Vision**: Authentic Minecraft experience where torches are essential
 
-- **Engine**: JavaScript ES6+ con Canvas API
-- **Fisica**: Sistema di collisioni personalizzato
-- **Rendering**: Ottimizzato con culling della viewport
-- **Performance**: 60 FPS target con game loop ottimizzato
-- **Memoria**: Gestione efficiente dei blocchi con sparse arrays
+### 📦 **Complete Expanded Inventory**
+- **9 Complete Slots**: Inventory pre-loaded with tools and blocks
+- **Diamond Pickaxe**: Tool for instant mining (slot 1)
+- **64 Torches**: For extended lighting (slot 2)
+- **Various Blocks**: Dirt, Stone, Wood, Sand, Grass, Leaves, Coal (slots 3-9)
+- **Professional UI**: Visual counters and icons for each item
 
-## 🆕 Miglioramenti Recenti
+### 🎮 **Optimized Controls**
+- **B Key**: Precise drop system - drops 1 block at a time
+- **I Key**: Toggle inventory without auto-drop
+- **English Interface**: Complete English interface
 
-### ✨ Nuove Funzionalità
-- **🎯 Game Centrato**: Il gioco è ora perfettamente centrato nella finestra del browser per un'esperienza visiva ottimale
-- **⛏️ Piccone di Diamante**: Nuovo strumento potente che rompe i blocchi istantaneamente
-  - Colore ciano distintivo nell'inventario
-  - Mining istantaneo per tutti i blocchi (eccetto bedrock)
-  - Disponibile fin dall'inizio nel primo slot
-- **💧 Generazione Acqua Migliorata**: L'acqua ora appare correttamente a livello del suolo invece che nel cielo
-- **🎯 Indicatore Blocchi**: Contorno tratteggiato bianco mostra chiaramente quale blocco stai puntando
-- **👁️ Anteprima Blocchi Migliorata**: I blocchi da piazzare appaiono semi-trasparenti per una migliore visualizzazione
+## 🎮 Core Features
 
-### 🔧 Miglioramenti Tecnici
-- Layout CSS ottimizzato con flexbox per centratura perfetta
-- Sistema di rendering migliorato per indicatori visivi
-- Logica di generazione mondo ottimizzata
-- Gestione inventario potenziata con nuovi strumenti
+### 🌍 Procedural World
+- Automatic terrain generation with hills and valleys
+- Diversified biomes with grass, stone, sand and water
+- Procedurally generated trees
+- Underground minerals (coal, iron, diamond)
+- 200x100 blocks world
 
-## 🛠️ Funzionalità Avanzate
+### 🌅 Complete Day/Night Cycle
+- **Realistic Duration**: 5 minutes for complete cycle
+- **Natural Transitions**: Dawn and sunset with gradient colors
+- **Night Stars**: Starry sky during night
+- **Dynamic Atmosphere**: Sky colors that change in real time
 
-### Sistema di Fisica
-- Gravità realistica
-- Collisioni precise
-- Resistenza dell'acqua (ora correttamente posizionata a livello del suolo)
-- Attrito del terreno
+### 👤 Advanced Player System
+- Smooth movement with WASD
+- Realistic physics with gravity
+- Jump and water movement
+- Health system with visual hearts
+- Smooth walking animations
 
-### Generazione del Mondo
-- Algoritmo di rumore per terreni naturali
-- Posizionamento intelligente degli alberi
-- **Acqua migliorata**: Generazione corretta dell'acqua a livello del suolo
-- Distribuzione realistica dei minerali
-- Spawn sicuro del giocatore
+### 🔨 Professional Building System
+- **Diamond Pickaxe**: Breaks blocks instantly (except bedrock)
+- **Visual Mining**: Progressive indicators with realistic cracks
+- **Block Preview**: Semi-transparent placement preview
+- **Mouse Indicator**: Dashed outline on target blocks
+- **Limited Range**: Realistic reach system (150 units)
+
+### 🎨 Advanced Graphics and UI
+- Authentic Minecraft pixelated rendering
+- **Lighting Engine**: Advanced lighting system with composite blending
+- **Particle System**: Particle effects for block breaking, jumps, damage
+- **Complete UI**: Health, inventory, time, position, FPS
+- **Visual Feedback**: Audio-visual effects for every action
+
+## 🕹️ Complete Controls
+
+| Key/Input | Action |
+|-----------|--------|
+| **W, A, S, D** | Movement |
+| **Space** | Jump |
+| **Left Click** | Destroy block |
+| **Right Click** | Place block |
+| **Mouse Wheel** | Change active block |
+| **1-9** | Inventory selection |
+| **I** | Show/Hide inventory |
+| **B** | Drop 1 block |
+| **C** | Open crafting |
+
+## 🚀 How to Play
+
+1. Open `index.html` in your browser
+2. Wait for world loading
+3. Use WASD to move
+4. Left click to destroy blocks
+5. Right click to place blocks
+6. Explore and build!
+
+## 🏗️ Project Structure
+
+```
+minecraft-browser-game/
+├── index.html              # Main HTML file
+├── README.md              # This file
+└── src/
+    ├── css/
+    │   ├── style.css      # Base UI styles
+    │   └── game.css       # Game-specific styles
+    └── js/
+        ├── game.js        # Main game engine
+        ├── player.js      # Player system
+        ├── world.js       # World generation and management
+        ├── blocks.js      # Block system
+        ├── input.js       # Input handling
+        └── utils.js       # Utility functions
+```
+
+## 🧱 Block Types
+
+- **🟫 Dirt** - Basic building block
+- **🟩 Grass** - Natural surface
+- **⬜ Stone** - Resistant material
+- **🟤 Wood** - From chopped trees
+- **🟢 Leaves** - Natural decoration
+- **🟨 Sand** - Granular block
+- **⚫ Coal Ore** - Fuel
+- **🟠 Iron Ore** - Precious metal
+- **💎 Diamond Ore** - Rare gem
+
+### 🔧 Special Tools
+- **⛏️ Diamond Pickaxe** - Advanced tool for instant mining
+  - Distinctive cyan color
+  - Breaks any block instantly (except bedrock)
+  - Available at game start in first inventory slot
+
+## ⚡ Technical Features
+
+- **Engine**: JavaScript ES6+ with Canvas API
+- **Physics**: Custom collision system
+- **Rendering**: Optimized with viewport culling
+- **Performance**: 60 FPS target with optimized game loop
+- **Memory**: Efficient block management with sparse arrays
+
+## 🆕 Recent Improvements
+
+### ✨ New Features
+- **🎯 Centered Game**: Game is now perfectly centered in browser window for optimal visual experience
+- **⛏️ Diamond Pickaxe**: New powerful tool that breaks blocks instantly
+  - Distinctive cyan color in inventory
+  - Instant mining for all blocks (except bedrock)
+  - Available from start in first slot
+- **💧 Improved Water Generation**: Water now appears correctly at ground level instead of in sky
+- **🎯 Block Indicator**: White dashed outline clearly shows which block you're targeting
+- **👁️ Improved Block Preview**: Blocks to be placed appear semi-transparent for better visualization
+
+### 🔧 Technical Improvements
+- Optimized CSS layout with flexbox for perfect centering
+- Enhanced rendering system for visual indicators
+- Optimized world generation logic
+- Enhanced inventory management with new tools
+
+## 🛠️ Advanced Features
+
+### Physics System
+- Realistic gravity
+- Precise collisions
+- Water resistance (now correctly positioned at ground level)
+- Terrain friction
+
+### World Generation
+- Noise algorithm for natural terrain
+- Intelligent tree placement
+- **Improved Water**: Correct water generation at ground level
+- Realistic mineral distribution
+- Safe player spawn
 
 ### UI/UX
-- Feedback visivo per mining
-- **Anteprima blocchi migliorata**: Rendering semi-trasparente
-- **Indicatore mouse**: Contorno tratteggiato bianco sui blocchi target
-- **Layout centrato**: Game perfettamente centrato nella finestra del browser
-- Informazioni contextual
-- Design responsive
+- Visual feedback for mining
+- **Improved Block Preview**: Semi-transparent rendering
+- **Mouse Indicator**: White dashed outline on target blocks
+- **Centered Layout**: Game perfectly centered in browser window
+- Contextual information
+- Responsive design
 
-## 🐛 Debug e Sviluppo
+## 🐛 Debug and Development
 
-Il gioco include funzionalità di debug:
-- Posizione del giocatore in tempo reale
+The game includes debug features:
+- Real-time player position
 - FPS counter
-- Informazioni sui blocchi
-- Console JavaScript accessibile tramite `window.game`
+- Block information
+- JavaScript console accessible via `window.game`
 
-## 🔧 Personalizzazione
+## 🔧 Customization
 
-Puoi facilmente modificare:
-- Dimensioni del mondo in `world.js`
-- Tipi di blocchi in `blocks.js`
-- Controlli in `input.js`
-- Stili visuali nei file CSS
+You can easily modify:
+- World dimensions in `world.js`
+- Block types in `blocks.js`
+- Controls in `input.js`
+- Visual styles in CSS files
 
-## 📱 Compatibilità
+## 📱 Compatibility
 
 - ✅ Chrome/Chromium
 - ✅ Firefox
 - ✅ Safari
 - ✅ Edge
-- 📱 Mobile (controlli touch limitati)
+- 📱 Mobile (limited touch controls)
 
-## 🚀 Prestazioni
+## 🚀 Performance
 
-- **Rendering ottimizzato**: Solo i blocchi visibili vengono renderizzati
-- **Memoria efficiente**: Sparse array per la gestione dei blocchi vuoti
-- **60 FPS target**: Game loop ottimizzato per performance fluide
+- **Optimized Rendering**: Only visible blocks are rendered
+- **Efficient Memory**: Sparse array for empty block management
+- **60 FPS Target**: Optimized game loop for smooth performance
 
 ---
 
-**Divertiti a costruire e esplorare il tuo mondo Minecraft! 🎮**
+**Have fun building and exploring your Minecraft world! 🎮**
