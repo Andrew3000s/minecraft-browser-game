@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Precipitation Debug Test</title>
+    <style>
+        body { margin: 0; background: #87CEEB; }
+        canvas { border: 1px solid #000; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; font-family: Arial; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="info">
+        <div>Press R for Rain, S for Snow, H for Hail</div>
+        <div id="stats">Particles: 0</div>
+    </div>
+
+    <script src="src/js/weather.js"></script>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Mock camera
+        const camera = { x: 0, y: 0, zoom: 1 };
+        
+        // Initialize weather system
+        const weather = new WeatherSystem(canvas, ctx);
+        
+        let lastTime = 0;
+        
+        function gameLoop(currentTime) {
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            // Clear canvas
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Update weather
+            weather.update(deltaTime);
+            
+            // Render weather
+            weather.render(camera);
+            
+            // Update stats
+            const stats = document.getElementById('stats');
+            stats.textContent = `Particles: ${weather.precipitation.length}`;
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            switch(e.key.toLowerCase()) {
+                case 'r':
+                    weather.forceWeatherChange('rain');
+                    break;
+                case 's':
+                    weather.forceWeatherChange('snow');
+                    break;
+                case 'h':
+                    weather.forceWeatherChange('hail');
+                    break;
+                case 'c':
+                    weather.forceWeatherChange('clear');
+                    break;
+            }
+        });
+        
+        // Start the game loop
+        requestAnimationFrame(gameLoop);
+        
+        console.log('🎮 Precipitation debug test loaded');
+        console.log('Weather system:', weather);
+    </script>
+</body>
+</html>

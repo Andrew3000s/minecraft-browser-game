@@ -1,7 +1,8 @@
 // Weather system for Minecraft browser game
 // Includes clouds, rain, snow, hail, wind and dynamic weather changes
 
-class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = null) {
+class WeatherSystem {
+    constructor(canvas, world, timeSystem, soundSystem = null) {
         console.log('🌤️ Initializing WeatherSystem...');
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
@@ -30,8 +31,7 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         this.clouds = [];
         this.cloudDensity = 0.3; // How cloudy it is (0-1)
         this.initializeClouds();
-        
-        // Precipitation particles
+          // Precipitation particles
         this.precipitation = [];
         this.maxPrecipitation = 500;
         
@@ -61,6 +61,55 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
             rain: {
                 cloudCover: 0.9,
                 precipitationChance: 0.8,
+                windStrength: 0.5,
+                visibility: 0.6,
+                temperature: 0.6
+            },
+            storm: {
+                cloudCover: 1.0,
+                precipitationChance: 1.0,
+                windStrength: 0.8,
+                visibility: 0.4,
+                temperature: 0.5
+            },
+            snow: {
+                cloudCover: 0.8,
+                precipitationChance: 0.7,
+                windStrength: 0.3,
+                visibility: 0.7,
+                temperature: 0.2
+            },
+            blizzard: {
+                cloudCover: 1.0,
+                precipitationChance: 1.0,
+                windStrength: 0.9,
+                visibility: 0.3,
+                temperature: 0.1
+            },
+            hail: {
+                cloudCover: 0.95,
+                precipitationChance: 0.9,
+                windStrength: 0.6,
+                visibility: 0.5,
+                temperature: 0.4
+            }
+        };
+        
+        // Weather change probabilities (per minute of game time)
+        this.weatherTransitions = {
+            clear: { cloudy: 0.3, rain: 0.1, snow: 0.05 },
+            cloudy: { clear: 0.2, overcast: 0.3, rain: 0.2, snow: 0.1 },
+            overcast: { cloudy: 0.3, rain: 0.4, storm: 0.1, snow: 0.15 },
+            rain: { cloudy: 0.3, overcast: 0.2, storm: 0.15, clear: 0.1 },
+            storm: { rain: 0.6, overcast: 0.3, hail: 0.1 },
+            snow: { cloudy: 0.4, blizzard: 0.1, clear: 0.2, overcast: 0.3 },
+            blizzard: { snow: 0.7, overcast: 0.3 },
+            hail: { storm: 0.5, rain: 0.3, overcast: 0.2 }
+        };
+        
+        // Initialize with clear weather
+        this.changeWeather('clear');
+    }
                 windStrength: 0.5,
                 visibility: 0.6,
                 temperature: 0.6
@@ -223,64 +272,48 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
                     this.createPrecipitationParticle();
                 }
             }
-        }        // Update existing precipitation
+        }
+        
+        // Update existing precipitation
         for (let i = this.precipitation.length - 1; i >= 0; i--) {
             const particle = this.precipitation[i];
             this.updatePrecipitationParticle(particle, deltaTime);
             
             // Remove particles that are off screen or have lived too long
-            // 🔧 FIX: Use camera-relative coordinates for bounds checking
-            const camera = this.camera || { x: 0, y: 0 };
-            const screenX = particle.x - camera.x;
-            const screenY = particle.y - camera.y;
-            
-            const shouldRemove = (screenY > this.canvas.height + 100 || 
-                                screenX < -200 || screenX > this.canvas.width + 200 ||
-                                screenY < -300 || // Allow particles to exist above screen
-                                particle.life <= 0);
-            
-            if (shouldRemove) {
+            if (particle.y > this.canvas.height + 10 || 
+                particle.x < -50 || particle.x > this.canvas.width + 50 ||
+                particle.life <= 0) {
                 this.precipitation.splice(i, 1);
-                // Debug log occasionally
-                if (Math.random() < 0.01) {
-                    console.log(`🗑️ Removed particle: screenPos(${Math.round(screenX)}, ${Math.round(screenY)}), life: ${particle.life.toFixed(2)}`);
-                }
             }
         }
-        
-        // Debug log particle count occasionally
-        if (Math.random() < 0.01) {
-            console.log(`💧 Active particles: ${this.precipitation.length}`);
-        }
-    }    createPrecipitationParticle() {
+    }
+    
+    createPrecipitationParticle() {
         const windEffect = Math.cos(this.wind.direction) * this.wind.strength * 100;
         
-        // 🔧 FIX: Create particles above the visible screen area
-        const camera = this.camera || { x: 0, y: 0 };
-        
         let particle = {
-            // Create particles across the full width of the screen with wind effect
-            x: camera.x + (Math.random() - 0.5) * this.canvas.width * 1.5 + windEffect,            // Create particles well above the screen so they fall into view
-            y: camera.y - 100 - Math.random() * 200,
-            life: 8.0, // Longer life for better visibility
+            x: Math.random() * this.canvas.width - windEffect,
+            y: -10,
+            life: 1.0,
             type: this.getPrecipitationType()
         };
-          // Set particle properties based on type
+        
+        // Set particle properties based on type
         switch (particle.type) {
             case 'rain':
                 particle.vx = Math.cos(this.wind.direction) * this.wind.strength * 50;
                 particle.vy = 200 + Math.random() * 100;
-                particle.width = 2 + Math.random() * 2;  // Larger raindrops
-                particle.height = 12 + Math.random() * 16;  // Longer raindrops
-                particle.opacity = 0.7 + Math.random() * 0.3;  // More opaque
+                particle.width = 1 + Math.random();
+                particle.height = 8 + Math.random() * 12;
+                particle.opacity = 0.6 + Math.random() * 0.4;
                 break;
                 
             case 'snow':
                 particle.vx = Math.cos(this.wind.direction) * this.wind.strength * 20;
                 particle.vy = 30 + Math.random() * 40;
-                particle.width = 3 + Math.random() * 4;  // Larger snowflakes
+                particle.width = 2 + Math.random() * 3;
                 particle.height = particle.width;
-                particle.opacity = 0.9 + Math.random() * 0.1;  // Very opaque
+                particle.opacity = 0.8 + Math.random() * 0.2;
                 particle.rotation = Math.random() * Math.PI * 2;
                 particle.rotationSpeed = (Math.random() - 0.5) * 2;
                 break;
@@ -288,9 +321,9 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
             case 'hail':
                 particle.vx = Math.cos(this.wind.direction) * this.wind.strength * 80;
                 particle.vy = 150 + Math.random() * 150;
-                particle.width = 4 + Math.random() * 5;  // Larger hail
+                particle.width = 3 + Math.random() * 4;
                 particle.height = particle.width;
-                particle.opacity = 0.95;  // Almost opaque
+                particle.opacity = 0.9;
                 particle.bounce = 0.3;
                 break;
         }
@@ -327,14 +360,10 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
                 }
                 break;
         }
-          // Fade out over time
-        particle.life -= deltaTime;
         
-        // Keep opacity stable until near end of life, then fade out
-        const fadeThreshold = 1.0; // Start fading when life < 1 second
-        if (particle.life < fadeThreshold) {
-            particle.opacity = particle.opacity * (particle.life / fadeThreshold);
-        }
+        // Fade out over time
+        particle.life -= deltaTime * 0.5;
+        particle.opacity = Math.min(particle.opacity, particle.life);
     }
     
     getPrecipitationType() {
@@ -469,40 +498,27 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         if (weather === 'clear' && this.clouds.length > 15) {
             this.clouds = this.clouds.slice(0, 15);
         }
-    }    render(camera, ctx = null) {
-        // Use provided context or fall back to weather system's own context
-        const renderCtx = ctx || this.ctx;
-        if (!renderCtx) {
-            console.warn('🚨 No rendering context available, skipping weather render');
-            return;
-        }
-        
+    }    render(camera) {
         // Safety check for camera properties
         if (!camera || typeof camera.x !== 'number' || typeof camera.y !== 'number') {
             console.warn('🚨 Invalid camera object, skipping weather render');
             return;
         }
         
-        // Store camera reference for particle creation
-        this.camera = camera;
-        
         // Default zoom if not provided
         if (typeof camera.zoom !== 'number') {
             camera.zoom = 1.0;
         }
         
-        // Store the original context and temporarily use the provided one
-        const originalCtx = this.ctx;
-        this.ctx = renderCtx;
-        
-        // Render all weather effects
+        // Render clouds
         this.renderClouds(camera);
-        this.renderPrecipitation(camera);
-        this.renderWeatherEffects();
         
-        // Restore original context
-        this.ctx = originalCtx;
-    }renderClouds(camera) {
+        // Render precipitation
+        this.renderPrecipitation(camera);
+        
+        // Render weather effects (fog, visibility reduction)
+        this.renderWeatherEffects();
+    }    renderClouds(camera) {
         this.ctx.save();
         
         // Sort clouds by depth for proper layering
@@ -569,36 +585,25 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         
         return `rgb(${r}, ${g}, ${b})`;
     }    renderPrecipitation(camera) {
-        if (!this.ctx) {
-            console.warn('🚨 No render context available for precipitation');
-            return;
-        }
-        
         this.ctx.save();
         
-        let renderedCount = 0;
+        // 🔧 DEBUG: Force particles to be visible with debug rendering
+        if (this.precipitation.length > 0 && Math.random() < 0.05) {
+            console.log(`🌧️ Rendering ${this.precipitation.length} precipitation particles`);
+        }
+        
         for (let particle of this.precipitation) {
             const screenX = particle.x - camera.x;
             const screenY = particle.y - camera.y;
-              // More generous clipping bounds for testing
-            if (screenX < -100 || screenX > this.canvas.width + 100 ||
-                screenY < -100 || screenY > this.canvas.height + 100) {
+              // Skip particles outside screen bounds (with margin)
+            if (screenX < -50 || screenX > this.canvas.width + 50 ||
+                screenY < -50 || screenY > this.canvas.height + 50) {
                 continue;
             }
             
-            this.ctx.globalAlpha = particle.opacity;
+            // 🔧 DEBUG: Force high opacity and bright colors for testing
+            this.ctx.globalAlpha = Math.max(0.8, particle.opacity);
             this.renderPrecipitationParticle(screenX, screenY, particle);
-            renderedCount++;
-        }
-          // Debug log occasionally
-        if (Math.random() < 0.1) {
-            console.log(`🌧️ Rendered ${renderedCount}/${this.precipitation.length} particles. Camera: (${Math.round(camera.x)}, ${Math.round(camera.y)})`);
-            if (this.precipitation.length > 0) {
-                const sample = this.precipitation[0];
-                const sampleScreenX = sample.x - camera.x;
-                const sampleScreenY = sample.y - camera.y;
-                console.log(`🔍 Sample particle: world(${Math.round(sample.x)}, ${Math.round(sample.y)}) screen(${Math.round(sampleScreenX)}, ${Math.round(sampleScreenY)}) life: ${sample.life.toFixed(2)} opacity: ${sample.opacity.toFixed(2)}`);
-            }
         }
         
         this.ctx.restore();
@@ -606,8 +611,9 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
       renderPrecipitationParticle(x, y, particle) {
         switch (particle.type) {
             case 'rain':
-                this.ctx.strokeStyle = '#4A90E2';  // More visible blue color
-                this.ctx.lineWidth = Math.max(2, particle.width);  // Minimum width of 2
+                // 🔧 DEBUG: Make rain more visible
+                this.ctx.strokeStyle = '#00BFFF'; // Brighter blue
+                this.ctx.lineWidth = Math.max(2, particle.width);
                 this.ctx.beginPath();
                 this.ctx.moveTo(x, y);
                 this.ctx.lineTo(x + particle.vx * 0.02, y + particle.height);
@@ -619,24 +625,21 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
                 this.ctx.translate(x, y);
                 this.ctx.rotate(particle.rotation);
                 this.ctx.fillStyle = '#FFFFFF';
-                this.ctx.shadowColor = '#CCCCCC';
-                this.ctx.shadowBlur = 2;
                 
-                // Draw larger snowflake
-                const snowSize = Math.max(3, particle.width);
+                // Draw snowflake
                 this.ctx.beginPath();
-                this.ctx.arc(0, 0, snowSize, 0, Math.PI * 2);
+                this.ctx.arc(0, 0, particle.width, 0, Math.PI * 2);
                 this.ctx.fill();
                 
                 // Add snowflake arms
                 this.ctx.strokeStyle = '#FFFFFF';
-                this.ctx.lineWidth = 2;
+                this.ctx.lineWidth = 1;
                 for (let i = 0; i < 6; i++) {
                     this.ctx.save();
                     this.ctx.rotate((Math.PI * 2 * i) / 6);
                     this.ctx.beginPath();
                     this.ctx.moveTo(0, 0);
-                    this.ctx.lineTo(0, -snowSize);
+                    this.ctx.lineTo(0, -particle.width);
                     this.ctx.stroke();
                     this.ctx.restore();
                 }
@@ -645,21 +648,16 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
                 break;
                 
             case 'hail':
-                // Larger, more visible hail
-                const hailSize = Math.max(4, particle.width);
-                this.ctx.fillStyle = '#E0E6FF';
-                this.ctx.strokeStyle = '#B0B6DD';
-                this.ctx.lineWidth = 1;
+                this.ctx.fillStyle = '#E6E6FA';
                 this.ctx.beginPath();
-                this.ctx.arc(x, y, hailSize, 0, Math.PI * 2);
+                this.ctx.arc(x, y, particle.width, 0, Math.PI * 2);
                 this.ctx.fill();
-                this.ctx.stroke();
                 
-                // Add highlight for 3D effect
+                // Add highlight
                 this.ctx.fillStyle = '#FFFFFF';
                 this.ctx.beginPath();
-                this.ctx.arc(x - hailSize * 0.3, y - hailSize * 0.3, 
-                           hailSize * 0.4, 0, Math.PI * 2);
+                this.ctx.arc(x - particle.width * 0.3, y - particle.width * 0.3, 
+                           particle.width * 0.4, 0, Math.PI * 2);
                 this.ctx.fill();
                 break;
         }
@@ -797,7 +795,8 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
             visibility: this.weatherTypes[this.currentWeather]?.visibility || 1.0
         };
     }
-      // Debug methods for testing weather
+    
+    // Debug methods for testing weather
     forceWeather(weatherType) {
         if (this.weatherTypes[weatherType]) {
             console.log(`🌤️ Forcing weather to: ${weatherType}`);
@@ -806,30 +805,6 @@ class WeatherSystem {    constructor(canvas, world, timeSystem, soundSystem = nu
         }
         console.warn(`Unknown weather type: ${weatherType}. Available: ${Object.keys(this.weatherTypes).join(', ')}`);
         return false;
-    }
-    
-    // Create test particles guaranteed to be visible
-    createTestParticles(count = 50) {
-        const camera = this.camera || { x: 0, y: 0 };
-        
-        for (let i = 0; i < count; i++) {
-            const particle = {
-                // Create particles in visible screen area
-                x: camera.x + (i % 10) * (this.canvas.width / 10),
-                y: camera.y + Math.floor(i / 10) * 50,
-                vx: (Math.random() - 0.5) * 50,
-                vy: 100 + Math.random() * 100,
-                width: 2 + Math.random() * 2,
-                height: 8 + Math.random() * 12,
-                opacity: 0.8 + Math.random() * 0.2,
-                life: 10.0, // Long life for testing
-                type: 'rain'
-            };
-            this.precipitation.push(particle);
-        }
-        
-        console.log(`🧪 Created ${count} test particles at camera position (${camera.x}, ${camera.y})`);
-        console.log(`Total particles: ${this.precipitation.length}`);
     }
     
     getAvailableWeatherTypes() {

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌧️ Direct Rain Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #333;
+            font-family: monospace;
+            color: white;
+        }
+        
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB, #98D8E8);
+        }
+        
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="info">
+        <h3>🌧️ DIRECT RAIN TEST</h3>
+        <div>This test draws rain particles directly to the canvas</div>
+        <div>If you see rain here but not in the game, there's a context issue</div>
+        <div>Particles: <span id="count">0</span></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particles = [];
+        
+        // Create rain particles continuously
+        function createRainParticle() {
+            return {
+                x: Math.random() * canvas.width,
+                y: -20,
+                vx: (Math.random() - 0.5) * 20,
+                vy: 300 + Math.random() * 200,
+                width: 1 + Math.random() * 3,
+                height: 10 + Math.random() * 20,
+                opacity: 0.4 + Math.random() * 0.6
+            };
+        }
+        
+        function update(deltaTime) {
+            // Add new particles aggressively
+            for (let i = 0; i < 5; i++) {
+                particles.push(createRainParticle());
+            }
+            
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx * deltaTime;
+                p.y += p.vy * deltaTime;
+                
+                if (p.y > canvas.height + 50 || p.x < -50 || p.x > canvas.width + 50) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            document.getElementById('count').textContent = particles.length;
+        }
+        
+        function render() {
+            // Clear canvas
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#98D8E8');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ALL particles as THICK WHITE LINES for maximum visibility
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.shadowColor = '#4A90E2';
+            ctx.shadowBlur = 2;
+            
+            for (let particle of particles) {
+                ctx.globalAlpha = particle.opacity;
+                ctx.lineWidth = Math.max(3, particle.width); // THICK lines
+                
+                ctx.beginPath();
+                ctx.moveTo(particle.x, particle.y);
+                ctx.lineTo(particle.x + particle.vx * 0.02, particle.y + particle.height);
+                ctx.stroke();
+            }
+            
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1.0;
+        }
+        
+        let lastTime = performance.now();
+        function gameLoop() {
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            update(deltaTime);
+            render();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        gameLoop();
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+        
+        console.log('🌧️ Direct rain test started - you should see THICK WHITE rain lines immediately');
+    </script>
+</body>
+</html>

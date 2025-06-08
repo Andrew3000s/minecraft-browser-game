@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌧️ Precipitation Debug Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #debugPanel {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #ff6b6b;
+            max-width: 300px;
+            z-index: 1000;
+            font-size: 12px;
+        }
+        
+        .debug-item {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .debug-value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .controls {
+            margin-top: 15px;
+            border-top: 1px solid #444;
+            padding-top: 15px;
+        }
+        
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin: 3px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        button:hover {
+            background: #1976D2;
+        }
+        
+        button.active {
+            background: #4CAF50;
+        }
+        
+        #particleList {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        
+        .particle-info {
+            margin: 2px 0;
+            padding: 2px 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="debugPanel">
+            <h3>🐛 Precipitation Debug</h3>
+            
+            <div class="debug-item">
+                <span>Weather:</span>
+                <span class="debug-value" id="currentWeather">clear</span>
+            </div>
+            <div class="debug-item">
+                <span>Intensity:</span>
+                <span class="debug-value" id="weatherIntensity">0%</span>
+            </div>
+            <div class="debug-item">
+                <span>Precipitation Count:</span>
+                <span class="debug-value" id="precipitationCount">0</span>
+            </div>
+            <div class="debug-item">
+                <span>Camera X:</span>
+                <span class="debug-value" id="cameraX">0</span>
+            </div>
+            <div class="debug-item">
+                <span>Camera Y:</span>
+                <span class="debug-value" id="cameraY">0</span>
+            </div>
+            <div class="debug-item">
+                <span>Canvas Size:</span>
+                <span class="debug-value" id="canvasSize">0x0</span>
+            </div>
+            <div class="debug-item">
+                <span>Visible Particles:</span>
+                <span class="debug-value" id="visibleParticles">0</span>
+            </div>
+            
+            <div class="controls">
+                <button onclick="forceRain()">🌧️ Force Rain</button>
+                <button onclick="forceSnow()">❄️ Force Snow</button>
+                <button onclick="forceStorm()">⛈️ Force Storm</button>
+                <button onclick="clearWeather()">☀️ Clear</button>
+                <br>
+                <button onclick="createTestParticles()">➕ Create Test Particles</button>
+                <button onclick="toggleDebugRender()" id="debugRenderBtn">🎨 Debug Render</button>
+                <button onclick="logParticleInfo()">📊 Log Info</button>
+            </div>
+            
+            <div id="particleList"></div>
+        </div>
+    </div>
+
+    <!-- Include game scripts -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/weather.js"></script>
+
+    <script>
+        let canvas, ctx, weatherSystem;
+        let debugRenderEnabled = false;
+        let lastParticleInfo = [];
+        
+        // Simple camera object for testing
+        const camera = { x: 0, y: 0, zoom: 1.0 };
+        
+        // Simple time system mock
+        const timeSystem = {
+            getTimeOfDay: () => 0.5,
+            isDay: () => true,
+            isNight: () => false,
+            getLightLevel: () => 1.0,
+            getSkyColor: () => '#87CEEB'
+        };
+        
+        // Initialize
+        window.addEventListener('load', () => {
+            try {
+                canvas = document.getElementById('gameCanvas');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                ctx = canvas.getContext('2d');
+                
+                console.log('🐛 Initializing precipitation debug test...');
+                console.log(`Canvas: ${canvas.width}x${canvas.height}`);
+                
+                // Create weather system
+                weatherSystem = new WeatherSystem(canvas, null, timeSystem);
+                
+                // Start update loop
+                setInterval(updateDebug, 100);
+                setInterval(renderDebug, 16);
+                
+                console.log('🐛 Debug test ready!');
+                
+            } catch (error) {
+                console.error('❌ Debug initialization error:', error);
+            }
+        });
+        
+        function updateDebug() {
+            if (!weatherSystem) return;
+            
+            try {
+                // Update weather system
+                weatherSystem.update(0.1);
+                
+                // Update debug info
+                const weatherInfo = weatherSystem.getCurrentWeatherInfo();
+                
+                document.getElementById('currentWeather').textContent = weatherInfo.weather;
+                document.getElementById('weatherIntensity').textContent = 
+                    `${Math.round(weatherInfo.intensity * 100)}%`;
+                document.getElementById('precipitationCount').textContent = 
+                    weatherSystem.precipitation.length;
+                document.getElementById('cameraX').textContent = camera.x;
+                document.getElementById('cameraY').textContent = camera.y;
+                document.getElementById('canvasSize').textContent = 
+                    `${canvas.width}x${canvas.height}`;
+                
+                // Count visible particles
+                let visibleCount = 0;
+                for (let particle of weatherSystem.precipitation) {
+                    const screenX = particle.x - camera.x;
+                    const screenY = particle.y - camera.y;
+                    
+                    if (screenX >= -50 && screenX <= canvas.width + 50 &&
+                        screenY >= -50 && screenY <= canvas.height + 50) {
+                        visibleCount++;
+                    }
+                }
+                document.getElementById('visibleParticles').textContent = visibleCount;
+                
+                // Update particle list
+                updateParticleList();
+                
+            } catch (error) {
+                console.error('❌ Debug update error:', error);
+            }
+        }
+        
+        function renderDebug() {
+            if (!ctx || !weatherSystem) return;
+            
+            try {
+                // Clear canvas
+                ctx.fillStyle = timeSystem.getSkyColor();
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw grid for reference
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                for (let x = 0; x < canvas.width; x += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < canvas.height; y += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+                
+                // Render weather with debug info
+                if (debugRenderEnabled) {
+                    renderDebugParticles();
+                } else {
+                    weatherSystem.render(camera, ctx);
+                }
+                
+                // Draw camera position indicator
+                ctx.fillStyle = '#ff6b6b';
+                ctx.fillRect(10, canvas.height - 30, 20, 20);
+                ctx.fillStyle = 'white';
+                ctx.font = '12px monospace';
+                ctx.fillText(`Camera: ${camera.x}, ${camera.y}`, 40, canvas.height - 15);
+                
+            } catch (error) {
+                console.error('❌ Debug render error:', error);
+            }
+        }
+        
+        function renderDebugParticles() {
+            ctx.save();
+            
+            for (let i = 0; i < weatherSystem.precipitation.length; i++) {
+                const particle = weatherSystem.precipitation[i];
+                const screenX = particle.x - camera.x;
+                const screenY = particle.y - camera.y;
+                
+                // Draw particle with debug info
+                ctx.fillStyle = particle.type === 'rain' ? '#4A90E2' : 
+                               particle.type === 'snow' ? '#FFFFFF' : '#E0E6FF';
+                ctx.globalAlpha = 0.8;
+                
+                // Draw particle as a circle for visibility
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw particle info
+                ctx.fillStyle = 'white';
+                ctx.font = '8px monospace';
+                ctx.globalAlpha = 1.0;
+                ctx.fillText(`${i}`, screenX + 7, screenY - 7);
+                ctx.fillText(`${Math.round(screenX)},${Math.round(screenY)}`, 
+                           screenX + 7, screenY + 5);
+                
+                // Draw bounding box for visible area check
+                if (screenX >= -50 && screenX <= canvas.width + 50 &&
+                    screenY >= -50 && screenY <= canvas.height + 50) {
+                    ctx.strokeStyle = '#4CAF50';
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.5;
+                    ctx.strokeRect(screenX - 3, screenY - 3, 6, 6);
+                }
+            }
+            
+            ctx.restore();
+        }
+        
+        function updateParticleList() {
+            const list = document.getElementById('particleList');
+            let html = '<strong>First 10 Particles:</strong><br>';
+            
+            for (let i = 0; i < Math.min(10, weatherSystem.precipitation.length); i++) {
+                const p = weatherSystem.precipitation[i];
+                const screenX = Math.round(p.x - camera.x);
+                const screenY = Math.round(p.y - camera.y);
+                const visible = (screenX >= -50 && screenX <= canvas.width + 50 &&
+                               screenY >= -50 && screenY <= canvas.height + 50);
+                
+                html += `<div class="particle-info">
+                    ${i}: ${p.type} @ (${Math.round(p.x)}, ${Math.round(p.y)}) 
+                    screen:(${screenX}, ${screenY}) 
+                    ${visible ? '✅' : '❌'} opacity:${p.opacity.toFixed(2)}
+                </div>`;
+            }
+            
+            list.innerHTML = html;
+        }
+        
+        // Control functions
+        function forceRain() {
+            if (weatherSystem) {
+                weatherSystem.forceWeather('rain');
+                console.log('🌧️ Forced rain weather');
+            }
+        }
+        
+        function forceSnow() {
+            if (weatherSystem) {
+                weatherSystem.forceWeather('snow');
+                console.log('❄️ Forced snow weather');
+            }
+        }
+        
+        function forceStorm() {
+            if (weatherSystem) {
+                weatherSystem.forceWeather('storm');
+                console.log('⛈️ Forced storm weather');
+            }
+        }
+        
+        function clearWeather() {
+            if (weatherSystem) {
+                weatherSystem.forceWeather('clear');
+                console.log('☀️ Cleared weather');
+            }
+        }
+        
+        function createTestParticles() {
+            if (!weatherSystem) return;
+            
+            // Create test particles at specific locations
+            for (let i = 0; i < 20; i++) {
+                const particle = {
+                    x: camera.x + (i * 50) + 100,
+                    y: camera.y + 100 + (i * 10),
+                    vx: 0,
+                    vy: 100,
+                    type: 'rain',
+                    width: 3,
+                    height: 15,
+                    opacity: 0.8,
+                    life: 1.0
+                };
+                weatherSystem.precipitation.push(particle);
+            }
+            console.log(`➕ Added 20 test particles at camera position (${camera.x}, ${camera.y})`);
+        }
+        
+        function toggleDebugRender() {
+            debugRenderEnabled = !debugRenderEnabled;
+            const btn = document.getElementById('debugRenderBtn');
+            btn.textContent = debugRenderEnabled ? '🎨 Normal Render' : '🎨 Debug Render';
+            btn.classList.toggle('active', debugRenderEnabled);
+        }
+        
+        function logParticleInfo() {
+            if (!weatherSystem) return;
+            
+            console.log('🐛 Current Precipitation Debug Info:');
+            console.log(`Total particles: ${weatherSystem.precipitation.length}`);
+            console.log(`Weather: ${weatherSystem.currentWeather}`);
+            console.log(`Intensity: ${weatherSystem.weatherIntensity}`);
+            console.log(`Camera: ${camera.x}, ${camera.y}`);
+            console.log(`Canvas: ${canvas.width}x${canvas.height}`);
+            
+            // Log first few particles
+            for (let i = 0; i < Math.min(5, weatherSystem.precipitation.length); i++) {
+                const p = weatherSystem.precipitation[i];
+                console.log(`Particle ${i}:`, {
+                    world: { x: p.x, y: p.y },
+                    screen: { x: p.x - camera.x, y: p.y - camera.y },
+                    type: p.type,
+                    opacity: p.opacity,
+                    velocity: { x: p.vx, y: p.vy }
+                });
+            }
+        }
+        
+        // Camera controls with arrow keys
+        window.addEventListener('keydown', (e) => {
+            const moveSpeed = 50;
+            switch (e.key) {
+                case 'ArrowLeft':
+                    camera.x -= moveSpeed;
+                    break;
+                case 'ArrowRight':
+                    camera.x += moveSpeed;
+                    break;
+                case 'ArrowUp':
+                    camera.y -= moveSpeed;
+                    break;
+                case 'ArrowDown':
+                    camera.y += moveSpeed;
+                    break;
+                case 'r':
+                    camera.x = 0;
+                    camera.y = 0;
+                    break;
+            }
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+        
+        console.log('🐛 Precipitation Debug Test loaded!');
+        console.log('Controls: Arrow keys to move camera, R to reset camera');
+        console.log('Use the debug panel to test weather and particles');
+    </script>
+</body>
+</html>

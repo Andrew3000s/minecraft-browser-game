@@ -619,9 +619,7 @@ class MinecraftGame {
         if (Math.random() < 0.1) { // Update UI less frequently for performance
             this.updateUI();
         }
-    }
-
-    render() {
+    }    render() {
         // Clear canvas with time-based sky color
         this.ctx.fillStyle = this.timeSystem.getSkyColor();
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -629,9 +627,6 @@ class MinecraftGame {
         // Add stars effect during night
         if (this.timeSystem.isNight()) {
             this.renderStars();
-        }        // Render weather effects (clouds, precipitation)
-        if (this.weather) {
-            this.weather.render(this.camera);
         }
 
         // Render world normally (no lighting overlay here)
@@ -644,7 +639,10 @@ class MinecraftGame {
         this.particles.render(this.ctx, this.camera);
 
         // Render player
-        this.player.render(this.ctx, this.camera);
+        this.player.render(this.ctx, this.camera);        // 🔧 FIX: Render weather effects AFTER world and entities so precipitation is visible
+        if (this.weather) {
+            this.weather.render(this.camera, this.ctx);
+        }
 
         // Apply darkness overlay for night (but reduced where torches are)
         const lightLevel = this.timeSystem.getLightLevel();

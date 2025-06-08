@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌧️ Simple Precipitation Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #333;
+            font-family: monospace;
+            color: white;
+        }
+        
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB, #98D8E8);
+        }
+        
+        #controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        #info {
+            margin-top: 15px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="controls">
+        <h3>🌧️ Precipitation Test</h3>
+        <button onclick="startRain()">Start Rain</button>
+        <button onclick="startSnow()">Start Snow</button>
+        <button onclick="clearAll()">Clear</button>
+        <button onclick="addManualParticles()">Add Test Particles</button>
+        
+        <div id="info">
+            <div>Particles: <span id="particleCount">0</span></div>
+            <div>Mouse: <span id="mousePos">0, 0</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Simple particle array
+        let particles = [];
+        let isRaining = false;
+        let isSnowing = false;
+        
+        // Mouse tracking
+        let mouseX = 0, mouseY = 0;
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            document.getElementById('mousePos').textContent = `${mouseX}, ${mouseY}`;
+        });
+        
+        function createRainParticle() {
+            return {
+                x: Math.random() * canvas.width,
+                y: -20,
+                vx: (Math.random() - 0.5) * 2,
+                vy: 200 + Math.random() * 100,
+                width: 1 + Math.random() * 2,
+                height: 8 + Math.random() * 12,
+                opacity: 0.6 + Math.random() * 0.4,
+                type: 'rain'
+            };
+        }
+        
+        function createSnowParticle() {
+            return {
+                x: Math.random() * canvas.width,
+                y: -20,
+                vx: (Math.random() - 0.5) * 30,
+                vy: 50 + Math.random() * 50,
+                size: 2 + Math.random() * 4,
+                opacity: 0.7 + Math.random() * 0.3,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 2,
+                type: 'snow'
+            };
+        }
+        
+        function startRain() {
+            isRaining = true;
+            isSnowing = false;
+            console.log('🌧️ Starting rain');
+        }
+        
+        function startSnow() {
+            isSnowing = true;
+            isRaining = false;
+            console.log('❄️ Starting snow');
+        }
+        
+        function clearAll() {
+            isRaining = false;
+            isSnowing = false;
+            particles = [];
+            console.log('☀️ Cleared all weather');
+        }
+        
+        function addManualParticles() {
+            // Add particles around mouse position for testing
+            for (let i = 0; i < 20; i++) {
+                const particle = {
+                    x: mouseX + (Math.random() - 0.5) * 200,
+                    y: mouseY + (Math.random() - 0.5) * 100,
+                    vx: (Math.random() - 0.5) * 50,
+                    vy: 100 + Math.random() * 100,
+                    width: 2,
+                    height: 10,
+                    opacity: 0.8,
+                    type: 'rain'
+                };
+                particles.push(particle);
+            }
+            console.log(`➕ Added 20 test particles at mouse position (${mouseX}, ${mouseY})`);
+        }
+        
+        function update(deltaTime) {
+            // Add new particles
+            if (isRaining && Math.random() < 0.3) {
+                particles.push(createRainParticle());
+            }
+            if (isSnowing && Math.random() < 0.1) {
+                particles.push(createSnowParticle());
+            }
+            
+            // Update existing particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                
+                p.x += p.vx * deltaTime;
+                p.y += p.vy * deltaTime;
+                
+                if (p.type === 'snow') {
+                    p.rotation += p.rotationSpeed * deltaTime;
+                    p.vx += Math.sin(Date.now() * 0.001 + p.x * 0.01) * 20 * deltaTime;
+                }
+                
+                // Remove particles that are off screen
+                if (p.y > canvas.height + 20 || p.x < -50 || p.x > canvas.width + 50) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Update UI
+            document.getElementById('particleCount').textContent = particles.length;
+        }
+        
+        function render() {
+            // Clear with sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#98D8E8');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw particles
+            ctx.save();
+            
+            for (let particle of particles) {
+                ctx.globalAlpha = particle.opacity;
+                
+                if (particle.type === 'rain') {
+                    // Draw rain as lines
+                    ctx.strokeStyle = '#4A90E2';
+                    ctx.lineWidth = Math.max(1, particle.width);
+                    ctx.beginPath();
+                    ctx.moveTo(particle.x, particle.y);
+                    ctx.lineTo(particle.x + particle.vx * 0.02, particle.y + particle.height);
+                    ctx.stroke();
+                } else if (particle.type === 'snow') {
+                    // Draw snow as circles
+                    ctx.save();
+                    ctx.translate(particle.x, particle.y);
+                    ctx.rotate(particle.rotation);
+                    
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, particle.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Add snowflake arms
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 6; i++) {
+                        ctx.save();
+                        ctx.rotate((Math.PI * 2 * i) / 6);
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(0, -particle.size);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                    
+                    ctx.restore();
+                }
+            }
+            
+            ctx.restore();
+            
+            // Draw mouse position indicator
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 10, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Main game loop
+        let lastTime = performance.now();
+        function gameLoop() {
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            update(deltaTime);
+            render();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start the loop
+        gameLoop();
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+        
+        console.log('🌧️ Simple precipitation test loaded!');
+        console.log('Click buttons to test precipitation, move mouse to see position');
+        
+        // Auto-start rain for immediate testing
+        setTimeout(() => {
+            startRain();
+            console.log('🌧️ Auto-started rain for testing');
+        }, 1000);
+    </script>
+</body>
+</html>

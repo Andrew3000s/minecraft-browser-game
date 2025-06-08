@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Precipitazioni - Debug Weather System</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #2C5234;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            border: 2px solid #fff;
+        }
+        .controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+        button {
+            margin: 5px;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <h3>🌤️ Test Precipitazioni</h3>
+        <button onclick="setWeather('rain')">🌧️ Pioggia</button>
+        <button onclick="setWeather('snow')">❄️ Neve</button>
+        <button onclick="setWeather('storm')">⛈️ Tempesta</button>
+        <button onclick="setWeather('hail')">🧊 Grandine</button>
+        <button onclick="setWeather('clear')">☀️ Sereno</button>
+        <br>
+        <button onclick="forceCreateParticles()">✨ Forza Particelle</button>
+        <button onclick="toggleDebug()">🔍 Debug</button>
+    </div>
+    
+    <div class="debug-info" id="debugInfo">
+        <strong>Debug Info:</strong><br>
+        <div id="weatherStatus">Caricamento...</div>
+        <div id="particleCount">Particelle: 0</div>
+        <div id="cameraInfo">Camera: N/A</div>
+    </div>
+
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/weather.js"></script>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Mock time system
+        const mockTimeSystem = {
+            getLightLevel: () => 0.8,
+            getSkyColor: () => '#87CEEB',
+            isNight: () => false,
+            getTimeOfDay: () => 12
+        };
+        
+        // Mock world and sound system
+        const mockWorld = {};
+        const mockSound = {
+            playRainSound: () => console.log('🔊 Rain sound'),
+            playThunderSound: () => console.log('🔊 Thunder sound'),
+            playSnowSound: () => console.log('🔊 Snow sound'),
+            playWindSound: () => console.log('🔊 Wind sound')
+        };
+        
+        // Initialize weather system
+        const weather = new WeatherSystem(canvas, mockWorld, mockTimeSystem, mockSound);
+        
+        // Simple camera
+        const camera = { x: 0, y: 0, zoom: 1.0 };
+        
+        let debugMode = true;
+        let lastTime = 0;
+        
+        function setWeather(type) {
+            console.log(`🌤️ Setting weather to: ${type}`);
+            weather.forceWeatherChange(type);
+            updateDebugInfo();
+        }
+        
+        function forceCreateParticles() {
+            console.log('✨ Forcing particle creation...');
+            for (let i = 0; i < 100; i++) {
+                weather.createPrecipitationParticle();
+            }
+            updateDebugInfo();
+        }
+        
+        function toggleDebug() {
+            debugMode = !debugMode;
+            console.log(`🔍 Debug mode: ${debugMode ? 'ON' : 'OFF'}`);
+        }
+        
+        function updateDebugInfo() {
+            const weatherInfo = weather.getCurrentWeather();
+            document.getElementById('weatherStatus').innerHTML = 
+                `Meteo: ${weatherInfo.type}<br>Intensità: ${(weatherInfo.intensity * 100).toFixed(1)}%`;
+            document.getElementById('particleCount').innerHTML = 
+                `Particelle: ${weather.precipitation.length}`;
+            document.getElementById('cameraInfo').innerHTML = 
+                `Camera: x=${camera.x.toFixed(1)}, y=${camera.y.toFixed(1)}`;
+        }
+        
+        function gameLoop(currentTime) {
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            
+            // Update weather
+            weather.update(deltaTime);
+            
+            // Clear canvas
+            ctx.fillStyle = mockTimeSystem.getSkyColor();
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Render weather
+            weather.render(camera);
+            
+            // Update debug info periodically
+            if (debugMode && Math.random() < 0.1) {
+                updateDebugInfo();
+            }
+            
+            // Debug rendering overlay
+            if (debugMode) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.font = '12px monospace';
+                ctx.fillText(`FPS: ${(1/deltaTime).toFixed(1)}`, 10, canvas.height - 60);
+                ctx.fillText(`Weather: ${weather.currentWeather}`, 10, canvas.height - 45);
+                ctx.fillText(`Particles: ${weather.precipitation.length}`, 10, canvas.height - 30);
+                ctx.fillText(`Clouds: ${weather.clouds.length}`, 10, canvas.height - 15);
+                ctx.restore();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start the test
+        console.log('🎮 Starting precipitation test...');
+        weather.forceWeatherChange('rain'); // Start with rain
+        updateDebugInfo();
+        requestAnimationFrame(gameLoop);
+        
+        // Make functions globally accessible
+        window.weather = weather;
+        window.setWeather = setWeather;
+        window.forceCreateParticles = forceCreateParticles;
+        window.toggleDebug = toggleDebug;
+    </script>
+</body>
+</html>
