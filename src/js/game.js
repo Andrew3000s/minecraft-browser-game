@@ -1,6 +1,7 @@
 // Main game engine for Minecraft browser game
 
-class MinecraftGame {    constructor() {
+class MinecraftGame {
+    constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         
@@ -8,12 +9,11 @@ class MinecraftGame {    constructor() {
         this.resizeCanvas();
         
         // Add window resize listener for fullscreen support
-        this.resizeHandler = () => this.resizeCanvas();
-        window.addEventListener('resize', this.resizeHandler);
+        this.resizeHandler = () => this.resizeCanvas();        window.addEventListener('resize', this.resizeHandler);
         
         // Game state
         this.lastTime = 0;
-        this.camera = { x: 0, y: 0 };
+        this.camera = { x: 0, y: 0, zoom: 1.0 };
         this.gameRunning = false;
         this.isLoaded = false;
         this.isCommandGuideVisible = false; // Aggiunta per tracciare la visibilità della guida
@@ -27,9 +27,12 @@ class MinecraftGame {    constructor() {
             console.error('BlockTypes not found! Make sure blocks.js is loaded first.');
             throw new Error('BlockTypes not found');
         }
-          // 🔥 FIXED: Removed verbose initialization logging
+        
+        // Initialize the game asynchronously
         this.initializeAsync();
-    }    // Handle window resize for fullscreen support
+    }
+    
+    // Handle window resize for fullscreen support
     resizeCanvas() {
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = window.innerWidth;
@@ -38,13 +41,14 @@ class MinecraftGame {    constructor() {
         // Update canvas style to match
         this.canvas.style.width = window.innerWidth + 'px';
         this.canvas.style.height = window.innerHeight + 'px';
-        
-        // Update camera bounds if world exists
+          // Update camera bounds if world exists
         if (this.world && this.player) {
             this.camera = this.player.getCameraPosition(this.canvas.width, this.canvas.height);
             this.clampCamera();
         }
-    }    async initializeAsync() {
+    }
+    
+    async initializeAsync() {
         try {
             // Ensure loading screen is visible
             const loadingElement = document.getElementById('loadingScreen');
@@ -128,10 +132,14 @@ class MinecraftGame {    constructor() {
             
             // Initialize tooltip system
             this.tooltips = new TooltipSystem();
-            // 🔥 FIXED: Removed verbose initialization logging
-              // Initialize time system
+            // 🔥 FIXED: Removed verbose initialization logging            // Initialize time system
             this.timeSystem = new TimeSystem();
             // 🔥 FIXED: Removed verbose initialization logging
+              // Initialize weather system
+            if (typeof WeatherSystem === 'undefined') {
+                throw new Error('WeatherSystem class not found');
+            }
+            this.weather = new WeatherSystem(this.canvas, this.world, this.timeSystem, this.sound);
             
             this.updateLoadingProgress(90, 'Creating user interface...');
             await this.delay(100);
@@ -151,7 +159,9 @@ class MinecraftGame {    constructor() {
             const loadingScreen = document.getElementById('loadingScreen');
             if (loadingScreen) {
                 loadingScreen.classList.add('hidden');
-            }            this.isLoaded = true;
+            }
+            
+            this.isLoaded = true;
             // 🔥 Game initialization completed successfully
             
             // Automatically start the game after successful initialization
@@ -164,7 +174,9 @@ class MinecraftGame {    constructor() {
 
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
-    }    updateLoadingProgress(percentage, message) {
+    }
+    
+    updateLoadingProgress(percentage, message) {
         const progressBar = document.querySelector('.loading-progress');
         const loadingText = document.querySelector('.loading-screen p');
         const loadingPercentage = document.querySelector('.loading-percentage');
@@ -200,6 +212,7 @@ class MinecraftGame {    constructor() {
             <div id="entityCount">Entities: 0</div>
             <div id="fps">FPS: 0</div>
             <div id="timeDisplay">🌙 00:00 (Light: 10%)</div>
+            <div id="weatherDisplay">☀️ Clear (100%)</div>
         `;
         document.body.appendChild(uiOverlay);        // Create health bar
         const healthBar = document.createElement('div');
@@ -240,7 +253,9 @@ class MinecraftGame {    constructor() {
         gameContainer.className = 'game-container';
         gameContainer.appendChild(this.canvas);
         document.body.appendChild(gameContainer);        this.updateUI();
-    }    setupMusicControl() {
+    }
+    
+    setupMusicControl() {
         const musicControl = document.getElementById('musicControl');
         if (musicControl) {
             musicControl.addEventListener('click', () => {
@@ -259,7 +274,9 @@ class MinecraftGame {    constructor() {
         } else {
             console.warn('Music control element not found');
         }
-    }toggleCommandGuide() {
+    }
+
+    toggleCommandGuide() {
         this.isCommandGuideVisible = !this.isCommandGuideVisible;
         
         if (this.isCommandGuideVisible) {
@@ -267,7 +284,9 @@ class MinecraftGame {    constructor() {
         } else {
             this.removeCommandGuide();
         }
-    }    renderCommandGuide() {
+    }
+
+    renderCommandGuide() {
         this.removeCommandGuide(); // Remove if already exists to avoid duplicates
 
         const commandGuideElement = document.createElement('div');
@@ -352,7 +371,9 @@ class MinecraftGame {    constructor() {
                 <p>💡 <strong>Tip:</strong> Use the audio panel (M key) to fully customize your sound experience!</p>
             </div>        `;
         document.body.appendChild(commandGuideElement);
-    }    removeCommandGuide() {
+    }
+
+    removeCommandGuide() {
         const commandGuideElement = document.getElementById('commandGuideScreen');
         if (commandGuideElement) {
             commandGuideElement.remove();
@@ -368,15 +389,21 @@ class MinecraftGame {    constructor() {
             const blockY = Math.floor(this.player.y / this.world.blockSize);
             posElement.textContent = `Position: ${blockX}, ${blockY}`;
         }
-        
-        // Update time display
+          // Update time display
         const timeElement = document.getElementById('timeDisplay');
         if (timeElement && this.timeSystem) {
             const currentTime = this.timeSystem.getTimeString();
             const lightLevel = Math.round(this.timeSystem.getLightLevel() * 100);
             const timeOfDay = this.timeSystem.isDay() ? '☀️' : '🌙';
             timeElement.textContent = `${timeOfDay} ${currentTime} (Light: ${lightLevel}%)`;
-        }        
+        }        // Update weather display
+        const weatherElement = document.getElementById('weatherDisplay');
+        if (weatherElement && this.weather) {
+            const weatherInfo = this.weather.getCurrentWeatherInfo();
+            const weatherEmoji = this.tooltips.getWeatherEmoji(weatherInfo.weather);
+            const intensityText = Math.round(weatherInfo.intensity * 100);
+            weatherElement.textContent = `${weatherEmoji} ${weatherInfo.weather} (${intensityText}%)`;
+        }
         // Update block/entity info under mouse
         const mousePos = this.input?.getMousePosition();
         if (!mousePos || !this.camera) return; // Early exit if input system not ready
@@ -424,7 +451,9 @@ class MinecraftGame {    constructor() {
         // Update oxygen bar
         this.updateOxygenBar();        // Update inventory
         this.updateInventory();
-    }updateHealthBar() {
+    }
+
+    updateHealthBar() {
         const healthBar = document.getElementById('healthBar');
         if (!healthBar) return;
 
@@ -525,7 +554,10 @@ class MinecraftGame {    constructor() {
             });
             
             inventory.appendChild(slot);
-        }    }    gameLoop(currentTime) {
+        }
+        }
+    
+    gameLoop(currentTime) {
         if (!this.gameRunning) return;
 
         const deltaTime = (currentTime - this.lastTime) / 1000;
@@ -545,13 +577,21 @@ class MinecraftGame {    constructor() {
 
         // Continue the game loop
         requestAnimationFrame((time) => this.gameLoop(time));
-    }    update(deltaTime) {        // Update time system
+    }
+
+    update(deltaTime) {
+        // Update time system
         this.timeSystem.update(deltaTime);
+        
+        // Update weather system
+        if (this.weather) {
+            this.weather.update(deltaTime);
+        }
         
         // MODIFIED: Update survival time if game is running
         if (this.gameRunning) {
             this.survivalTime += deltaTime;
-        }        // Update player
+        }// Update player
         this.player.update(deltaTime, this.input);
         
         // 🐛 DEBUG: Verify game loop is calling player update
@@ -579,7 +619,9 @@ class MinecraftGame {    constructor() {
         if (Math.random() < 0.1) { // Update UI less frequently for performance
             this.updateUI();
         }
-    }render() {
+    }
+
+    render() {
         // Clear canvas with time-based sky color
         this.ctx.fillStyle = this.timeSystem.getSkyColor();
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -587,6 +629,9 @@ class MinecraftGame {    constructor() {
         // Add stars effect during night
         if (this.timeSystem.isNight()) {
             this.renderStars();
+        }        // Render weather effects (clouds, precipitation)
+        if (this.weather) {
+            this.weather.render(this.camera);
         }
 
         // Render world normally (no lighting overlay here)
@@ -617,7 +662,9 @@ class MinecraftGame {    constructor() {
         
         // Update tooltips for entities under mouse
         this.updateEntityTooltips();
-    }    renderDarknessWithTorches() {
+    }
+
+    renderDarknessWithTorches() {
         this.ctx.save();
         
         // Create darkness overlay only during night
@@ -719,7 +766,9 @@ class MinecraftGame {    constructor() {
         ctx.beginPath();
         ctx.arc(effectiveCenterX, effectiveCenterY, lightRadius, 0, Math.PI * 2);
         ctx.fill();
-    }createProperTorchLight(centerX, centerY) {
+    }
+
+    createProperTorchLight(centerX, centerY) {
         // Add synchronized flickering to torch position
         const flickerX = Math.sin(Date.now() * 0.012 + centerX * 0.01) * 2;
         const flickerY = Math.sin(Date.now() * 0.015 + centerY * 0.01) * 1.5;
@@ -791,7 +840,9 @@ class MinecraftGame {    constructor() {
         
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(effectiveCenterX - outerRadius, effectiveCenterY - outerRadius, outerRadius * 2, outerRadius * 2);
-    }    renderTorchGlow() {
+    }
+
+    renderTorchGlow() {
         this.ctx.save();
         this.ctx.globalCompositeOperation = 'screen'; // Additive blending for warm glow
         
@@ -964,7 +1015,9 @@ class MinecraftGame {    constructor() {
             previewBlock.render(this.ctx, screenX, screenY, this.world.blockSize);
             this.ctx.restore();
         }
-    }    renderMouseIndicator() {
+    }
+
+    renderMouseIndicator() {
         const mousePos = this.input.getMousePosition();
         const worldPos = Utils.screenToWorld(mousePos.x, mousePos.y, this.camera);
         
@@ -1209,9 +1262,8 @@ class MinecraftGame {    constructor() {
         window.addEventListener('resize', this.resizeHandler);
 
         // 2. Reset game state variables
-        this.gameRunning = false;
-        this.isLoaded = false;
-        this.camera = { x: 0, y: 0 };
+        this.gameRunning = false;        this.isLoaded = false;
+        this.camera = { x: 0, y: 0, zoom: 1.0 };
         this.lastTime = 0;
         this.survivalTime = 0; // MODIFIED: Reset survival time
 
@@ -1316,7 +1368,9 @@ class MinecraftGame {    constructor() {
     clampCamera() {
         this.camera.x = Utils.clamp(this.camera.x, 0, this.world.width * this.world.blockSize - this.canvas.width);
         this.camera.y = Utils.clamp(this.camera.y, 0, this.world.height * this.world.blockSize - this.canvas.height);
-    }    resetCanvasState() {
+    }
+
+    resetCanvasState() {
         // Fix canvas positioning and dimension issues that might occur on restart
         if (this.canvas) {
             // Reset canvas transform and clear any offset issues
@@ -1477,12 +1531,24 @@ class TooltipSystem {
             this.hideTooltip();
             return;
         }
-        
-        const healthPercent = Math.round((entity.health / entity.maxHealth) * 100);
+          const healthPercent = Math.round((entity.health / entity.maxHealth) * 100);
         const status = entity.isHostile ? 'Hostile' : 'Peaceful';
         const tooltipText = `${entity.type.toUpperCase()} - ${status}\nHealth: ${entity.health}/${entity.maxHealth} (${healthPercent}%)`;
-        
         this.showTooltip(tooltipText, mouseX, mouseY);
+    }
+    
+    getWeatherEmoji(weatherType) {
+        const weatherEmojis = {
+            'clear': '☀️',
+            'cloudy': '⛅',
+            'overcast': '☁️',
+            'rain': '🌧️',
+            'storm': '⛈️',
+            'snow': '❄️',
+            'blizzard': '🌨️',
+            'hail': '🌨️'
+        };
+        return weatherEmojis[weatherType] || '☀️';
     }
 }
 
@@ -1555,14 +1621,18 @@ class TimeSystem {
             return `rgb(${r}, ${g}, ${b})`;
         }
     }
-    
-    getTimeString() {
+      getTimeString() {
         const progress = this.getDayProgress();
         const hours = Math.floor(progress * 24);
         const minutes = Math.floor((progress * 24 * 60) % 60);
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     }
-    
+
+    // Get current hour of the day (0-23)
+    getTimeOfDay() {
+        return this.getDayProgress() * 24;
+    }
+
     // Get lighting level for rendering (0.0 = dark, 1.0 = bright)
     getLightLevel() {
         const hour = this.getDayProgress() * 24;
@@ -1879,6 +1949,50 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         try {
             const game = new MinecraftGame();
+            
+            // Add global debug functions for weather testing
+            window.setWeather = function(weatherType) {
+                if (game.weather) {
+                    console.log(`🌤️ Setting weather to: ${weatherType}`);
+                    game.weather.forceWeatherChange(weatherType);
+                    return `Weather changed to ${weatherType}`;
+                }
+                return "Weather system not available";
+            };
+            
+            window.getWeather = function() {
+                if (game.weather) {
+                    const current = game.weather.currentWeather;
+                    const intensity = game.weather.weatherIntensity.toFixed(2);
+                    const clouds = game.weather.clouds.length;
+                    const precipitation = game.weather.precipitation.length;
+                    console.log(`🌤️ Current weather: ${current}, intensity: ${intensity}, clouds: ${clouds}, precipitation: ${precipitation}`);
+                    return {current, intensity, clouds, precipitation};
+                }
+                return "Weather system not available";
+            };
+            
+            window.listWeatherTypes = function() {
+                const types = ['clear', 'rain', 'snow', 'storm', 'fog', 'hail'];
+                console.log('🌤️ Available weather types:', types);
+                return types;
+            };
+              console.log('🎮 Game loaded! Available weather debug commands:');
+            console.log('- setWeather("rain") - Change weather');
+            console.log('- getWeather() - Get current weather info');
+            console.log('- listWeatherTypes() - List available weather types');
+            
+            // Test weather immediately after 3 seconds
+            setTimeout(() => {
+                console.log('🧪 Testing weather system...');
+                if (game.weather) {
+                    console.log('Weather system available, forcing rain for testing');
+                    game.weather.forceWeatherChange('rain');
+                } else {
+                    console.error('Weather system not available!');
+                }
+            }, 3000);
+            
             // game.start() is now called automatically after initialization
         } catch (error) {
             console.error('Failed to start game:', error);

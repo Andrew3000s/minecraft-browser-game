@@ -1191,7 +1191,8 @@ class Player {
     getCameraPosition(canvasWidth, canvasHeight) {
         return {
             x: this.x - canvasWidth / 2 + this.width / 2,
-            y: this.y - canvasHeight / 2 + this.height / 2
+            y: this.y - canvasHeight / 2 + this.height / 2,
+            zoom: 1.0
         };
     }
 

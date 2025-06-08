@@ -366,12 +366,82 @@ class SoundSystem {    constructor() {
     getAllCategories() {
         return { ...this.audioCategories };
     }
-    
-    // Play sound with category-based volume
+      // Play sound with category-based volume
     playCategorySound(frequency, duration, type, category, volumeMultiplier = 1) {
         const categoryVolume = this.getCategoryVolume(category);
         if (categoryVolume <= 0) return; // Category disabled or volume 0
         
         this.playTone(frequency, duration, type, categoryVolume * volumeMultiplier);
+    }
+    
+    // Weather sounds
+    playRainSound() {
+        if (!this.enabled || !this.userInteracted) return;
+        
+        // Create rain noise effect
+        const categoryVolume = this.getCategoryVolume('environmental');
+        if (categoryVolume <= 0) return;
+        
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const bufferSize = this.audioContext.sampleRate * 0.1; // 0.1 second buffer
+            const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate rain noise
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * 0.3; // White noise
+            }
+            
+            const source = this.audioContext.createBufferSource();
+            const gainNode = this.audioContext.createGain();
+            
+            source.buffer = buffer;
+            source.loop = true;
+            
+            gainNode.gain.value = categoryVolume * this.volume * 0.5;
+            
+            source.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            source.start();
+            
+            // Stop after a short duration to prevent continuous noise
+            setTimeout(() => {
+                if (source.stop) source.stop();
+            }, 200);
+            
+        } catch (error) {
+            console.warn('Rain sound failed:', error);
+        }
+    }
+    
+    playThunderSound() {
+        if (!this.enabled || !this.userInteracted) return;
+        
+        // Thunder rumble effect
+        this.playCategorySound(40 + Math.random() * 30, 2.0, 'sawtooth', 'environmental', 0.8);
+        
+        // Lightning crack
+        setTimeout(() => {
+            this.playCategorySound(800 + Math.random() * 400, 0.3, 'square', 'environmental', 0.6);
+        }, 100);
+    }
+    
+    playWindSound() {
+        if (!this.enabled || !this.userInteracted) return;
+        
+        // Wind whoosh effect
+        this.playCategorySound(150 + Math.random() * 100, 1.5, 'sawtooth', 'environmental', 0.4);
+    }
+    
+    playSnowSound() {
+        if (!this.enabled || !this.userInteracted) return;
+        
+        // Soft snow falling effect
+        this.playCategorySound(2000 + Math.random() * 1000, 0.5, 'sine', 'environmental', 0.2);
     }
 }

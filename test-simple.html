@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Game Test</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        canvas { border: 1px solid #ccc; }
+        .info { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Simple Game Initialization Test</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="info">
+        <div id="status">Loading...</div>
+        <div id="errors"></div>
+    </div>
+    
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/fluid-turbulence.js"></script>
+    <script src="src/js/fluid-erosion.js"></script>
+    <script src="src/js/fluid-performance.js"></script>
+    <script src="src/js/weather.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/game.js"></script>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const errorsDiv = document.getElementById('errors');
+        
+        function updateStatus(message) {
+            statusDiv.textContent = message;
+            console.log(message);
+        }
+        
+        function showError(error) {
+            errorsDiv.innerHTML += `<div style="color: red; margin: 5px 0;">${error}</div>`;
+            console.error(error);
+        }
+        
+        try {
+            updateStatus('Checking classes...');
+            
+            // Check if key classes are available
+            if (typeof MinecraftGame === 'undefined') {
+                throw new Error('MinecraftGame class not found');
+            }
+            
+            if (typeof BlockTypes === 'undefined') {
+                throw new Error('BlockTypes not found');
+            }
+            
+            updateStatus('Creating game instance...');
+            const game = new MinecraftGame();
+            
+            updateStatus('Game created successfully! Check console for loading progress.');
+            
+        } catch (error) {
+            showError(`Error: ${error.message}`);
+            updateStatus('Failed to initialize game');
+        }
+    </script>
+</body>
+</html>

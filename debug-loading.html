@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Loading - Minecraft Browser Game</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        .debug-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+        .success { color: #90EE90; }
+        .error { color: #ff6b6b; }
+        .warning { color: #ffd93d; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Loading Test</h1>
+    <div id="debugOutput"></div>
+
+    <script>
+        const debugOutput = document.getElementById('debugOutput');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `debug-section ${type}`;
+            div.textContent = message;
+            debugOutput.appendChild(div);
+            console.log(message);
+        }
+        
+        log('Starting debug loading test...', 'info');
+        
+        // Test script loading order
+        const scripts = [
+            'src/js/utils.js',
+            'src/js/input.js', 
+            'src/js/blocks.js',
+            'src/js/effects.js',
+            'src/js/sound.js',
+            'src/js/crafting.js',
+            'src/js/fluid-physics.js',
+            'src/js/fluid-turbulence.js',
+            'src/js/fluid-erosion.js',
+            'src/js/fluid-performance.js',
+            'src/js/weather.js',
+            'src/js/world.js',
+            'src/js/player.js',
+            'src/js/entities.js',
+            'src/js/game.js'
+        ];
+        
+        let loadedScripts = 0;
+        
+        scripts.forEach((scriptPath, index) => {
+            const script = document.createElement('script');
+            script.src = scriptPath;
+            script.onload = () => {
+                loadedScripts++;
+                log(`✓ Loaded: ${scriptPath}`, 'success');
+                
+                if (loadedScripts === scripts.length) {
+                    log('All scripts loaded! Testing class availability...', 'info');
+                    testClassAvailability();
+                }
+            };
+            script.onerror = () => {
+                log(`✗ Failed to load: ${scriptPath}`, 'error');
+            };
+            document.head.appendChild(script);
+        });
+        
+        function testClassAvailability() {
+            const classes = [
+                'Utils', 'InputManager', 'BlockTypes', 'ParticleSystem', 
+                'SoundSystem', 'CraftingSystem', 'WeatherSystem', 
+                'World', 'Player', 'MinecraftGame'
+            ];
+            
+            let classesFound = 0;
+            classes.forEach(className => {
+                try {
+                    if (typeof window[className] !== 'undefined') {
+                        log(`✓ Class found: ${className}`, 'success');
+                        classesFound++;
+                    } else {
+                        log(`✗ Class missing: ${className}`, 'error');
+                    }
+                } catch (e) {
+                    log(`✗ Error checking ${className}: ${e.message}`, 'error');
+                }
+            });
+            
+            if (classesFound === classes.length) {
+                log('All classes available! Attempting to create game instance...', 'info');
+                testGameCreation();
+            } else {
+                log(`Missing ${classes.length - classesFound} classes`, 'error');
+            }
+        }
+        
+        function testGameCreation() {
+            try {
+                log('Creating canvas element...', 'info');
+                const canvas = document.createElement('canvas');
+                canvas.id = 'gameCanvas';
+                canvas.width = 800;
+                canvas.height = 600;
+                document.body.appendChild(canvas);
+                
+                log('Creating MinecraftGame instance...', 'info');
+                const game = new MinecraftGame();
+                log('✓ Game instance created successfully!', 'success');
+                
+                // Check if initialization starts
+                setTimeout(() => {
+                    if (game.isLoaded) {
+                        log('✓ Game loaded successfully!', 'success');
+                    } else {
+                        log('⚠ Game still loading...', 'warning');
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                log(`✗ Failed to create game: ${error.message}`, 'error');
+                log(`Stack trace: ${error.stack}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

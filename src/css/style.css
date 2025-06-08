@@ -101,6 +101,14 @@ button:hover {
     z-index: 100;
 }
 
+.ui-overlay #weatherDisplay {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 2px;
+    border-left: 3px solid #87CEEB;
+}
+
 .inventory {
     position: absolute;
     bottom: 20px;

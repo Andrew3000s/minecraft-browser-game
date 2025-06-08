@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Test</title>
+</head>
+<body>
+    <h1>Minimal Minecraft Game Test</h1>
+    <div id="output"></div>
+    
+    <script src="src/js/blocks.js"></script>
+    <script>
+        const output = document.getElementById('output');
+        
+        try {
+            output.innerHTML += "<p>BlockTypes loaded: " + (typeof BlockTypes !== 'undefined') + "</p>";
+            output.innerHTML += "<p>BlockTypes.DIRT: " + BlockTypes.DIRT + "</p>";
+            output.innerHTML += "<p>BlockTypes.WATER: " + BlockTypes.WATER + "</p>";
+        } catch(e) {
+            output.innerHTML += "<p style='color: red'>Error: " + e.message + "</p>";
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather System Demo - Minecraft Browser Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #weatherControls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #4CAF50;
+            max-width: 250px;
+            z-index: 1000;
+        }
+        
+        #weatherControls h3 {
+            margin: 0 0 15px 0;
+            color: #4CAF50;
+            text-align: center;
+        }
+        
+        .weather-button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            padding: 8px 12px;
+            background: #333;
+            color: white;
+            border: 1px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            font-size: 12px;
+        }
+        
+        .weather-button:hover {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+        
+        .weather-button.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .weather-info {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        
+        .intensity-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .current-weather {
+            text-align: center;
+            font-size: 16px;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 4px;
+        }
+        
+        .instructions {
+            font-size: 10px;
+            color: #aaa;
+            margin-top: 15px;
+            line-height: 1.3;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="weatherControls">
+            <h3>🌤️ Weather System Demo</h3>
+            
+            <div class="current-weather" id="currentWeather">
+                ☀️ Clear (100%)
+            </div>
+            
+            <div class="weather-info">
+                <strong>Test All Weather Types:</strong>
+            </div>
+            
+            <button class="weather-button" onclick="setWeather('clear')">☀️ Clear Skies</button>
+            <button class="weather-button" onclick="setWeather('cloudy')">⛅ Cloudy</button>
+            <button class="weather-button" onclick="setWeather('overcast')">☁️ Overcast</button>
+            <button class="weather-button" onclick="setWeather('rain')">🌧️ Rain</button>
+            <button class="weather-button" onclick="setWeather('storm')">⛈️ Thunderstorm</button>
+            <button class="weather-button" onclick="setWeather('snow')">❄️ Snow</button>
+            <button class="weather-button" onclick="setWeather('blizzard')">🌨️ Blizzard</button>
+            <button class="weather-button" onclick="setWeather('hail')">🌨️ Hailstorm</button>
+            
+            <div class="weather-info">
+                <strong>Intensity Control:</strong>
+                <input type="range" class="intensity-slider" id="intensitySlider" 
+                       min="0" max="100" value="100" 
+                       onchange="setIntensity(this.value)">
+                <div style="text-align: center; font-size: 10px;">
+                    <span id="intensityValue">100%</span>
+                </div>
+            </div>
+            
+            <button class="weather-button" onclick="toggleAuto()" id="autoToggle">
+                🔄 Enable Auto Weather
+            </button>
+            
+            <div class="weather-info" id="weatherStats">
+                Wind: 0°, 0%<br>
+                Clouds: 0%<br>
+                Visibility: 100%
+            </div>
+            
+            <div class="instructions">
+                <strong>Features:</strong><br>
+                • Dynamic cloud movement with parallax<br>
+                • Realistic precipitation (rain/snow/hail)<br>
+                • Wind effects and gusts<br>
+                • Weather-based sound effects<br>
+                • Time-of-day intensity changes<br>
+                • Smooth weather transitions<br>
+                • Visibility/fog effects
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load all game scripts -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/input.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/effects.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/crafting.js"></script>
+    <script src="src/js/fluid-physics.js"></script>
+    <script src="src/js/fluid-turbulence.js"></script>
+    <script src="src/js/fluid-erosion.js"></script>
+    <script src="src/js/fluid-performance.js"></script>
+    <script src="src/js/weather.js"></script>
+    <script src="src/js/world.js"></script>
+    <script src="src/js/player.js"></script>
+    <script src="src/js/entities.js"></script>
+    <script src="src/js/game.js"></script>
+    
+    <script>
+        let game;
+        let autoWeatherEnabled = false;
+        let weatherCycleInterval;
+        
+        // Initialize the game
+        window.addEventListener('load', () => {
+            try {
+                const canvas = document.getElementById('gameCanvas');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                game = new MinecraftGame(canvas);
+                
+                // Wait for game to initialize then start weather demo
+                setTimeout(() => {
+                    if (game && game.weather) {
+                        console.log('🌤️ Weather System Demo Loaded!');
+                        console.log('Available weather types:', game.weather.getAvailableWeatherTypes());
+                        
+                        // Start weather info updates
+                        setInterval(updateWeatherInfo, 100);
+                        
+                        // Log instructions to console
+                        console.log('🎮 Weather Demo Controls:');
+                        console.log('- Use the panel on the right to test different weather types');
+                        console.log('- Adjust intensity slider to see effects');
+                        console.log('- Enable auto weather for continuous changes');
+                        console.log('- Console commands: game.weather.forceWeather("rain")');
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Failed to initialize weather demo:', error);
+            }
+        });
+        
+        // Weather control functions
+        function setWeather(weatherType) {
+            if (game && game.weather) {
+                game.weather.forceWeather(weatherType);
+                updateActiveButton(weatherType);
+                console.log(`🌤️ Weather set to: ${weatherType}`);
+            }
+        }
+        
+        function setIntensity(value) {
+            if (game && game.weather) {
+                const intensity = value / 100;
+                game.weather.setWeatherIntensity(intensity);
+                document.getElementById('intensityValue').textContent = value + '%';
+            }
+        }
+        
+        function toggleAuto() {
+            autoWeatherEnabled = !autoWeatherEnabled;
+            const button = document.getElementById('autoToggle');
+            
+            if (autoWeatherEnabled) {
+                button.textContent = '⏸️ Disable Auto Weather';
+                button.classList.add('active');
+                startAutoWeatherCycle();
+            } else {
+                button.textContent = '🔄 Enable Auto Weather';
+                button.classList.remove('active');
+                clearInterval(weatherCycleInterval);
+            }
+        }
+        
+        function startAutoWeatherCycle() {
+            const weatherTypes = ['clear', 'cloudy', 'overcast', 'rain', 'storm', 'snow', 'blizzard', 'hail'];
+            let currentIndex = 0;
+            
+            weatherCycleInterval = setInterval(() => {
+                if (autoWeatherEnabled && game && game.weather) {
+                    const weatherType = weatherTypes[currentIndex];
+                    setWeather(weatherType);
+                    currentIndex = (currentIndex + 1) % weatherTypes.length;
+                }
+            }, 5000); // Change weather every 5 seconds
+        }
+        
+        function updateActiveButton(weatherType) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.weather-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to current weather button
+            document.querySelectorAll('.weather-button').forEach(btn => {
+                if (btn.textContent.toLowerCase().includes(weatherType)) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        function updateWeatherInfo() {
+            if (!game || !game.weather) return;
+            
+            const weatherInfo = game.weather.getCurrentWeatherInfo();
+            const currentWeatherEl = document.getElementById('currentWeather');
+            const weatherStatsEl = document.getElementById('weatherStats');
+            
+            // Update current weather display
+            const emoji = getWeatherEmoji(weatherInfo.weather);
+            const intensity = Math.round(weatherInfo.intensity * 100);
+            currentWeatherEl.textContent = `${emoji} ${weatherInfo.weather} (${intensity}%)`;
+            
+            // Update weather stats
+            const windDirection = Math.round(weatherInfo.windDirection * 180 / Math.PI);
+            const windStrength = Math.round(weatherInfo.windStrength * 100);
+            const cloudCover = Math.round(weatherInfo.cloudCover * 100);
+            const visibility = Math.round(weatherInfo.visibility * 100);
+            
+            weatherStatsEl.innerHTML = `
+                Wind: ${windDirection}°, ${windStrength}%<br>
+                Clouds: ${cloudCover}%<br>
+                Visibility: ${visibility}%
+            `;
+            
+            // Update active button
+            updateActiveButton(weatherInfo.weather);
+        }
+        
+        function getWeatherEmoji(weatherType) {
+            const emojis = {
+                'clear': '☀️',
+                'cloudy': '⛅',
+                'overcast': '☁️',
+                'rain': '🌧️',
+                'storm': '⛈️',
+                'snow': '❄️',
+                'blizzard': '🌨️',
+                'hail': '🌨️'
+            };
+            return emojis[weatherType] || '☀️';
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (game && game.canvas) {
+                game.canvas.width = window.innerWidth;
+                game.canvas.height = window.innerHeight;
+            }
+        });
+        
+        // Console helpers for advanced testing
+        window.testWeather = {
+            setWeather: setWeather,
+            setIntensity: setIntensity,
+            cycleAll: () => {
+                const types = ['clear', 'cloudy', 'overcast', 'rain', 'storm', 'snow', 'blizzard', 'hail'];
+                types.forEach((type, index) => {
+                    setTimeout(() => setWeather(type), index * 3000);
+                });
+            },
+            info: () => game?.weather?.getCurrentWeatherInfo(),
+            available: () => game?.weather?.getAvailableWeatherTypes()
+        };
+        
+        console.log('🌤️ Weather testing helpers available:');
+        console.log('testWeather.setWeather("storm") - Set specific weather');
+        console.log('testWeather.setIntensity(50) - Set intensity 0-100');
+        console.log('testWeather.cycleAll() - Cycle through all weather types');
+        console.log('testWeather.info() - Get current weather info');
+        console.log('testWeather.available() - List available weather types');
+    </script>
+</body>
+</html>

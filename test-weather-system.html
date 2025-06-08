@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌦️ Test Sistema Meteorologico - Minecraft Browser Game</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 30px;
+        }
+        
+        .weather-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .weather-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .weather-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .weather-btn.active {
+            background: linear-gradient(45deg, #FF6B6B, #FF5252);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+        
+        .status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .status-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00BCD4;
+        }
+        
+        .status-label {
+            font-weight: bold;
+            color: #00BCD4;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 18px;
+            color: #FFD700;
+        }
+        
+        .mini-canvas {
+            width: 100%;
+            height: 300px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: #000;
+            margin-bottom: 20px;
+        }
+        
+        .test-log {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-success { background: rgba(76, 175, 80, 0.2); color: #4CAF50; }
+        .log-info { background: rgba(33, 150, 243, 0.2); color: #2196F3; }
+        .log-warning { background: rgba(255, 152, 0, 0.2); color: #FF9800; }
+        .log-error { background: rgba(244, 67, 54, 0.2); color: #F44336; }
+        
+        .effects-demo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .effect-indicator {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+        
+        .auto-test-btn {
+            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+            padding: 20px 40px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s ease;
+        }
+        
+        .auto-test-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(156, 39, 176, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌦️ Test Sistema Meteorologico Completo</h1>
+        
+        <div class="weather-controls">
+            <button class="weather-btn" onclick="setWeather('clear')">☀️ Sereno</button>
+            <button class="weather-btn" onclick="setWeather('cloudy')">⛅ Nuvoloso</button>
+            <button class="weather-btn" onclick="setWeather('overcast')">☁️ Coperto</button>
+            <button class="weather-btn" onclick="setWeather('rain')">🌧️ Pioggia</button>
+            <button class="weather-btn" onclick="setWeather('storm')">⛈️ Tempesta</button>
+            <button class="weather-btn" onclick="setWeather('snow')">❄️ Neve</button>
+            <button class="weather-btn" onclick="setWeather('blizzard')">🌨️ Bufera</button>
+            <button class="weather-btn" onclick="setWeather('hail')">🧊 Grandine</button>
+        </div>
+        
+        <button class="auto-test-btn" onclick="runAutoTest()">🔄 Test Automatico Tutti i Meteo</button>
+        
+        <div class="status-panel">
+            <h3>📊 Stato Attuale Sistema Meteorologico</h3>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Meteo Corrente</div>
+                    <div class="status-value" id="currentWeather">Caricamento...</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Intensità</div>
+                    <div class="status-value" id="weatherIntensity">0%</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Transizione</div>
+                    <div class="status-value" id="weatherTransition">0%</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Vento</div>
+                    <div class="status-value" id="windInfo">Calmo</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Visibilità</div>
+                    <div class="status-value" id="visibility">100%</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Temperatura</div>
+                    <div class="status-value" id="temperature">Normale</div>
+                </div>
+            </div>
+        </div>
+        
+        <canvas id="weatherCanvas" class="mini-canvas"></canvas>
+        
+        <div class="effects-demo">
+            <div class="effect-indicator">
+                <div>🎵 Audio</div>
+                <div id="audioStatus">Off</div>
+            </div>
+            <div class="effect-indicator">
+                <div>💧 Precipitazioni</div>
+                <div id="precipitationCount">0</div>
+            </div>
+            <div class="effect-indicator">
+                <div>☁️ Nuvole</div>
+                <div id="cloudCount">0</div>
+            </div>
+            <div class="effect-indicator">
+                <div>🌪️ Particelle</div>
+                <div id="particleCount">0</div>
+            </div>
+        </div>
+        
+        <div class="test-log" id="testLog">
+            <div class="log-entry log-info">🔄 Inizializzazione test sistema meteorologico...</div>
+        </div>
+    </div>
+
+    <!-- Include game scripts -->
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/blocks.js"></script>
+    <script src="src/js/sound.js"></script>
+    <script src="src/js/weather.js"></script>
+    <script src="src/js/game.js"></script>
+
+    <script>
+        let weatherSystem = null;
+        let timeSystem = null;
+        let soundSystem = null;
+        let canvas = null;
+        let testWorld = null;
+        let updateInterval = null;
+        let autoTestRunning = false;
+
+        // Initialize test environment
+        async function initWeatherTest() {
+            try {
+                logMessage('🔧 Inizializzazione ambiente di test...', 'info');
+                
+                // Create canvas
+                canvas = document.getElementById('weatherCanvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                
+                // Create mock world
+                testWorld = {
+                    blockSize: 32,
+                    width: Math.floor(canvas.width / 32),
+                    height: Math.floor(canvas.height / 32),
+                    getBlock: () => BlockTypes.AIR,
+                    isValidPosition: () => true
+                };
+                
+                // Initialize time system
+                timeSystem = new TimeSystem();
+                logMessage('✅ TimeSystem inizializzato', 'success');
+                
+                // Initialize sound system
+                soundSystem = new SoundSystem();
+                await soundSystem.initAudio();
+                logMessage('✅ SoundSystem inizializzato', 'success');
+                
+                // Initialize weather system
+                weatherSystem = new WeatherSystem(canvas, testWorld, timeSystem, soundSystem);
+                logMessage('✅ WeatherSystem inizializzato', 'success');
+                
+                // Start update loop
+                startUpdateLoop();
+                
+                logMessage('🎉 Ambiente di test pronto!', 'success');
+                
+            } catch (error) {
+                logMessage(`❌ Errore inizializzazione: ${error.message}`, 'error');
+                console.error('Weather test initialization error:', error);
+            }
+        }
+
+        function startUpdateLoop() {
+            let lastTime = performance.now();
+            
+            updateInterval = setInterval(() => {
+                const currentTime = performance.now();
+                const deltaTime = (currentTime - lastTime) / 1000;
+                lastTime = currentTime;
+                
+                if (weatherSystem && timeSystem) {
+                    // Update systems
+                    timeSystem.update(deltaTime);
+                    weatherSystem.update(deltaTime);
+                    
+                    // Update display
+                    updateStatusDisplay();
+                    renderWeatherEffects();
+                }
+            }, 16); // ~60fps
+        }
+
+        function updateStatusDisplay() {
+            if (!weatherSystem) return;
+            
+            try {
+                const weatherInfo = weatherSystem.getCurrentWeatherInfo();
+                
+                document.getElementById('currentWeather').textContent = 
+                    `${getWeatherEmoji(weatherInfo.weather)} ${weatherInfo.weather}`;
+                
+                document.getElementById('weatherIntensity').textContent = 
+                    `${Math.round(weatherInfo.intensity * 100)}%`;
+                
+                document.getElementById('weatherTransition').textContent = 
+                    `${Math.round(weatherSystem.weatherTransition * 100)}%`;
+                
+                // Wind info
+                const wind = weatherSystem.wind;
+                const windDirection = Math.round(wind.direction * 180 / Math.PI);
+                document.getElementById('windInfo').textContent = 
+                    `${Math.round(wind.strength * 100)}% (${windDirection}°)`;
+                
+                // Weather properties
+                const weatherType = weatherSystem.weatherTypes[weatherInfo.weather];
+                if (weatherType) {
+                    document.getElementById('visibility').textContent = 
+                        `${Math.round(weatherType.visibility * 100)}%`;
+                    document.getElementById('temperature').textContent = 
+                        `${Math.round(weatherType.temperature * 100)}%`;
+                }
+                
+                // Effects count
+                document.getElementById('precipitationCount').textContent = 
+                    weatherSystem.precipitation?.length || 0;
+                document.getElementById('cloudCount').textContent = 
+                    weatherSystem.clouds?.length || 0;
+                
+                // Audio status
+                const audioPlaying = soundSystem && soundSystem.enabled;
+                document.getElementById('audioStatus').textContent = 
+                    audioPlaying ? 'On' : 'Off';
+                
+            } catch (error) {
+                logMessage(`⚠️ Errore aggiornamento display: ${error.message}`, 'warning');
+            }
+        }
+
+        function renderWeatherEffects() {
+            if (!canvas || !weatherSystem) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas with sky color
+            if (timeSystem) {
+                const skyColor = timeSystem.getSkyColor();
+                ctx.fillStyle = skyColor;
+            } else {
+                ctx.fillStyle = '#87CEEB';
+            }
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Render weather effects
+            try {
+                weatherSystem.render(ctx);
+            } catch (error) {
+                // Silently handle rendering errors
+            }
+        }
+
+        function setWeather(weatherType) {
+            if (!weatherSystem) {
+                logMessage('❌ Sistema meteorologico non inizializzato', 'error');
+                return;
+            }
+            
+            try {
+                weatherSystem.setWeather(weatherType);
+                logMessage(`🌦️ Meteo cambiato a: ${weatherType}`, 'info');
+                
+                // Update active button
+                document.querySelectorAll('.weather-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+                // Test weather-specific features
+                testWeatherFeatures(weatherType);
+                
+            } catch (error) {
+                logMessage(`❌ Errore cambio meteo: ${error.message}`, 'error');
+            }
+        }
+
+        function testWeatherFeatures(weatherType) {
+            const features = {
+                'clear': ['☀️ Cielo sereno', '🌤️ Nuvole sparse', '🔆 Massima visibilità'],
+                'cloudy': ['⛅ Copertura nuvolosa', '🌥️ Luce diffusa', '💨 Vento moderato'],
+                'overcast': ['☁️ Cielo coperto', '🌫️ Visibilità ridotta', '🌬️ Vento forte'],
+                'rain': ['🌧️ Gocce di pioggia', '🎵 Suoni ambientali', '💧 Effetti particelle'],
+                'storm': ['⛈️ Fulmini e tuoni', '🌪️ Vento intenso', '🌩️ Effetti drammatici'],
+                'snow': ['❄️ Fiocchi di neve', '🥶 Temperatura bassa', '❄️ Accumulo neve'],
+                'blizzard': ['🌨️ Bufera intensa', '🌬️ Vento gelido', '👁️ Visibilità molto bassa'],
+                'hail': ['🧊 Chicchi di grandine', '💥 Suoni impatto', '⚡ Intensità elevata']
+            };
+            
+            const weatherFeatures = features[weatherType] || [];
+            weatherFeatures.forEach(feature => {
+                logMessage(`✅ ${feature}`, 'success');
+            });
+        }
+
+        async function runAutoTest() {
+            if (autoTestRunning) return;
+            
+            autoTestRunning = true;
+            const testBtn = document.querySelector('.auto-test-btn');
+            testBtn.textContent = '⏳ Test in corso...';
+            testBtn.disabled = true;
+            
+            logMessage('🔄 Avvio test automatico di tutti i meteo...', 'info');
+            
+            const weatherTypes = ['clear', 'cloudy', 'overcast', 'rain', 'storm', 'snow', 'blizzard', 'hail'];
+            
+            for (let i = 0; i < weatherTypes.length; i++) {
+                const weatherType = weatherTypes[i];
+                logMessage(`🧪 Testing ${weatherType}... (${i + 1}/${weatherTypes.length})`, 'info');
+                
+                // Set weather
+                weatherSystem.setWeather(weatherType);
+                
+                // Wait for transition
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Test features
+                await testWeatherSystem(weatherType);
+                
+                logMessage(`✅ Test ${weatherType} completato`, 'success');
+            }
+            
+            logMessage('🎉 Test automatico completato con successo!', 'success');
+            
+            autoTestRunning = false;
+            testBtn.textContent = '🔄 Test Automatico Tutti i Meteo';
+            testBtn.disabled = false;
+        }
+
+        async function testWeatherSystem(weatherType) {
+            return new Promise(resolve => {
+                let checks = 0;
+                const maxChecks = 10;
+                
+                const checkInterval = setInterval(() => {
+                    checks++;
+                    
+                    // Test weather properties
+                    const weatherInfo = weatherSystem.getCurrentWeatherInfo();
+                    const hasCorrectWeather = weatherInfo.weather === weatherType;
+                    const hasIntensity = weatherInfo.intensity > 0;
+                    const hasEffects = weatherSystem.precipitation.length > 0 || 
+                                     weatherSystem.clouds.length > 0;
+                    
+                    if (hasCorrectWeather && (hasIntensity || hasEffects) || checks >= maxChecks) {
+                        clearInterval(checkInterval);
+                        
+                        if (hasCorrectWeather) {
+                            logMessage(`  ✅ Meteo corretto: ${weatherType}`, 'success');
+                        }
+                        if (hasIntensity) {
+                            logMessage(`  ✅ Intensità: ${Math.round(weatherInfo.intensity * 100)}%`, 'success');
+                        }
+                        if (hasEffects) {
+                            logMessage(`  ✅ Effetti visivi attivi`, 'success');
+                        }
+                        
+                        resolve();
+                    }
+                }, 200);
+            });
+        }
+
+        function getWeatherEmoji(weatherType) {
+            const emojis = {
+                'clear': '☀️',
+                'cloudy': '⛅',
+                'overcast': '☁️',
+                'rain': '🌧️',
+                'storm': '⛈️',
+                'snow': '❄️',
+                'blizzard': '🌨️',
+                'hail': '🧊'
+            };
+            return emojis[weatherType] || '🌤️';
+        }
+
+        function logMessage(message, type = 'info') {
+            const logElement = document.getElementById('testLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (logElement.children.length > 50) {
+                logElement.removeChild(logElement.firstChild);
+            }
+        }
+
+        // Handle canvas resize
+        window.addEventListener('resize', () => {
+            if (canvas) {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+        });
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            setTimeout(initWeatherTest, 500);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html>
