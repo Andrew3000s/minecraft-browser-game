@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test G Key - Command Guide</title>
+    <style>
+        body {
+            background: #222;
+            color: white;
+            font-family: 'Courier New', monospace;
+            margin: 20px;
+        }
+        .test-section {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .status {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test Tasto G - Guida Comandi</h1>
+    
+    <div class="test-section">
+        <h2>📋 Test Status</h2>
+        <div id="status" class="status info">Caricamento test...</div>
+        
+        <h3>🎯 Istruzioni Test:</h3>
+        <ol>
+            <li><strong>Premi il tasto G</strong> - dovrebbe aprire la guida comandi</li>
+            <li><strong>Premi di nuovo G</strong> - dovrebbe chiudere la guida</li>
+            <li><strong>Verifica il contenuto</strong> - controlla che ci siano i comandi audio</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>🕹️ Controlli Test</h2>
+        <button onclick="simulateGKey()">Simula Pressione G</button>
+        <button onclick="checkGuideExists()">Controlla Guida Presente</button>
+        <button onclick="clearAll()">Pulisci Tutto</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Log Events</h2>
+        <div id="log" style="background: #111; padding: 10px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+        </div>
+    </div>
+
+    <script>
+        let testResults = [];
+        
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            logEvent(message, type);
+        }
+        
+        function logEvent(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<div style="color: ${getColorForType(type)}">[${time}] ${message}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function getColorForType(type) {
+            const colors = {
+                info: '#2196F3',
+                success: '#4CAF50',
+                error: '#f44336',
+                warning: '#ff9800'
+            };
+            return colors[type] || '#fff';
+        }
+        
+        function simulateGKey() {
+            updateStatus('Simulando pressione tasto G...', 'info');
+            
+            // Simula pressione tasto G
+            const event = new KeyboardEvent('keydown', {
+                key: 'G',
+                code: 'KeyG',
+                keyCode: 71,
+                which: 71,
+                bubbles: true
+            });
+            
+            document.dispatchEvent(event);
+            
+            setTimeout(() => {
+                checkGuideExists();
+            }, 100);
+        }
+        
+        function checkGuideExists() {
+            const guide = document.getElementById('commandGuideScreen');
+            if (guide) {
+                updateStatus('✅ Guida comandi trovata e visibile!', 'success');
+                
+                // Controlla contenuto specifico
+                const audioSection = guide.querySelector('h3:contains("🎵 Audio e Interfaccia")') || 
+                                   Array.from(guide.querySelectorAll('h3')).find(h => h.textContent.includes('Audio'));
+                
+                if (audioSection) {
+                    updateStatus('✅ Sezione audio trovata nella guida!', 'success');
+                } else {
+                    updateStatus('⚠️ Sezione audio non trovata nella guida', 'warning');
+                }
+                
+                // Controlla comandi M e G
+                const commandText = guide.textContent;
+                const hasM = commandText.includes('pannello audio') || commandText.includes('tasto M');
+                const hasG = commandText.includes('Mostra/Nascondi questa guida') || commandText.includes('tasto G');
+                
+                logEvent(`Comando M presente: ${hasM ? 'Sì' : 'No'}`, hasM ? 'success' : 'warning');
+                logEvent(`Comando G presente: ${hasG ? 'Sì' : 'No'}`, hasG ? 'success' : 'warning');
+                
+            } else {
+                updateStatus('❌ Guida comandi non trovata', 'error');
+            }
+        }
+        
+        function clearAll() {
+            const guide = document.getElementById('commandGuideScreen');
+            if (guide) {
+                guide.remove();
+                updateStatus('🧹 Guida rimossa manualmente', 'info');
+            } else {
+                updateStatus('Nessuna guida da rimuovere', 'info');
+            }
+        }
+        
+        // Test automatico G key listener
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyG') {
+                logEvent('🎯 Evento G catturato - keydown listener attivo', 'success');
+                
+                // Verifica se esiste window.game
+                if (window.game) {
+                    logEvent('✅ window.game presente', 'success');
+                    if (window.game.toggleCommandGuide) {
+                        logEvent('✅ toggleCommandGuide method presente', 'success');
+                        window.game.toggleCommandGuide();
+                    } else {
+                        logEvent('❌ toggleCommandGuide method non trovato', 'error');
+                    }
+                } else {
+                    logEvent('❌ window.game non disponibile', 'error');
+                    
+                    // Crea un mock per test
+                    window.game = {
+                        isCommandGuideVisible: false,
+                        toggleCommandGuide: function() {
+                            this.isCommandGuideVisible = !this.isCommandGuideVisible;
+                            if (this.isCommandGuideVisible) {
+                                createMockGuide();
+                            } else {
+                                removeMockGuide();
+                            }
+                        }
+                    };
+                    
+                    logEvent('🔧 Mock game object creato per test', 'warning');
+                    window.game.toggleCommandGuide();
+                }
+            }
+        });
+        
+        function createMockGuide() {
+            removeMockGuide(); // Remove existing
+            
+            const guide = document.createElement('div');
+            guide.id = 'commandGuideScreen';
+            guide.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(20, 20, 20, 0.95);
+                border: 3px solid #8B4513;
+                border-radius: 15px;
+                padding: 20px;
+                color: white;
+                font-family: 'Courier New', monospace;
+                z-index: 2000;
+                max-width: 600px;
+            `;
+            
+            guide.innerHTML = `
+                <h2 style="color: #FFD700; text-align: center;">🎮 Test Command Guide</h2>
+                <h3>🎵 Audio e Interfaccia</h3>
+                <div>
+                    <strong>M</strong> - Apri pannello audio<br>
+                    <strong>G</strong> - Mostra/Nascondi questa guida<br>
+                    <strong>C</strong> - Apri menu crafting
+                </div>
+                <p style="text-align: center; margin-top: 20px;">
+                    <button onclick="window.game.toggleCommandGuide()" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                        Chiudi
+                    </button>
+                </p>
+            `;
+            
+            document.body.appendChild(guide);
+            logEvent('🎮 Mock guide creata e mostrata', 'success');
+        }
+        
+        function removeMockGuide() {
+            const guide = document.getElementById('commandGuideScreen');
+            if (guide) {
+                guide.remove();
+                logEvent('🗑️ Mock guide rimossa', 'info');
+            }
+        }
+        
+        // Inizializzazione
+        window.addEventListener('load', () => {
+            updateStatus('✅ Test pronto - Premi G per testare!', 'success');
+            logEvent('Test G Key inizializzato', 'info');
+        });
+    </script>
+</body>
+</html>

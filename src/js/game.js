@@ -239,20 +239,11 @@ class MinecraftGame {    constructor() {
         const gameContainer = document.createElement('div');
         gameContainer.className = 'game-container';
         gameContainer.appendChild(this.canvas);
-        document.body.appendChild(gameContainer);
-
-        this.updateUI();        // Aggiungi un listener per il tasto 'G'
-        window.addEventListener('keydown', (event) => {
-            if (event.key === 'g' || event.key === 'G') {
-                this.toggleCommandGuide();
-            }
-        });
+        document.body.appendChild(gameContainer);        this.updateUI();
     }    setupMusicControl() {
         const musicControl = document.getElementById('musicControl');
         if (musicControl) {
-            console.log('Setting up music control with audio panel:', !!this.audioSettingsPanel);
             musicControl.addEventListener('click', () => {
-                console.log('Music control clicked, panel available:', !!this.audioSettingsPanel);
                 // Open audio settings panel instead of simple toggle
                 if (this.audioSettingsPanel) {
                     this.audioSettingsPanel.show();
@@ -268,43 +259,100 @@ class MinecraftGame {    constructor() {
         } else {
             console.warn('Music control element not found');
         }
-    }
-
-    toggleCommandGuide() {
+    }toggleCommandGuide() {
         this.isCommandGuideVisible = !this.isCommandGuideVisible;
+        
         if (this.isCommandGuideVisible) {
             this.renderCommandGuide();
         } else {
             this.removeCommandGuide();
         }
-    }
-
-    renderCommandGuide() {
-        this.removeCommandGuide(); // Rimuovi se già esistente per evitare duplicati
+    }    renderCommandGuide() {
+        this.removeCommandGuide(); // Remove if already exists to avoid duplicates
 
         const commandGuideElement = document.createElement('div');
         commandGuideElement.id = 'commandGuideScreen';
-        commandGuideElement.className = 'command-guide-screen'; // Assicurati che questa classe sia definita in CSS
+        commandGuideElement.className = 'command-guide-screen';
+        
         commandGuideElement.innerHTML = `
-            <h2>Command Guide</h2>
-            <p>Press 'G' to close this guide.</p>
-            <ul>
-                <li><strong>WASD:</strong> Move Player</li>
-                <li><strong>Spacebar:</strong> Jump</li>
-                <li><strong>Left Mouse Click:</strong> Dig / Mine Block</li>
-                <li><strong>Right Mouse Click:</strong> Place Block</li>
-                <li><strong>Mouse Wheel:</strong> Cycle Through Hotbar</li>
-                <li><strong>Number Keys (1-9):</strong> Select Hotbar Slot</li>
-                <li><strong>I:</strong> Toggle Inventory Screen</li>
-                <li><strong>B:</strong> Drop Selected Block</li>
-                <li><strong>C:</strong> Open Crafting Menu</li>
-                <li><strong>G:</strong> Toggle Command Guide</li>
-            </ul>
-        `;
+            <div class="guide-header">
+                <h2>🎮 Minecraft Browser Game - Controls Guide</h2>
+                <p class="guide-subtitle">Press 'G' to close this guide</p>
+            </div>
+            
+            <div class="guide-content">
+                <div class="controls-section">
+                    <h3>🕹️ Basic Controls</h3>
+                    <div class="controls-grid">
+                        <div class="control-item">
+                            <span class="key">WASD</span>
+                            <span class="action">Player movement</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">Space</span>
+                            <span class="action">Jump</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">Left Click</span>
+                            <span class="action">Mine / Break blocks</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">Right Click</span>
+                            <span class="action">Place blocks</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls-section">
+                    <h3>📦 Inventory & Items</h3>
+                    <div class="controls-grid">
+                        <div class="control-item">
+                            <span class="key">Mouse Wheel</span>
+                            <span class="action">Scroll inventory slots</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">1-9</span>
+                            <span class="action">Direct slot selection</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">I</span>
+                            <span class="action">Show/Hide inventory</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">B</span>
+                            <span class="action">Drop 1 block</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls-section">
+                    <h3>🎵 Audio & Interface</h3>
+                    <div class="controls-grid">
+                        <div class="control-item">
+                            <span class="key">M</span>
+                            <span class="action">Open audio panel</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">C</span>
+                            <span class="action">Open crafting menu</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">G</span>
+                            <span class="action">Show/Hide this guide</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">🎵 Button</span>
+                            <span class="action">Advanced audio settings</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="guide-footer">
+                <p>💡 <strong>Tip:</strong> Use the audio panel (M key) to fully customize your sound experience!</p>
+            </div>        `;
         document.body.appendChild(commandGuideElement);
-    }
-
-    removeCommandGuide() {
+    }    removeCommandGuide() {
         const commandGuideElement = document.getElementById('commandGuideScreen');
         if (commandGuideElement) {
             commandGuideElement.remove();
@@ -1695,18 +1743,17 @@ class AudioSettingsPanel {    constructor(soundSystem) {
             element.textContent = `${Math.round(volume * 100)}%`;
         }
     }
-    
-    resetToDefaults() {
-        // Reset to default values
-        this.soundSystem.volume = 0.3;
+      resetToDefaults() {
+        // Reset to default values - ✅ FIXED: Updated to higher, more audible defaults
+        this.soundSystem.volume = 0.4;
         
         const defaults = {
-            music: { enabled: true, volume: 0.1 },
-            playerActions: { enabled: true, volume: 0.05 },
-            blockInteractions: { enabled: true, volume: 0.15 },
-            combat: { enabled: true, volume: 0.2 },
-            environmental: { enabled: true, volume: 0.1 },
-            ui: { enabled: true, volume: 0.15 }
+            music: { enabled: true, volume: 0.15 },
+            playerActions: { enabled: true, volume: 0.08 },
+            blockInteractions: { enabled: true, volume: 0.2 },
+            combat: { enabled: true, volume: 0.25 },
+            environmental: { enabled: true, volume: 0.15 },
+            ui: { enabled: true, volume: 0.2 }
         };
         
         Object.keys(defaults).forEach(category => {

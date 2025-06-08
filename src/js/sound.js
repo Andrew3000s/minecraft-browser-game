@@ -3,24 +3,24 @@
 
 class SoundSystem {    constructor() {
         this.audioContext = null;
-        this.enabled = false; // Disabilitato finché non c'è interazione utente
+        this.enabled = true; // ✅ FIXED: Audio enabled by default
         this.userInteracted = false; // Traccia se l'utente ha già interagito
-        this.volume = 0.3;
+        this.volume = 0.4; // ✅ FIXED: Higher default volume for better audibility
         
         // Music system
         this.musicEnabled = true;
-        this.musicVolume = 0.1;
+        this.musicVolume = 0.15; // ✅ FIXED: Higher music volume
         this.currentMusic = null;
         this.musicGainNode = null;
         
         // 🎵 AUDIO CATEGORIES SYSTEM - Advanced sound configuration
         this.audioCategories = {
-            music: { enabled: true, volume: 0.1, name: 'Background Music' },
-            playerActions: { enabled: true, volume: 0.05, name: 'Player Actions' },
-            blockInteractions: { enabled: true, volume: 0.15, name: 'Block Interactions' },
-            combat: { enabled: true, volume: 0.2, name: 'Combat & Mobs' },
-            environmental: { enabled: true, volume: 0.1, name: 'Environmental' },
-            ui: { enabled: true, volume: 0.15, name: 'UI & Notifications' }
+            music: { enabled: true, volume: 0.15, name: 'Background Music' }, // ✅ FIXED: Higher volume
+            playerActions: { enabled: true, volume: 0.08, name: 'Player Actions' }, // ✅ FIXED: Higher volume
+            blockInteractions: { enabled: true, volume: 0.2, name: 'Block Interactions' }, // ✅ FIXED: Higher volume
+            combat: { enabled: true, volume: 0.25, name: 'Combat & Mobs' }, // ✅ FIXED: Higher volume
+            environmental: { enabled: true, volume: 0.15, name: 'Environmental' }, // ✅ FIXED: Higher volume
+            ui: { enabled: true, volume: 0.2, name: 'UI & Notifications' } // ✅ FIXED: Higher volume
         };
         
         this.initAudio();
@@ -38,14 +38,20 @@ class SoundSystem {    constructor() {
             this.enabled = false;
         }
     }
-    
-    // Aggiunge listener per la prima interazione utente
+      // Aggiunge listener per la prima interazione utente
     addUserInteractionListeners() {
         const enableAudio = () => {
             if (!this.userInteracted) {
                 this.userInteracted = true;
                 this.enabled = true;
-                // 🔥 FIXED: Removed debug log for cleaner console output
+                console.log('🎵 Audio system activated after user interaction');
+                
+                // Start background music immediately after interaction
+                setTimeout(() => {
+                    if (this.audioCategories.music.enabled) {
+                        this.startBackgroundMusic();
+                    }
+                }, 100);
                 
                 // Rimuovi i listener dopo la prima interazione
                 document.removeEventListener('click', enableAudio);

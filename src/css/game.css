@@ -707,51 +707,157 @@ canvas {
     }
 }
 
-/* Command Guide Screen Styles */
+/* Command Guide Screen Styles - 🎮 Enhanced Design */
 .command-guide-screen {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 80%;
-    max-width: 600px;
-    background: rgba(0, 0, 0, 0.85);
-    border: 3px solid #555;
-    border-radius: 10px;
-    padding: 25px;
+    width: 85%;
+    max-width: 900px;
+    max-height: 90vh;
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.98) 0%, rgba(30, 25, 20, 0.98) 100%);
+    border: 3px solid #8B4513;
+    border-radius: 15px;
+    padding: 0;
     color: white;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Courier New', monospace;
     z-index: 2000;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(139, 69, 19, 0.1);
     text-align: left;
+    overflow-y: auto;
+    backdrop-filter: blur(5px);
+}
+
+.guide-header {
+    background: linear-gradient(90deg, #8B4513, #A0522D);
+    margin: 0;
+    padding: 20px 25px;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 2px solid #654321;
+    text-align: center;
 }
 
 .command-guide-screen h2 {
-    text-align: center;
-    color: #FFD700; /* Gold color for title */
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 24px;
+    color: #FFD700;
+    margin: 0;
+    font-size: 26px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-weight: bold;
 }
 
-.command-guide-screen p {
-    text-align: center;
-    margin-bottom: 20px;
+.guide-subtitle {
+    margin: 8px 0 0 0;
     font-size: 14px;
-    color: #ccc;
+    color: #DDD;
+    font-style: italic;
 }
 
-.command-guide-screen ul {
-    list-style: none;
-    padding: 0;
+.guide-content {
+    padding: 25px;
 }
 
-.command-guide-screen li {
-    margin-bottom: 10px;
+.controls-section {
+    margin-bottom: 30px;
+}
+
+.controls-section h3 {
+    color: #90EE90;
+    font-size: 20px;
+    margin: 0 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(144, 238, 144, 0.3);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.control-item {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px 15px;
+    border-radius: 8px;
+    border-left: 4px solid #8B4513;
+    transition: all 0.3s ease;
+}
+
+.control-item:hover {
+    background: rgba(139, 69, 19, 0.2);
+    border-left-color: #A0522D;
+    transform: translateX(5px);
+}
+
+.control-item .key {
+    background: linear-gradient(135deg, #555, #333);
+    color: #FFD700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 13px;
+    min-width: 100px;
+    text-align: center;
+    border: 2px solid #666;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.control-item .action {
+    margin-left: 15px;
+    color: #E0E0E0;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.guide-footer {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px 25px;
+    margin: 0;
+    border-radius: 0 0 12px 12px;
+    border-top: 2px solid rgba(139, 69, 19, 0.5);
+    text-align: center;
+}
+
+.guide-footer p {
+    margin: 0;
+    color: #90EE90;
     font-size: 16px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 5px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Legacy styles cleanup */
+.command-guide-screen ul {
+    display: none; /* Hide old list format */
+}
+
+.command-guide-screen p:not(.guide-subtitle):not(.guide-footer p) {
+    display: none; /* Hide old paragraph format */
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .command-guide-screen {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .controls-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .control-item .key {
+        min-width: 80px;
+        font-size: 12px;
+    }
+    
+    .control-item .action {
+        font-size: 14px;
+    }
 }
 
 .command-guide-screen li strong {
