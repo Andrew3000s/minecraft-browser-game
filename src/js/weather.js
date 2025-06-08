@@ -93,7 +93,7 @@ class WeatherSystem {
             }
         };        // Weather change probabilities (per minute of game time)
         this.weatherTransitions = {
-            clear: { cloudy: 0.05, rain: 0.02, snow: 0.01 }, // Increased probabilities for clear weather
+            clear: { cloudy: 0.15, rain: 0.15, snow: 0.12 }, // Balanced precipitation probabilities with slight preference for rain
             cloudy: { clear: 0.2, overcast: 0.3, rain: 0.2, snow: 0.1 },
             overcast: { cloudy: 0.3, rain: 0.4, storm: 0.1, snow: 0.15 },
             rain: { cloudy: 0.3, overcast: 0.2, storm: 0.15, clear: 0.1 },
@@ -401,7 +401,7 @@ class WeatherSystem {
         
         const timeOfDay = this.timeSystem.getTimeOfDay();        // Special case: Clear weather should be more stable but not locked
         if (this.currentWeather === 'clear') {
-            return 0.3; // Make clear weather 3x less likely to change (instead of 100x)
+            return 0.7; // Reduced penalty - clear weather less stable for more dynamic weather
         }
         
         if (timeOfDay >= 5 && timeOfDay <= 7) return 1.5; // Dawn
@@ -409,15 +409,14 @@ class WeatherSystem {
         if (this.timeSystem.isNight()) return 1.2; // Night
         return 1.0; // Day
     }
-      getWeatherChangeInterval() {
-        // Different weather types have different stability
+      getWeatherChangeInterval() {        // Different weather types have different stability
         const baseInterval = {
-            clear: 45, // 45 seconds instead of 2 minutes
+            clear: 30, // More frequent checks for clear weather (was 45)
             cloudy: 40,
             overcast: 35,
-            rain: 30,
+            rain: 40, // Slightly more stable rain (was 30)
             storm: 25,
-            snow: 35,
+            snow: 40, // Slightly more stable snow (was 35)
             blizzard: 20,
             hail: 15
         };
