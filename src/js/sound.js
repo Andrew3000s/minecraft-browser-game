@@ -42,9 +42,7 @@ class SoundSystem {    constructor() {
     addUserInteractionListeners() {
         const enableAudio = () => {
             if (!this.userInteracted) {
-                this.userInteracted = true;
-                this.enabled = true;
-                console.log('🎵 Audio system activated after user interaction');
+                this.userInteracted = true;                this.enabled = true;
                 
                 // Start background music immediately after interaction
                 setTimeout(() => {

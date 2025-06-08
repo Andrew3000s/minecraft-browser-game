@@ -1692,7 +1692,6 @@ class TimeSystem {
 
 // 🎵 AUDIO SETTINGS PANEL CLASS - Advanced sound configuration UI
 class AudioSettingsPanel {    constructor(soundSystem, player = null) {
-        console.log('AudioSettingsPanel constructor called with:', soundSystem, player);
         this.soundSystem = soundSystem;
         this.player = player;
         this.panel = null;
@@ -1702,10 +1701,6 @@ class AudioSettingsPanel {    constructor(soundSystem, player = null) {
         try {
             this.createPanel();
             this.bindEvents();
-            console.log('AudioSettingsPanel initialized successfully');
-            console.log('Panel created:', !!this.panel);
-            console.log('Overlay created:', !!this.overlay);
-            console.log('Overlay in DOM:', document.body.contains(this.overlay));
         } catch (error) {
             console.error('Error initializing AudioSettingsPanel:', error);
         }
@@ -2008,14 +2003,7 @@ class AudioSettingsPanel {    constructor(soundSystem, player = null) {
             resetButton.textContent = originalText;
             resetButton.style.backgroundColor = '';
         }, 1500);
-    }
-      show() {
-        console.log('AudioSettingsPanel.show() called');
-        
-        // Debug panel state
-        console.log('Panel exists:', !!this.panel);
-        console.log('Overlay exists:', !!this.overlay);
-        
+    }    show() {
         if (!this.overlay || !this.panel) {
             console.error('Panel or overlay not created!');
             return;
@@ -2023,18 +2011,12 @@ class AudioSettingsPanel {    constructor(soundSystem, player = null) {
         
         // Check if overlay is in DOM
         if (!document.body.contains(this.overlay)) {
-            console.log('Overlay not in DOM, re-adding...');
             document.body.appendChild(this.overlay);
         }
         
         this.refreshUI();
         this.overlay.classList.add('show');
         this.isVisible = true;
-        
-        // Debug final state
-        console.log('Show completed. Classes:', this.overlay.className);
-        console.log('Computed display:', window.getComputedStyle(this.overlay).display);
-        console.log('Computed opacity:', window.getComputedStyle(this.overlay).opacity);
     }
     
     hide() {
@@ -2042,10 +2024,7 @@ class AudioSettingsPanel {    constructor(soundSystem, player = null) {
         setTimeout(() => {
             this.isVisible = false;
         }, 300);
-    }
-      toggle() {
-        console.log('AudioSettingsPanel.toggle() called, isVisible:', this.isVisible);
-        
+    }    toggle() {
         if (!this.overlay || !this.panel) {
             console.error('Cannot toggle: Panel or overlay not created!');
             return;
@@ -2071,7 +2050,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add global debug functions for weather testing
             window.setWeather = function(weatherType) {
                 if (game.weather) {
-                    console.log(`🌤️ Setting weather to: ${weatherType}`);
                     game.weather.forceWeatherChange(weatherType);
                     return `Weather changed to ${weatherType}`;
                 }
@@ -2084,7 +2062,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const intensity = game.weather.weatherIntensity.toFixed(2);
                     const clouds = game.weather.clouds.length;
                     const precipitation = game.weather.precipitation.length;
-                    console.log(`🌤️ Current weather: ${current}, intensity: ${intensity}, clouds: ${clouds}, precipitation: ${precipitation}`);
                     return {current, intensity, clouds, precipitation};
                 }
                 return "Weather system not available";
@@ -2092,14 +2069,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             window.listWeatherTypes = function() {
                 const types = ['clear', 'rain', 'snow', 'storm', 'fog', 'hail'];
-                console.log('🌤️ Available weather types:', types);
-                return types;
-            };
-              console.log('🎮 Game loaded! Available weather debug commands:');
-            console.log('- setWeather("rain") - Change weather');
-            console.log('- getWeather() - Get current weather info');
-            console.log('- listWeatherTypes() - List available weather types');
-              // DISABLED: Automatic weather test that was causing unwanted rain
+                return types;            };
+            
+            // DISABLED: Automatic weather test that was causing unwanted rain
             // setTimeout(() => {
             //     console.log('🧪 Testing weather system...');
             //     if (game.weather) {

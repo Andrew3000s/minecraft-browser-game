@@ -121,26 +121,26 @@ class FluidPhysics {
         this.debugMode = false;
         
         // 🧬 API per controllo funzionalità molecolari avanzate
-        this.enableMolecularPhysics = true;
-    }    // 🚀 Inizializzazione sistemi avanzati
+        this.enableMolecularPhysics = true;    }
+
+    // 🚀 Inizializzazione sistemi avanzati
     initializeAdvancedSystems() {
         // Carica sistemi di turbolenza ed erosione se disponibili
         if (this.enableTurbulence && typeof FluidTurbulence !== 'undefined') {
             this.turbulenceSystem = new FluidTurbulence(this);
-            console.log('🌪️ Advanced Turbulence System initialized');
         }
         
         if (this.enableErosion && typeof FluidErosion !== 'undefined') {
             this.erosionSystem = new FluidErosion(this);
-            console.log('🪨 Advanced Erosion System initialized');
         }
         
         // Carica sistema di ottimizzazione performance
         if (this.enablePerformanceOptimization && typeof FluidPerformanceManager !== 'undefined') {
             this.performanceManager = new FluidPerformanceManager(this);
-            console.log('⚡ Advanced Performance Manager initialized');
         }
-    }    // 🔄 Aggiornamento principale del sistema fluidi
+    }
+
+    // 🔄 Aggiornamento principale del sistema fluidi
     updateFluidPhysics(deltaTime) {
         this.fluidUpdateCounter++;
         this.frameCounter++;

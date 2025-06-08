@@ -1026,12 +1026,6 @@ class Player {
                 
                 // Deal damage to the nearest entity
                 const wasAlive = nearestEntity.alive;
-                console.log('🗡️ Player attacking:', {
-                    entityType: nearestEntity.type,
-                    entityHealth: nearestEntity.health,
-                    damage: this.attackDamage,
-                    playerInstance: this.constructor.name
-                });
                 nearestEntity.takeDamage(this.attackDamage, this);
                 this.lastAttackTime = now;
                 

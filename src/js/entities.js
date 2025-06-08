@@ -304,20 +304,8 @@ class Entity {
                 return spiderDrops;
             case EntityTypes.CREEPER:
                 const creeperDrops = [{ type: 'explosive', name: 'gunpowder', amount: Math.floor(Math.random() * 2) }];
-                return creeperDrops;
-            default:
-                console.log(`❓ Unknown entity type: "${this.type}", available types:`, Object.values(EntityTypes));
-                console.log(`❓ Exact type comparison:`, {
-                    type: this.type,
-                    pig: this.type === EntityTypes.PIG,
-                    cow: this.type === EntityTypes.COW,
-                    chicken: this.type === EntityTypes.CHICKEN,
-                    sheep: this.type === EntityTypes.SHEEP,
-                    zombie: this.type === EntityTypes.ZOMBIE,
-                    skeleton: this.type === EntityTypes.SKELETON,
-                    spider: this.type === EntityTypes.SPIDER,
-                    creeper: this.type === EntityTypes.CREEPER
-                });
+                return creeperDrops;            default:
+                console.warn(`Unknown entity type: "${this.type}"`);
                 return [];
         }
     }
