@@ -262,6 +262,23 @@ class Player {
             const mousePos = input.getMousePosition();
             this.handlePlacing(mousePos);
         }
+
+        // Handle mouse wheel for inventory slot selection
+        const wheelDelta = input.getWheelDelta();
+        if (wheelDelta !== 0) {
+            // Scroll down (positive delta) = next slot, scroll up (negative delta) = previous slot
+            const direction = wheelDelta > 0 ? 1 : -1;
+            let newSlot = this.activeSlot + direction;
+            
+            // Wrap around the inventory slots (0 to inventorySlots-1)
+            if (newSlot >= this.inventorySlots) {
+                newSlot = 0;
+            } else if (newSlot < 0) {
+                newSlot = this.inventorySlots - 1;
+            }
+            
+            this.setActiveSlot(newSlot);
+        }
     }
 
     // 🌊 Gestione movimento avanzato nei fluidi
